@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -- 1. TAXONOMY (Dynamic Dropdowns & Attributes) --
+model TaxonomyTerm {
+  id             String          @id @default(uuid())
+  category       String // e.g., "VENDOR", "INTERFACE_TYPE"
+  value          String // e.g., "Cisco Meraki", "WAN"
+  label          String
+  itemAttributes ItemAttribute[]
+
+  @@unique([category, value])
+  @@index([category])
+}
+
+// -- 2. UNIFIED CATALOG --
+enum ItemType {
+  PACKAGE
+  HARDWARE
+  SOFTWARE
+  LICENSE
+  MANAGED_SERVICE
+  SERVICE_OPTION
+  CONNECTIVITY
+}
+
+model CatalogItem {
+  id                 String           @id @default(uuid())
+  sku                String           @unique
+  name               String
+  description        String?
+  type               ItemType
+  pricing            Pricing[]
+  attributes         ItemAttribute[]
+  parentDependencies ItemDependency[] @relation("ParentItem")
+  childDependencies  ItemDependency[] @relation("ChildItem")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+model ItemAttribute {
+  id             String       @id @default(uuid())
+  itemId         String
+  taxonomyTermId String
+  item           CatalogItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  term           TaxonomyTerm @relation(fields: [taxonomyTermId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, taxonomyTermId])
+}
+
+// -- 3. DEPENDENCY ENGINE (Solves Licensing & Bundles) --
+enum DependencyType {
+  REQUIRES
+  INCLUDES
+  MANDATORY_ATTACHMENT
+  OPTIONAL_ATTACHMENT
+  INCOMPATIBLE
+  RECOMMENDS
+}
+
+model ItemDependency {
+  id                 String         @id @default(uuid())
+  parentId           String
+  childId            String
+  type               DependencyType
+  quantityMultiplier Int            @default(1)
+  parentItem         CatalogItem    @relation("ParentItem", fields: [parentId], references: [id], onDelete: Cascade)
+  childItem          CatalogItem    @relation("ChildItem", fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, childId, type])
+}
+
+// -- 4. PRICING ENGINE (Dimensional & Tiered) --
+enum PricingModel {
+  FLAT
+  TIERED
+  PER_UNIT
+  USAGE_BASED
+  PERCENTAGE
+}
+
+model Pricing {
+  id             String        @id @default(uuid())
+  itemId         String
+  pricingModel   PricingModel  @default(FLAT)
+  unitOfMeasure  String? // e.g., "Mbps", "Port"
+  minQuantity    Int           @default(1)
+  maxQuantity    Int?
+  costNrc        Decimal       @default(0.00) @db.Decimal(10, 2)
+  costMrc        Decimal       @default(0.00) @db.Decimal(10, 2)
+  priceNrc       Decimal       @default(0.00) @db.Decimal(10, 2)
+  priceMrc       Decimal       @default(0.00) @db.Decimal(10, 2)
+  percentageRate Decimal?      @db.Decimal(5, 4)
+  effectiveDate  DateTime      @default(now())
+  expirationDate DateTime?
+  item           CatalogItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  tiers          PricingTier[]
+
+  @@index([itemId])
+}
+
+model PricingTier {
+  id           String  @id @default(uuid())
+  pricingId    String
+  startingUnit Int
+  endingUnit   Int?
+  priceMrc     Decimal @db.Decimal(10, 2)
+  costMrc      Decimal @db.Decimal(10, 2)
+  pricing      Pricing @relation(fields: [pricingId], references: [id], onDelete: Cascade)
+
+  @@unique([pricingId, startingUnit])
+}

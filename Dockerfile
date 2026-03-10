@@ -2,14 +2,7 @@ FROM node:20-alpine AS base
 
 # Stage 1: Install dependencies only when needed
 FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat
-
-# -- CLOUD RUN STANDARDS REMINDER --
-# If you add dependencies with native bindings (e.g., sharp, bcrypt, Prisma),
-# you MUST include the required Alpine Linux packages here to ensure container dependency parity.
-# Example: 
-# RUN apk add --no-cache openssl python3 make g++ 
+RUN apk add --no-cache libc6-compat openssl
 
 WORKDIR /app
 
@@ -26,10 +19,12 @@ COPY . .
 # Disable Next.js telemetry during the build
 ENV NEXT_TELEMETRY_DISABLED=1
 
+RUN npx prisma generate
 RUN npm run build
 
 # Stage 3: Production image, copy all the files and run next
 FROM base AS runner
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 ENV NODE_ENV=production
