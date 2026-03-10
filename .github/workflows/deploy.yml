@@ -70,7 +70,7 @@ jobs:
 
       - name: Run Database Migrations
         run: |
-          npm install prisma
+          npm ci
           DATABASE_URL=${{ secrets.DATABASE_URL }} npx prisma migrate deploy
 
       - name: Show Deployed App URL
