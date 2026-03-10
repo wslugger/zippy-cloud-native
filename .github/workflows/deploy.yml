@@ -14,8 +14,8 @@ env:
   REGION: ${{ secrets.GCP_REGION }}
   GAR_LOCATION: ${{ secrets.GCP_REGION }}
   GAR_REPOSITORY: ${{ secrets.GAR_REPOSITORY }}
-  WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-  SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+  WORKLOAD_IDENTITY_PROVIDER: 'projects/625176430099/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider'
+  SERVICE_ACCOUNT: 'github-actions-deployer@zippy-cloud-native.iam.gserviceaccount.com'
 
 jobs:
   deploy:
