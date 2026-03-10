@@ -69,9 +69,11 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL }}
 
       - name: Run Database Migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           npm ci
-          DATABASE_URL=${{ secrets.DATABASE_URL }} npx prisma migrate deploy
+          npx prisma migrate deploy
 
       - name: Show Deployed App URL
         run: echo "Successfully deployed to ${{ steps.deploy.outputs.url }}"
