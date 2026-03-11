@@ -11,6 +11,7 @@ export async function GET() {
         });
         return NextResponse.json(dependencies);
     } catch (error) {
+        console.error("GET RULES ERROR:", error);
         return NextResponse.json({ error: "Failed to fetch rules" }, { status: 500 });
     }
 }
@@ -25,6 +26,7 @@ export async function DELETE(request: Request) {
         await prisma.itemDependency.delete({ where: { id } });
         return new NextResponse(null, { status: 204 });
     } catch (error) {
+        console.error("DELETE RULE ERROR:", error);
         return NextResponse.json({ error: "Failed to delete rule" }, { status: 500 });
     }
 }
@@ -33,6 +35,10 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { parentId, childId, type, quantityMultiplier } = body;
+
+        if (!parentId || !childId || !type) {
+            return NextResponse.json({ error: "'parentId', 'childId', and 'type' are required" }, { status: 400 });
+        }
 
         const dependency = await prisma.itemDependency.create({
             data: {
@@ -43,8 +49,9 @@ export async function POST(request: Request) {
             },
         });
 
-        return NextResponse.json(dependency);
+        return NextResponse.json(dependency, { status: 201 });
     } catch (error) {
+        console.error("POST RULE ERROR:", error);
         return NextResponse.json({ error: "Failed to create rule" }, { status: 500 });
     }
 }

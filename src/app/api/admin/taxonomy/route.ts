@@ -20,6 +20,10 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { id, category, value, label } = body;
 
+        if (!category || !value || !label) {
+            return NextResponse.json({ error: "'category', 'value', and 'label' are required" }, { status: 400 });
+        }
+
         let term;
         if (id) {
             // Update existing record

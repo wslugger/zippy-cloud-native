@@ -43,17 +43,31 @@ export function ServiceFamilySelector({
 }: ServiceFamilySelectorProps) {
     const [families, setFamilies] = useState<ServiceFamily[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [expandedFamily, setExpandedFamily] = useState<string | null>(null);
     const [selections, setSelections] = useState<Map<string, Record<string, any>>>(new Map());
 
-    useEffect(() => {
+    const fetchFamilies = () => {
+        setLoading(true);
+        setError(null);
         fetch('/api/catalog/families')
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) throw new Error(`Failed to load services (${r.status})`);
+                return r.json();
+            })
             .then(data => {
                 setFamilies(data);
-                setLoading(false);
                 if (data.length > 0) setExpandedFamily(data[0].id);
-            });
+            })
+            .catch(err => {
+                console.error('ServiceFamilySelector fetch failed:', err);
+                setError(err.message || 'Failed to load services');
+            })
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        fetchFamilies();
     }, []);
 
     function toggleItem(item: CatalogItem) {
@@ -82,6 +96,21 @@ export function ServiceFamilySelector({
         return (
             <div className="flex items-center justify-center py-12 text-slate-500">
                 <Loader2 className="animate-spin mr-2" size={20} /> Loading services...
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-500 gap-3">
+                <p className="text-sm text-red-500">{error}</p>
+                <button
+                    type="button"
+                    onClick={fetchFamilies}
+                    className="text-xs font-bold px-4 py-2 rounded-lg border border-slate-200 hover:border-slate-400 transition-colors"
+                >
+                    Retry
+                </button>
             </div>
         );
     }

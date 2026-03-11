@@ -20,6 +20,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
     const [step, setStep] = useState<WizardStep>(1);
     const [loading, setLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
     
     // Selection state
     const [selectedBase, setSelectedBase] = useState<any>(null);
@@ -77,6 +78,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
 
     const handleComplete = async () => {
         setIsSaving(true);
+        setSaveError(null);
         try {
             const itemsToSave = [
                 { catalogItemId: selectedBase.id, quantity: 1 },
@@ -85,7 +87,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
             ];
 
             // Required dependencies
-             const requiredDeps = [
+            const requiredDeps = [
                 ...(selectedBase?.childDependencies || []),
                 ...(selectedOption?.childDependencies || [])
             ].filter(d => d.type === 'REQUIRES');
@@ -97,7 +99,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
             });
 
             // Combine selected attachments with auto-included required dependencies
-            const allAtachmentIds = [
+            const allAttachmentIds = [
                 ...selectedAttachments.map(a => a.id),
                 ...requiredDeps.map(d => d.childId)
             ].filter((id, index, self) => self.indexOf(id) === index); // Unique
@@ -109,16 +111,20 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                 body: JSON.stringify({
                     baseId: selectedBase.id,
                     optionId: selectedOption?.id,
-                    attachmentIds: allAtachmentIds,
+                    attachmentIds: allAttachmentIds,
                     designOptionIds: selectedDesignOptions
                 }),
             });
 
-            if (!res.ok) throw new Error('Failed to commit design');
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || 'Failed to commit design');
+            }
 
             onComplete();
-        } catch (err) {
-            console.error(err);
+        } catch (err: any) {
+            console.error('Design commit failed:', err);
+            setSaveError(err.message || 'Failed to save design. Please try again.');
         } finally {
             setIsSaving(false);
         }
@@ -219,7 +225,13 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
             </div>
 
             {/* Footer / Actions */}
-            <div className="px-8 py-6 bg-slate-50/80 backdrop-blur-sm border-t border-slate-100 flex items-center justify-between">
+            <div className="px-8 py-6 bg-slate-50/80 backdrop-blur-sm border-t border-slate-100 flex flex-col gap-3">
+            {saveError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2 text-center">
+                    {saveError}
+                </div>
+            )}
+            <div className="flex items-center justify-between">
                 <Button 
                     variant="ghost" 
                     onClick={prevStep} 
@@ -264,6 +276,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                         )}
                     </Button>
                 </div>
+            </div>
             </div>
         </div>
     );

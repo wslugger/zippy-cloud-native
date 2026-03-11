@@ -49,52 +49,58 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { sku, name, shortDescription, detailedDescription, type, configSchema, constraints, assumptions, collaterals } = body;
 
-        const item = await prisma.catalogItem.create({
-            data: { 
-                sku, 
-                name, 
-                shortDescription, 
-                detailedDescription, 
-                type, 
-                configSchema,
-                constraints: constraints ? {
-                    create: constraints.map((c: any) => ({ description: c.description }))
-                } : undefined,
-                assumptions: assumptions ? {
-                    create: assumptions.map((a: any) => ({ description: a.description }))
-                } : undefined,
-                collaterals: collaterals ? {
-                    create: collaterals.map((c: any) => ({ 
-                        title: c.title, 
-                        documentUrl: c.documentUrl, 
-                        type: c.type 
-                     }))
-                } : undefined,
-                childDependencies: body.childDependencies ? {
-                    create: body.childDependencies.map((d: any) => ({
-                        childId: d.childId,
-                        type: d.type,
-                        quantityMultiplier: d.quantityMultiplier || 1
-                    }))
-                } : undefined,
-                attributes: body.attributes ? {
-                    create: body.attributes.map((a: any) => ({
-                        taxonomyTermId: a.taxonomyTermId
-                    }))
-                } : undefined,
-                pricing: body.pricing ? {
-                    create: body.pricing.map((p: any) => ({
-                        pricingModel: p.pricingModel || 'FLAT',
-                        costMrc: p.costMrc || 0,
-                        costNrc: p.costNrc || 0,
-                        priceMrc: p.priceMrc || p.costMrc || 0,
-                        priceNrc: p.priceNrc || p.costNrc || 0,
-                    }))
-                } : undefined
-            } as any,
+        if (!sku || !name || !type) {
+            return NextResponse.json({ error: "'sku', 'name', and 'type' are required" }, { status: 400 });
+        }
+
+        const item = await prisma.$transaction(async (tx) => {
+            return (tx.catalogItem as any).create({
+                data: {
+                    sku,
+                    name,
+                    shortDescription,
+                    detailedDescription,
+                    type,
+                    configSchema,
+                    constraints: constraints ? {
+                        create: constraints.map((c: any) => ({ description: c.description }))
+                    } : undefined,
+                    assumptions: assumptions ? {
+                        create: assumptions.map((a: any) => ({ description: a.description }))
+                    } : undefined,
+                    collaterals: collaterals ? {
+                        create: collaterals.map((c: any) => ({
+                            title: c.title,
+                            documentUrl: c.documentUrl,
+                            type: c.type
+                        }))
+                    } : undefined,
+                    childDependencies: body.childDependencies ? {
+                        create: body.childDependencies.map((d: any) => ({
+                            childId: d.childId,
+                            type: d.type,
+                            quantityMultiplier: d.quantityMultiplier || 1
+                        }))
+                    } : undefined,
+                    attributes: body.attributes ? {
+                        create: body.attributes.map((a: any) => ({
+                            taxonomyTermId: a.taxonomyTermId
+                        }))
+                    } : undefined,
+                    pricing: body.pricing ? {
+                        create: body.pricing.map((p: any) => ({
+                            pricingModel: p.pricingModel || 'FLAT',
+                            costMrc: p.costMrc || 0,
+                            costNrc: p.costNrc || 0,
+                            priceMrc: p.priceMrc || p.costMrc || 0,
+                            priceNrc: p.priceNrc || p.costNrc || 0,
+                        }))
+                    } : undefined
+                },
+            });
         });
 
-        return NextResponse.json(item);
+        return NextResponse.json(item, { status: 201 });
     } catch (error) {
         console.error("POST CATALOG ERROR:", error);
         return NextResponse.json({ error: "Failed to create catalog item" }, { status: 500 });
