@@ -8,8 +8,6 @@ import {
     Search,
     Filter,
     Box,
-    Tag as TagIcon,
-    DollarSign,
     ChevronRight,
     Loader2,
     Package,
@@ -18,7 +16,8 @@ import {
     Workflow,
     ExternalLink,
     Briefcase,
-    Layers
+    Layers,
+    Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -40,6 +39,7 @@ export default function CatalogPage() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filterType, setFilterType] = useState('ALL');
+    const [deletingId, setDeletingId] = useState<string | null>(null);
     const LIMIT = 50;
 
     useEffect(() => {
@@ -49,6 +49,20 @@ export default function CatalogPage() {
     useEffect(() => {
         fetchItems();
     }, [search, filterType, page]);
+
+    async function deleteItem(id: string) {
+        if (!confirm('Delete this catalog item? This cannot be undone.')) return;
+        setDeletingId(id);
+        try {
+            await fetch(`/api/admin/catalog/${id}`, { method: 'DELETE' });
+            setItems(prev => prev.filter(i => i.id !== id));
+            setTotal(prev => prev - 1);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setDeletingId(null);
+        }
+    }
 
     async function fetchItems() {
         try {
@@ -145,39 +159,40 @@ export default function CatalogPage() {
                                         {item.type}
                                     </span>
                                 </div>
-                                <button className="text-slate-500 hover:text-slate-900 transition-colors">
-                                    <ExternalLink size={16} />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <Link
+                                        href={`/admin/catalog/${item.id}`}
+                                        className="text-slate-500 hover:text-slate-900 transition-colors"
+                                    >
+                                        <ExternalLink size={16} />
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={() => deleteItem(item.id)}
+                                        disabled={deletingId === item.id}
+                                        className="text-slate-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                                        aria-label="Delete item"
+                                    >
+                                        {deletingId === item.id
+                                            ? <Loader2 size={16} className="animate-spin" />
+                                            : <Trash2 size={16} />}
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="space-y-1 mb-6">
-                                <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-400 transition-colors truncate">
+                            <div className="space-y-1 mb-4">
+                                <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
                                     {item.name}
                                 </h3>
-                                <code className="text-[10px] text-blue-500 font-mono tracking-tighter">
+                                <code className="text-xs text-blue-500 font-mono tracking-tight bg-blue-50/50 px-1.5 py-0.5 rounded">
                                     SKU: {item.sku}
                                 </code>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 mb-6">
-                                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/50">
-                                    <div className="flex items-center gap-2 text-slate-500 text-[9px] uppercase font-bold tracking-wider mb-1">
-                                        <TagIcon size={10} />
-                                        Attributes
-                                    </div>
-                                    <div className="text-xs text-slate-700 font-medium">
-                                        {item.attributes.length} Linked
-                                    </div>
-                                </div>
-                                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/50">
-                                    <div className="flex items-center gap-2 text-slate-500 text-[9px] uppercase font-bold tracking-wider mb-1">
-                                        <DollarSign size={10} />
-                                        Pricing
-                                    </div>
-                                    <div className="text-xs text-slate-700 font-medium">
-                                        {item.pricing.length > 0 ? `$${item.pricing[0].priceMrc}/mo` : 'Not Set'}
-                                    </div>
-                                </div>
+                            <div className="mb-8 min-h-[4.5rem]">
+                                <p className="text-base text-slate-600 line-clamp-3 leading-relaxed">
+                                    {item.shortDescription || 'No description provided.'}
+                                </p>
                             </div>
 
                             <Link href={`/admin/catalog/${item.id}`}>
