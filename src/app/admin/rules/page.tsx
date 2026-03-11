@@ -86,13 +86,13 @@ export default function RulesPage() {
     return (
         <div className="flex flex-col space-y-8">
             <div>
-                <h2 className="text-3xl font-bold tracking-tight text-white">Calculator Rules</h2>
-                <p className="text-slate-400">Establish logical dependencies and bundling rules across your catalog.</p>
+                <h2 className="text-3xl font-bold tracking-tight text-slate-900">Calculator Rules</h2>
+                <p className="text-slate-600">Establish logical dependencies and bundling rules across your catalog.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Creation Form */}
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 h-fit sticky top-8">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 h-fit sticky top-8">
                     <div className="flex items-center gap-3 mb-6">
                         <Settings2 className="text-blue-400" size={20} />
                         <h3 className="font-bold text-lg">Define New Logic</h3>
@@ -102,7 +102,7 @@ export default function RulesPage() {
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Parent Item (Trigger)</label>
                             <select
-                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-300 focus:ring-1 focus:ring-blue-500 outline-none"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none"
                                 value={parentId}
                                 onChange={(e) => setParentId(e.target.value)}
                             >
@@ -120,7 +120,7 @@ export default function RulesPage() {
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Child Item (Effect)</label>
                             <select
-                                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-300 focus:ring-1 focus:ring-blue-500 outline-none"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none"
                                 value={childId}
                                 onChange={(e) => setChildId(e.target.value)}
                             >
@@ -135,7 +135,7 @@ export default function RulesPage() {
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Relationship</label>
                                 <select
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-700"
                                     value={type}
                                     onChange={(e) => setType(e.target.value)}
                                 >
@@ -154,7 +154,7 @@ export default function RulesPage() {
                                     type="number"
                                     value={multiplier}
                                     onChange={(e) => setMultiplier(e.target.value)}
-                                    className="bg-slate-950"
+                                    className="bg-slate-50"
                                     placeholder="1"
                                 />
                             </div>
@@ -175,15 +175,15 @@ export default function RulesPage() {
                 <div className="lg:col-span-2 space-y-4">
                     {rules.length > 0 ? (
                         rules.map((rule) => (
-                            <div key={rule.id} className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 flex items-center justify-between group hover:border-slate-700 transition-all">
+                            <div key={rule.id} className="bg-white/50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between group hover:border-slate-300 transition-all">
                                 <div className="flex items-center gap-6">
-                                    <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                                         <Workflow size={20} className="text-blue-500" />
                                     </div>
 
                                     <div className="flex items-center gap-4">
                                         <div className="space-y-0.5">
-                                            <p className="text-sm font-bold text-white">{rule.parentItem.name}</p>
+                                            <p className="text-sm font-bold text-slate-900">{rule.parentItem.name}</p>
                                             <p className="text-[10px] font-mono text-slate-500 uppercase">{rule.parentItem.sku}</p>
                                         </div>
 
@@ -194,7 +194,7 @@ export default function RulesPage() {
                                                 rule.type === 'IS_A' ? 'bg-teal-500/10 border-teal-500/20 text-teal-400' :
                                                 rule.type === 'INCOMPATIBLE' ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' :
                                                 rule.type === 'RECOMMENDS' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
-                                                'bg-slate-800 border-slate-700 text-slate-400'
+                                                'bg-slate-100 border-slate-300 text-slate-600'
                                             }`}>
                                                 {rule.type}
                                             </span>
@@ -203,7 +203,7 @@ export default function RulesPage() {
                                         </div>
 
                                         <div className="space-y-0.5">
-                                            <p className="text-sm font-bold text-white">{rule.childItem.name}</p>
+                                            <p className="text-sm font-bold text-slate-900">{rule.childItem.name}</p>
                                             <p className="text-[10px] font-mono text-slate-500 uppercase">{rule.childItem.sku}</p>
                                         </div>
                                     </div>
@@ -221,7 +221,7 @@ export default function RulesPage() {
                             </div>
                         ))
                     ) : (
-                        <div className="h-64 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-800 rounded-3xl">
+                        <div className="h-64 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-200 rounded-3xl">
                             <Workflow size={48} className="opacity-20 mb-2" />
                             <p>No calculator rules defined yet.</p>
                         </div>

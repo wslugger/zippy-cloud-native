@@ -1,12 +1,27 @@
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+
+async function verifyOwnership(projectId: string, userId: string) {
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) return "not_found";
+    if (project.userId !== userId) return "forbidden";
+    return "ok";
+}
 
 // GET /api/projects/[id]/sites/[siteId]
 export async function GET(
     _request: NextRequest,
     { params }: { params: Promise<{ id: string; siteId: string }> }
 ) {
-    const { siteId } = await params;
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id: projectId, siteId } = await params;
+    const ownership = await verifyOwnership(projectId, session.userId);
+    if (ownership === "not_found") return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    if (ownership === "forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     try {
         const site = await prisma.solutionSite.findUnique({
             where: { id: siteId },
@@ -40,7 +55,14 @@ export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ id: string; siteId: string }> }
 ) {
-    const { siteId } = await params;
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id: projectId, siteId } = await params;
+    const ownership = await verifyOwnership(projectId, session.userId);
+    if (ownership === "not_found") return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    if (ownership === "forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     try {
         const { name, address, region, primaryServiceId } = await request.json();
 
@@ -60,7 +82,14 @@ export async function DELETE(
     _request: NextRequest,
     { params }: { params: Promise<{ id: string; siteId: string }> }
 ) {
-    const { siteId } = await params;
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id: projectId, siteId } = await params;
+    const ownership = await verifyOwnership(projectId, session.userId);
+    if (ownership === "not_found") return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    if (ownership === "forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     try {
         await prisma.solutionSite.delete({ where: { id: siteId } });
         return new NextResponse(null, { status: 204 });

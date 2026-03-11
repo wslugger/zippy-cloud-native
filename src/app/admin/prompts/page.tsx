@@ -82,7 +82,7 @@ export default function PromptsPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">AI Prompt Logic</h2>
-                    <p className="text-slate-400">Configure the system prompts that drive Zippy's AI intelligence.</p>
+                    <p className="text-slate-600">Configure the system prompts that drive Zippy's AI intelligence.</p>
                 </div>
             </div>
 
@@ -94,8 +94,8 @@ export default function PromptsPage() {
                             key={p.id}
                             onClick={() => setSelectedPrompt(p)}
                             className={`p-4 text-left rounded-xl transition-all border ${selectedPrompt?.id === p.id
-                                    ? 'bg-blue-600/10 border-blue-600/50 text-white'
-                                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                                    ? 'bg-blue-600/10 border-blue-600/50 text-slate-900'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-200'
                                 }`}
                         >
                             <div className="flex items-center gap-2 mb-1">
@@ -110,12 +110,12 @@ export default function PromptsPage() {
                 </div>
 
                 {/* Editor Area */}
-                <div className="flex-1 flex flex-col bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+                <div className="flex-1 flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xl">
                     {selectedPrompt ? (
                         <>
-                            <div className="p-4 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
+                            <div className="p-4 border-b border-slate-200 bg-white/50 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="px-3 py-1 bg-slate-800 rounded text-[10px] font-mono text-blue-400 border border-slate-700">
+                                    <div className="px-3 py-1 bg-slate-100 rounded text-[10px] font-mono text-blue-400 border border-slate-300">
                                         {selectedPrompt.key}
                                     </div>
                                     <span className="text-xs text-slate-500 flex items-center gap-1">
@@ -139,7 +139,7 @@ export default function PromptsPage() {
                                         System Message Content
                                     </label>
                                     <textarea
-                                        className="w-full h-80 bg-slate-950 border border-slate-800 rounded-lg p-4 text-sm font-mono leading-relaxed text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all resize-none shadow-inner"
+                                        className="w-full h-80 bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm font-mono leading-relaxed text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all resize-none shadow-inner"
                                         value={selectedPrompt.value}
                                         onChange={(e) => setSelectedPrompt({ ...selectedPrompt, value: e.target.value })}
                                         placeholder="Enter system prompt instructions here..."
@@ -154,7 +154,7 @@ export default function PromptsPage() {
                                         value={selectedPrompt.description || ''}
                                         onChange={(e) => setSelectedPrompt({ ...selectedPrompt, description: e.target.value })}
                                         placeholder="Briefly describe what this prompt controls..."
-                                        className="bg-slate-950"
+                                        className="bg-slate-50"
                                     />
                                 </div>
 

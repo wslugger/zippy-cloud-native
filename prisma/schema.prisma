@@ -6,48 +6,73 @@ datasource db {
   provider = "postgresql"
 }
 
-
-// -- 1. TAXONOMY (Dynamic Dropdowns & Attributes) --
 model TaxonomyTerm {
-  id             String          @id @default(uuid())
-  category       String // e.g., "VENDOR", "INTERFACE_TYPE", "FEATURE", "SLA", "REGION"
-  value          String // e.g., "Cisco Meraki", "WAN"
-  label          String
-  itemAttributes ItemAttribute[]
+  id                String                    @id @default(uuid())
+  category          String
+  value             String
+  label             String
+  itemAttributes    ItemAttribute[]
+  itemDesignOptions ProjectItemDesignOption[]
 
   @@unique([category, value])
   @@index([category])
 }
 
-// -- 2. UNIFIED CATALOG --
-enum ItemType {
-  PACKAGE
-  HARDWARE
-  SOFTWARE
-  LICENSE
-  MANAGED_SERVICE
-  SERVICE_OPTION
-  SERVICE_FAMILY
-  CONNECTIVITY
+model CatalogItem {
+  id                  String           @id @default(uuid())
+  sku                 String           @unique
+  name                String
+  type                ItemType
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  configSchema        Json?
+  detailedDescription String?
+  shortDescription    String?
+  assumptions         ItemAssumption[]
+  attributes          ItemAttribute[]
+  collaterals         ItemCollateral[]
+  constraints         ItemConstraint[]
+  childDependencies   ItemDependency[] @relation("ParentItem")
+  parentDependencies  ItemDependency[] @relation("ChildItem")
+  pricing             Pricing[]
+  projectItems        ProjectItem[]
+  siteSelections      SiteSelection[]
+  primarySites        SolutionSite[]   @relation("PrimarySiteService")
 }
 
-model CatalogItem {
-  id                 String           @id @default(uuid())
-  sku                String           @unique
-  name               String
-  description        String?
-  type               ItemType
-  configSchema       Json? // JSON Schema for dynamic design option forms (topology, breakout, etc.)
-  pricing            Pricing[]
-  attributes         ItemAttribute[]
-  parentDependencies ItemDependency[] @relation("ParentItem")
-  childDependencies  ItemDependency[] @relation("ChildItem")
-  primarySites       SolutionSite[]   @relation("PrimarySiteService")
-  siteSelections     SiteSelection[]
-  collaterals        Collateral[]
-  projectItems       ProjectItem[]
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+model ItemConstraint {
+  id          String      @id @default(uuid())
+  itemId      String
+  description String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  item        CatalogItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+}
+
+model ItemAssumption {
+  id          String      @id @default(uuid())
+  itemId      String
+  description String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  item        CatalogItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
+}
+
+model ItemCollateral {
+  id          String      @id @default(uuid())
+  itemId      String
+  title       String
+  documentUrl String
+  type        String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  catalogItem CatalogItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId])
 }
 
 model ItemAttribute {
@@ -60,54 +85,23 @@ model ItemAttribute {
   @@unique([itemId, taxonomyTermId])
 }
 
-model Collateral {
-  id            String       @id @default(uuid())
-  catalogItemId String
-  title         String
-  url           String
-  type          String       // e.g., "PDF", "DIAGRAM"
-  catalogItem   CatalogItem  @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-}
-
-// -- 3. DEPENDENCY ENGINE (Solves Licensing & Bundles) --
-enum DependencyType {
-  REQUIRES
-  INCLUDES
-  MANDATORY_ATTACHMENT
-  OPTIONAL_ATTACHMENT
-  INCOMPATIBLE
-  RECOMMENDS
-  IS_A // child IS_A variant of parent SERVICE_FAMILY
-}
-
 model ItemDependency {
   id                 String         @id @default(uuid())
   parentId           String
   childId            String
   type               DependencyType
   quantityMultiplier Int            @default(1)
-  parentItem         CatalogItem    @relation("ParentItem", fields: [parentId], references: [id], onDelete: Cascade)
   childItem          CatalogItem    @relation("ChildItem", fields: [childId], references: [id], onDelete: Cascade)
+  parentItem         CatalogItem    @relation("ParentItem", fields: [parentId], references: [id], onDelete: Cascade)
 
   @@unique([parentId, childId, type])
-}
-
-// -- 4. PRICING ENGINE (Dimensional & Tiered) --
-enum PricingModel {
-  FLAT
-  TIERED
-  PER_UNIT
-  USAGE_BASED
-  PERCENTAGE
 }
 
 model Pricing {
   id             String        @id @default(uuid())
   itemId         String
   pricingModel   PricingModel  @default(FLAT)
-  unitOfMeasure  String? // e.g., "Mbps", "Port"
+  unitOfMeasure  String?
   minQuantity    Int           @default(1)
   maxQuantity    Int?
   costNrc        Decimal       @default(0.00) @db.Decimal(10, 2)
@@ -115,15 +109,17 @@ model Pricing {
   priceNrc       Decimal       @default(0.00) @db.Decimal(10, 2)
   priceMrc       Decimal       @default(0.00) @db.Decimal(10, 2)
   percentageRate Decimal?      @db.Decimal(5, 4)
-  termMonths     Int? // Contract term: 12, 36, 60. null = month-to-month
-  context        String? // "PRIMARY", "SECONDARY" for role-based pricing
   effectiveDate  DateTime      @default(now())
   expirationDate DateTime?
+  context        String?
+  termMonths     Int?
+  currency       String        @default("USD")
   item           CatalogItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
   tiers          PricingTier[]
 
   @@index([itemId])
   @@index([itemId, termMonths, context])
+  @@unique([itemId, effectiveDate], name: "itemId_effectiveDate")
 }
 
 model PricingTier {
@@ -138,7 +134,122 @@ model PricingTier {
   @@unique([pricingId, startingUnit])
 }
 
-// -- 5. PROJECT & SITE QUOTING --
+model Project {
+  id              String         @id @default(uuid())
+  name            String
+  customerName    String?
+  status          ProjectStatus  @default(DRAFT)
+  termMonths      Int            @default(1)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  userId          String?
+  rawRequirements String?
+  user            User?          @relation(fields: [userId], references: [id])
+  items           ProjectItem[]
+  sites           SolutionSite[]
+}
+
+model ProjectItem {
+  id            String                    @id @default(uuid())
+  projectId     String
+  catalogItemId String
+  quantity      Int                       @default(1)
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  configValues  Json?
+  catalogItem   CatalogItem               @relation(fields: [catalogItemId], references: [id])
+  project       Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  designOptions ProjectItemDesignOption[]
+
+  @@unique([projectId, catalogItemId])
+}
+
+model ProjectItemDesignOption {
+  id             String       @id @default(uuid())
+  projectItemId  String
+  taxonomyTermId String
+  projectItem    ProjectItem  @relation(fields: [projectItemId], references: [id], onDelete: Cascade)
+  term           TaxonomyTerm @relation(fields: [taxonomyTermId], references: [id], onDelete: Cascade)
+
+  @@unique([projectItemId, taxonomyTermId])
+}
+
+model SolutionSite {
+  id               String          @id @default(uuid())
+  projectId        String
+  name             String
+  address          String?
+  region           String?
+  primaryServiceId String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  siteSelections   SiteSelection[]
+  primaryService   CatalogItem?    @relation("PrimarySiteService", fields: [primaryServiceId], references: [id])
+  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model SiteSelection {
+  id            String       @id @default(uuid())
+  siteId        String
+  catalogItemId String
+  quantity      Int          @default(1)
+  configValues  Json?
+  role          String?
+  createdAt     DateTime     @default(now())
+  catalogItem   CatalogItem  @relation(fields: [catalogItemId], references: [id])
+  site          SolutionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, catalogItemId])
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  role      Role      @default(SA)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  projects  Project[]
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
+
+  @@map("system_configs")
+}
+
+enum ItemType {
+  PACKAGE
+  HARDWARE
+  MANAGED_SERVICE
+  SERVICE_OPTION
+  CONNECTIVITY
+  SERVICE_FAMILY
+}
+
+enum DependencyType {
+  REQUIRES
+  INCLUDES
+  MANDATORY_ATTACHMENT
+  OPTIONAL_ATTACHMENT
+  INCOMPATIBLE
+  RECOMMENDS
+  IS_A
+}
+
+enum PricingModel {
+  FLAT
+  TIERED
+  PER_UNIT
+  USAGE_BASED
+  PERCENTAGE
+}
+
 enum ProjectStatus {
   DRAFT
   IN_REVIEW
@@ -147,87 +258,7 @@ enum ProjectStatus {
   ARCHIVED
 }
 
-model Project {
-  id           String        @id @default(uuid())
-  name         String
-  customerName String?
-  status          ProjectStatus @default(DRAFT)
-  termMonths      Int           @default(1) // Global contract term for the quote
-  rawRequirements String?       @db.Text
-  sites           SolutionSite[]
-  items           ProjectItem[]
-  userId          String?
-  user            User?         @relation(fields: [userId], references: [id])
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-}
-
-model ProjectItem {
-  id            String       @id @default(uuid())
-  projectId     String
-  catalogItemId String
-  quantity      Int          @default(1)
-  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  catalogItem   CatalogItem  @relation(fields: [catalogItemId], references: [id])
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-
-  @@unique([projectId, catalogItemId])
-}
-
-
-model SolutionSite {
-  id               String          @id @default(uuid())
-  projectId        String
-  name             String // e.g., "New York HQ"
-  address          String?
-  region           String? // REGION taxonomy value for geo-filtering
-  primaryServiceId String? // Which service is "primary" at this site
-  siteSelections   SiteSelection[]
-  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  primaryService   CatalogItem?    @relation("PrimarySiteService", fields: [primaryServiceId], references: [id])
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-}
-
-model SiteSelection {
-  id            String       @id @default(uuid())
-  siteId        String
-  catalogItemId String
-  quantity      Int          @default(1)
-  configValues  Json? // User's answers from the configSchema form
-  role          String? // "PRIMARY" | "SECONDARY"
-  site          SolutionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  catalogItem   CatalogItem  @relation(fields: [catalogItemId], references: [id])
-  createdAt     DateTime     @default(now())
-
-  @@unique([siteId, catalogItemId])
-}
-
-// -- 6. USER MANAGEMENT --
 enum Role {
   SA
   ADMIN
-}
-
-model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  name      String?
-  role      Role      @default(SA)
-  projects  Project[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
-
-// -- 7. SYSTEM CONFIGURATION --
-model SystemConfig {
-  id          String   @id @default(uuid())
-  key         String   @unique
-  value       String   @db.Text
-  description String?
-  updatedAt   DateTime @updatedAt
-  updatedBy   String?
-
-  @@map("system_configs")
 }

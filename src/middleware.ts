@@ -7,9 +7,21 @@ const publicRoutes = ["/login", "/api/auth/login", "/"];
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
   const isPublicRoute = publicRoutes.includes(path);
+  const isAdminApiRoute = path.startsWith("/api/admin/") && path !== "/api/admin/login";
 
   const cookie = req.cookies.get(SESSION_COOKIE)?.value;
   const session = cookie ? await decrypt(cookie) : null;
+
+  // Admin API routes: require ADMIN session, return JSON errors (no redirect)
+  if (isAdminApiRoute) {
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (session.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return NextResponse.next();
+  }
 
   // 1. Redirect to /login if there's no session and path is not public
   if (!isPublicRoute && !session) {
@@ -18,13 +30,12 @@ export async function middleware(req: NextRequest) {
 
   // 2. Redirect to dashboard if session exists and path is /login
   if (path === "/login" && session) {
-    const redirectUrl = session.role === "ADMIN" ? "/admin" : "/dashboard"; // We'll need a dashboard or similar
+    const redirectUrl = session.role === "ADMIN" ? "/admin" : "/dashboard";
     return NextResponse.redirect(new URL(redirectUrl, req.nextUrl));
   }
 
-  // 3. Role-based access control for /admin
+  // 3. Role-based access control for /admin pages
   if (path.startsWith("/admin") && session?.role !== "ADMIN") {
-    // If user is SA tried to access admin, send back to home or dashboard
     return NextResponse.redirect(new URL("/", req.nextUrl));
   }
 
@@ -33,14 +44,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes) -> we handle auth inside specific API routes if needed, 
-     *   though some could be protected here too.
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    // Cover all page routes and /api/admin/* API routes
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };

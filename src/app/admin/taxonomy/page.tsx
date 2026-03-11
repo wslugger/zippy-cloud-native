@@ -85,12 +85,27 @@ export default function TaxonomyPage() {
         }
     };
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('Delete this taxonomy term? This may affect catalog items that use it.')) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/admin/taxonomy?id=${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                setTerms(prev => prev.filter(t => t.id !== id));
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Taxonomy Manager</h2>
-                    <p className="text-slate-400">Manage the lookup tables and metadata categories.</p>
+                    <p className="text-slate-600">Manage the lookup tables and metadata categories.</p>
                 </div>
                 <Button onClick={() => setEditingId('new')} className="gap-2">
                     <Plus size={16} /> New Term
@@ -115,8 +130,8 @@ export default function TaxonomyPage() {
                             key={cat}
                             onClick={() => setActiveCategory(cat)}
                             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${activeCategory === cat
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:border-slate-600'
+                                    ? 'bg-blue-600 text-slate-900'
+                                    : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-600'
                                 }`}
                         >
                             {cat}
@@ -126,9 +141,9 @@ export default function TaxonomyPage() {
             </div>
 
             {/* Table Interface */}
-            <div className="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden shadow-2xl">
+            <div className="rounded-xl border border-slate-200 bg-white/50 overflow-hidden shadow-2xl">
                 <table className="w-full text-left text-sm border-collapse">
-                    <thead className="bg-slate-900 text-slate-400 uppercase text-[10px] tracking-widest font-semibold border-b border-slate-800">
+                    <thead className="bg-white text-slate-600 uppercase text-[10px] tracking-widest font-semibold border-b border-slate-200">
                         <tr>
                             <th className="px-6 py-4">Category</th>
                             <th className="px-6 py-4">Label</th>
@@ -176,12 +191,12 @@ export default function TaxonomyPage() {
                                 </td>
                             </tr>
                         ) : filteredTerms.map(term => (
-                            <tr key={term.id} className="hover:bg-slate-800/50 transition-colors group">
+                            <tr key={term.id} className="hover:bg-slate-100/50 transition-colors group">
                                 <td className="px-6 py-4">
                                     {editingId === term.id ? (
                                         <Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value.toUpperCase() })} className="h-8" />
                                     ) : (
-                                        <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] font-bold text-slate-300">
+                                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-[10px] font-bold text-slate-700">
                                             {term.category}
                                         </span>
                                     )}
@@ -193,7 +208,7 @@ export default function TaxonomyPage() {
                                         term.label
                                     )}
                                 </td>
-                                <td className="px-6 py-4 text-slate-400 font-mono text-[11px]">
+                                <td className="px-6 py-4 text-slate-600 font-mono text-[11px]">
                                     {editingId === term.id ? (
                                         <Input value={form.value || ''} onChange={e => setForm({ ...form, value: e.target.value })} className="h-8" />
                                     ) : (
@@ -212,10 +227,10 @@ export default function TaxonomyPage() {
                                         </div>
                                     ) : (
                                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Button variant="outline" size="sm" onClick={() => handleEdit(term)} className="h-8 w-8 p-0 text-slate-400 hover:text-white">
+                                            <Button variant="outline" size="sm" onClick={() => handleEdit(term)} className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900">
                                                 <Edit3 size={14} />
                                             </Button>
-                                            <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-red-500">
+                                            <Button variant="outline" size="sm" onClick={() => handleDelete(term.id)} className="h-8 w-8 p-0 text-slate-600 hover:text-red-500">
                                                 <Trash2 size={14} />
                                             </Button>
                                         </div>

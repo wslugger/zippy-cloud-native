@@ -127,13 +127,13 @@ export function ConfigSchemaBuilder({ value, onChange }: ConfigSchemaBuilderProp
     return (
         <div className="space-y-3">
             {fields.length === 0 && (
-                <div className="text-center py-6 text-slate-600 text-sm border-2 border-dashed border-slate-800 rounded-xl">
+                <div className="text-center py-6 text-slate-600 text-sm border-2 border-dashed border-slate-200 rounded-xl">
                     No fields defined. Add one below.
                 </div>
             )}
 
             {fields.map((field, i) => (
-                <div key={i} className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+                <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                     <div className="flex items-center gap-2">
                         <GripVertical size={14} className="text-slate-700 shrink-0" />
                         <div className="grid grid-cols-2 gap-2 flex-1">
@@ -141,13 +141,13 @@ export function ConfigSchemaBuilder({ value, onChange }: ConfigSchemaBuilderProp
                                 placeholder="key (e.g. topology)"
                                 value={field.key}
                                 onChange={e => setField(i, { key: e.target.value })}
-                                className="bg-slate-900 text-xs font-mono"
+                                className="bg-white text-xs font-mono"
                             />
                             <Input
                                 placeholder="Title (e.g. Topology)"
                                 value={field.title}
                                 onChange={e => setField(i, { title: e.target.value })}
-                                className="bg-slate-900 text-xs"
+                                className="bg-white text-xs"
                             />
                         </div>
                         <div className="flex gap-1 shrink-0">
@@ -169,7 +169,7 @@ export function ConfigSchemaBuilder({ value, onChange }: ConfigSchemaBuilderProp
                             <select
                                 value={field.type}
                                 onChange={e => setField(i, { type: e.target.value as FieldType, options: [] })}
-                                className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 outline-none"
+                                className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-700 outline-none"
                             >
                                 <option value="string">String</option>
                                 <option value="number">Number</option>
@@ -183,7 +183,7 @@ export function ConfigSchemaBuilder({ value, onChange }: ConfigSchemaBuilderProp
                                 <select
                                     value={field.defaultValue}
                                     onChange={e => setField(i, { defaultValue: e.target.value })}
-                                    className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 outline-none"
+                                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-700 outline-none"
                                 >
                                     <option value="">None</option>
                                     <option value="true">true</option>
@@ -194,7 +194,7 @@ export function ConfigSchemaBuilder({ value, onChange }: ConfigSchemaBuilderProp
                                     placeholder="Default value"
                                     value={field.defaultValue}
                                     onChange={e => setField(i, { defaultValue: e.target.value })}
-                                    className="bg-slate-900 text-xs"
+                                    className="bg-white text-xs"
                                 />
                             )}
                         </div>
@@ -204,7 +204,7 @@ export function ConfigSchemaBuilder({ value, onChange }: ConfigSchemaBuilderProp
                                 <button
                                     type="button"
                                     onClick={() => setField(i, { required: !field.required })}
-                                    className={`relative w-10 h-5 rounded-full transition-colors ${field.required ? 'bg-blue-600' : 'bg-slate-700'}`}
+                                    className={`relative w-10 h-5 rounded-full transition-colors ${field.required ? 'bg-blue-600' : 'bg-slate-200'}`}
                                 >
                                     <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${field.required ? 'translate-x-5' : 'translate-x-0.5'}`} />
                                 </button>
@@ -216,7 +216,7 @@ export function ConfigSchemaBuilder({ value, onChange }: ConfigSchemaBuilderProp
                         placeholder="Description (optional)"
                         value={field.description}
                         onChange={e => setField(i, { description: e.target.value })}
-                        className="bg-slate-900 text-xs"
+                        className="bg-white text-xs"
                     />
 
                     {field.type === 'enum' && (
@@ -228,13 +228,13 @@ export function ConfigSchemaBuilder({ value, onChange }: ConfigSchemaBuilderProp
                                         placeholder="value"
                                         value={opt.value}
                                         onChange={e => setOption(i, oi, { value: e.target.value })}
-                                        className="bg-slate-900 text-xs font-mono flex-1"
+                                        className="bg-white text-xs font-mono flex-1"
                                     />
                                     <Input
                                         placeholder="label"
                                         value={opt.label}
                                         onChange={e => setOption(i, oi, { label: e.target.value })}
-                                        className="bg-slate-900 text-xs flex-1"
+                                        className="bg-white text-xs flex-1"
                                     />
                                     <button onClick={() => removeOption(i, oi)} className="text-slate-600 hover:text-red-400 shrink-0">
                                         <Trash2 size={12} />
@@ -253,7 +253,7 @@ export function ConfigSchemaBuilder({ value, onChange }: ConfigSchemaBuilderProp
                 </div>
             ))}
 
-            <Button type="button" variant="ghost" onClick={addField} className="w-full border border-dashed border-slate-700 text-slate-500 hover:text-white gap-2">
+            <Button type="button" variant="ghost" onClick={addField} className="w-full border border-dashed border-slate-300 text-slate-500 hover:text-slate-900 gap-2">
                 <Plus size={14} /> Add Field
             </Button>
         </div>

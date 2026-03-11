@@ -6,8 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Building2, Plus, ArrowLeft, Loader2, ChevronRight,
-    MapPin, DollarSign, AlertTriangle, FileText, Sparkles, FolderKanban, ShieldCheck, Download, Trash2, Shield
+    MapPin, DollarSign, AlertTriangle, FileText, Sparkles, FolderKanban, ShieldCheck, Download, Trash2, Shield,
+    Compass
 } from 'lucide-react';
+import { GuidedFlowWizard } from '@/components/sa-flow/GuidedFlowWizard';
+import { Badge } from '@/components/ui/badge';
 
 interface SolutionSite {
     id: string;
@@ -83,10 +86,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     const [bomLoading, setBOMLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'kickoff' | 'services' | 'collateral' | 'sites' | 'bom'>('kickoff');
     
-    // SA Flow State
     const [requirements, setRequirements] = useState('');
     const [analyzing, setAnalyzing] = useState(false);
     const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [showWizard, setShowWizard] = useState(false);
 
     const [showAddSite, setShowAddSite] = useState(false);
     const [siteName, setSiteName] = useState('');
@@ -180,8 +183,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     <Link href="/projects" className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 mb-2 transition-colors">
                         <ArrowLeft size={12} /> All Projects
                     </Link>
-                    <h1 className="text-3xl font-bold text-white">{project.name}</h1>
-                    {project.customerName && <p className="text-slate-400">{project.customerName}</p>}
+                    <h1 className="text-3xl font-bold text-slate-900">{project.name}</h1>
+                    {project.customerName && <p className="text-slate-600">{project.customerName}</p>}
                 </div>
                 <div className="flex items-center gap-3">
                     <Button onClick={calculateBOM} disabled={bomLoading} className="gap-2">
@@ -192,7 +195,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 border-b border-slate-800 overflow-x-auto pb-px">
+            <div className="flex gap-1 border-b border-slate-200 overflow-x-auto pb-px">
                 {(['kickoff', 'services', 'collateral', 'sites', 'bom'] as const).map(tab => (
                     <button
                         key={tab}
@@ -210,18 +213,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             {activeTab === 'kickoff' && (
                 <div className="space-y-6 max-w-3xl">
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+                    <div className="bg-white/50 border border-slate-200 rounded-2xl p-6">
                         <div className="flex items-center gap-3 mb-4 text-blue-400">
                             <FileText size={24} />
-                            <h2 className="text-xl font-bold text-white">Project Kickoff</h2>
+                            <h2 className="text-xl font-bold text-slate-900">Project Kickoff</h2>
                         </div>
-                        <p className="text-slate-400 text-sm mb-6">
+                        <p className="text-slate-600 text-sm mb-6">
                             Paste customer meeting notes, RFC requirements, or typed summaries here. 
                             Our SA SA-bot will analyze the input to intelligently suggest standard managed services, connectivity profiles, and packaged solutions.
                         </p>
                         
                         <textarea
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 min-h-[250px] text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono text-sm resize-y"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[250px] text-slate-700 placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono text-sm resize-y"
                             placeholder="Customer needs highly available connectivity across 45 retail sites..."
                             value={requirements}
                             onChange={e => setRequirements(e.target.value)}
@@ -231,7 +234,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <Button 
                                 onClick={saveAndAnalyze} 
                                 disabled={!requirements || analyzing}
-                                className="bg-blue-600 hover:bg-blue-500 text-white border-none gap-2"
+                                className="bg-blue-600 hover:bg-blue-500 text-slate-900 border-none gap-2"
                             >
                                 {analyzing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                                 Analyze & Suggest Services
@@ -242,84 +245,124 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             )}
 
             {activeTab === 'services' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                    {/* Suggestions Panel */}
-                    <div className="space-y-4">
-                        <h3 className="font-bold flex items-center gap-2 text-blue-400">
-                            <Sparkles size={18} /> AI Recommended Services
-                        </h3>
-                        
-                        {suggestions.length === 0 ? (
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-500">
-                                <p>No suggestions generated yet.</p>
-                                <Button variant="link" onClick={() => setActiveTab('kickoff')} className="text-blue-500">Go back and analyze requirements</Button>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {suggestions.map((s, i) => (
-                                    <div key={i} className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 hover:border-blue-500/30 transition-all">
-                                        <div className="flex items-start justify-between">
-                                            <div>
-                                                <h4 className="font-bold text-white flex items-center gap-2">
-                                                    {s.name}
-                                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-blue-500/10 border-blue-500/20 text-blue-400">
-                                                        {s.type}
-                                                    </span>
-                                                </h4>
-                                                <p className="text-xs font-mono text-slate-500 mt-1">{s.sku}</p>
-                                                <p className="text-sm text-slate-400 mt-2">{s.description}</p>
-                                            </div>
-                                            <Button size="sm" variant="secondary" onClick={() => addService(s.id)} 
-                                                disabled={project.items.some(it => it.catalogItemId === s.id)}
-                                            >
-                                                {project.items.some(it => it.catalogItemId === s.id) ? 'Added' : 'Add'}
-                                            </Button>
-                                        </div>
-                                        <div className="mt-4 bg-slate-950 rounded-lg p-3 border border-slate-800/50">
-                                            <p className="text-xs text-emerald-400 flex items-start gap-2">
-                                                <Sparkles size={12} className="shrink-0 mt-0.5" />
-                                                <span>{s.reason}</span>
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                <div className="space-y-6">
+                    {!showWizard && (
+                        <div className="flex justify-end">
+                            <Button 
+                                onClick={() => setShowWizard(true)}
+                                className="bg-blue-600 hover:bg-blue-500 text-white gap-2 shadow-lg shadow-blue-500/20"
+                            >
+                                <Compass size={18} />
+                                Start Guided Design
+                            </Button>
+                        </div>
+                    )}
 
-                    {/* Selected Manual Items Panel */}
-                    <div className="space-y-4 bg-slate-900/30 rounded-2xl p-6 border border-slate-800/50">
-                        <h3 className="font-bold flex items-center gap-2 text-white">
-                            <FolderKanban size={18} /> Selected Services
-                        </h3>
-                        
-                        {project.items.length === 0 ? (
-                            <div className="text-center text-slate-600 py-10">
-                                <p>No services selected.</p>
+                    {showWizard ? (
+                        <div className="animate-in fade-in zoom-in-95 duration-300">
+                             <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900">
+                                    <Compass size={24} className="text-blue-500" />
+                                    SA Guided Flow
+                                </h2>
+                                <Button variant="ghost" size="sm" onClick={() => setShowWizard(false)} className="text-slate-500">
+                                    Cancel & Close
+                                </Button>
                             </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {project.items.map(item => (
-                                    <div key={item.id} className="bg-slate-950 border border-slate-800 rounded-lg p-4 flex items-center justify-between">
-                                        <div>
-                                            <p className="font-medium text-slate-200">{item.catalogItem.name}</p>
-                                            <p className="text-[10px] text-slate-500 font-mono mt-0.5">{item.catalogItem.sku}</p>
-                                        </div>
-                                        <ShieldCheck size={18} className="text-emerald-500" />
+                            <GuidedFlowWizard 
+                                projectId={id} 
+                                onComplete={() => {
+                                    setShowWizard(false);
+                                    fetchProject();
+                                }} 
+                            />
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                            {/* Suggestions Panel */}
+                            <div className="space-y-4">
+                                <h3 className="font-bold flex items-center gap-2 text-blue-500">
+                                    <Sparkles size={18} /> AI Recommended Services
+                                </h3>
+                                
+                                {suggestions.length === 0 ? (
+                                    <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-500">
+                                        <p>No suggestions generated yet.</p>
+                                        <Button variant="link" onClick={() => setActiveTab('kickoff')} className="text-blue-500">Go back and analyze requirements</Button>
                                     </div>
-                                ))}
+                                ) : (
+                                    <div className="space-y-3">
+                                        {suggestions.map((s, i) => (
+                                            <div key={i} className="bg-white/80 border border-slate-200 rounded-xl p-5 hover:border-blue-500/30 transition-all">
+                                                <div className="flex items-start justify-between">
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                                                            {s.name}
+                                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-blue-500/10 border-blue-500/20 text-blue-400">
+                                                                {s.type}
+                                                            </span>
+                                                        </h4>
+                                                        <p className="text-xs font-mono text-slate-500 mt-1">{s.sku}</p>
+                                                        <p className="text-sm text-slate-600 mt-2">{s.description}</p>
+                                                    </div>
+                                                    <Button size="sm" variant="secondary" onClick={() => addService(s.id)} 
+                                                        disabled={project.items.some(it => it.catalogItemId === s.id)}
+                                                    >
+                                                        {project.items.some(it => it.catalogItemId === s.id) ? 'Added' : 'Add'}
+                                                    </Button>
+                                                </div>
+                                                <div className="mt-4 bg-slate-50 rounded-lg p-3 border border-slate-200/50">
+                                                    <p className="text-xs text-emerald-400 flex items-start gap-2">
+                                                        <Sparkles size={12} className="shrink-0 mt-0.5" />
+                                                        <span>{s.reason}</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
+
+                            {/* Selected Manual Items Panel */}
+                            <div className="space-y-4 bg-white/30 rounded-2xl p-6 border border-slate-200/50">
+                                <h3 className="font-bold flex items-center gap-2 text-slate-900">
+                                    <FolderKanban size={18} /> Selected Services
+                                </h3>
+                                
+                                {project.items.length === 0 ? (
+                                    <div className="text-center text-slate-600 py-10">
+                                        <p>No services selected. Try the Guided Flow!</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {project.items.map(item => (
+                                            <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+                                                <div>
+                                                    <p className="font-medium text-slate-800">{item.catalogItem.name}</p>
+                                                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">{item.catalogItem.sku}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="outline" className="text-[10px] bg-white capitalize">
+                                                        {item.catalogItem.type.replace('_', ' ')}
+                                                    </Badge>
+                                                    <ShieldCheck size={18} className="text-emerald-500" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
             {activeTab === 'collateral' && (
                 <div className="space-y-6">
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+                    <div className="bg-white/50 border border-slate-200 rounded-2xl p-6">
                         <div className="flex items-center gap-3 mb-6">
                             <FileText size={20} className="text-blue-400" />
-                            <h2 className="text-lg font-bold text-white">Solution Assets</h2>
+                            <h2 className="text-lg font-bold text-slate-900">Solution Assets</h2>
                         </div>
                         
                         {project.items.length === 0 ? (
@@ -327,19 +370,19 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {project.items.flatMap(item => item.catalogItem.collaterals || []).length === 0 ? (
-                                    <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-800 rounded-xl">
+                                    <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 rounded-xl">
                                         <p className="text-slate-500 text-sm">No specific collateral found for current selections.</p>
                                     </div>
                                 ) : (
                                     project.items.map(item => (
                                         item.catalogItem.collaterals && item.catalogItem.collaterals.map((col, idx) => (
                                             <a key={`${item.id}-${idx}`} href={col.url} target="_blank" rel="noopener noreferrer" 
-                                               className="group bg-slate-950 border border-slate-800 hover:border-blue-500/50 rounded-xl p-4 flex items-start gap-4 transition-all">
+                                               className="group bg-slate-50 border border-slate-200 hover:border-blue-500/50 rounded-xl p-4 flex items-start gap-4 transition-all">
                                                 <div className="bg-blue-500/10 p-2.5 rounded-lg border border-blue-500/20 text-blue-400 group-hover:scale-105 transition-transform">
                                                     <FileText size={20} />
                                                 </div>
                                                 <div className="flex-1">
-                                                    <h4 className="text-sm font-bold text-slate-200 group-hover:text-blue-400 transition-colors line-clamp-1">{col.title}</h4>
+                                                    <h4 className="text-sm font-bold text-slate-800 group-hover:text-blue-400 transition-colors line-clamp-1">{col.title}</h4>
                                                     <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">{item.catalogItem.name}</p>
                                                 </div>
                                                 <Download size={16} className="text-slate-600 group-hover:text-blue-500" />
@@ -357,28 +400,28 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {activeTab === 'sites' && (
                 <div className="space-y-4">
                     <div className="flex justify-end">
-                        <Button variant="ghost" onClick={() => setShowAddSite(true)} className="gap-2 border border-slate-800">
+                        <Button variant="ghost" onClick={() => setShowAddSite(true)} className="gap-2 border border-slate-200">
                             <Plus size={16} /> Add Site
                         </Button>
                     </div>
 
                     {showAddSite && (
-                        <form onSubmit={addSite} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 max-w-md">
+                        <form onSubmit={addSite} className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 max-w-md">
                             <h3 className="font-bold">New Site</h3>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Site Name</label>
-                                <Input value={siteName} onChange={e => setSiteName(e.target.value)} placeholder="e.g. New York HQ" className="bg-slate-950" required />
+                                <Input value={siteName} onChange={e => setSiteName(e.target.value)} placeholder="e.g. New York HQ" className="bg-slate-50" required />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Address</label>
-                                <Input value={siteAddress} onChange={e => setSiteAddress(e.target.value)} placeholder="Street address" className="bg-slate-950" />
+                                <Input value={siteAddress} onChange={e => setSiteAddress(e.target.value)} placeholder="Street address" className="bg-slate-50" />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Region</label>
                                 <select
                                     value={siteRegion}
                                     onChange={e => setSiteRegion(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-300 outline-none"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 outline-none"
                                 >
                                     <option value="">Select region...</option>
                                     {REGIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
@@ -397,14 +440,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 <Link
                                     key={site.id}
                                     href={`/projects/${id}/sites/${site.id}`}
-                                    className="group bg-slate-900/50 border border-slate-800 rounded-2xl p-5 hover:border-blue-500/30 transition-all flex items-center justify-between"
+                                    className="group bg-white/50 border border-slate-200 rounded-2xl p-5 hover:border-blue-500/30 transition-all flex items-center justify-between"
                                 >
                                     <div className="flex items-start gap-4">
-                                        <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                                             <Building2 size={20} className="text-blue-500" />
                                         </div>
                                         <div>
-                                            <p className="font-bold text-white group-hover:text-blue-400 transition-colors">{site.name}</p>
+                                            <p className="font-bold text-slate-900 group-hover:text-blue-400 transition-colors">{site.name}</p>
                                             {site.address && <p className="text-xs text-slate-500">{site.address}</p>}
                                             <div className="flex items-center gap-3 mt-1">
                                                 {site.region && (
@@ -422,7 +465,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             ))}
                         </div>
                     ) : (
-                        <div className="h-48 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-800 rounded-3xl gap-2">
+                        <div className="h-48 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-200 rounded-3xl gap-2">
                             <Building2 size={36} className="opacity-20" />
                             <p>No sites yet. Add a site to start designing.</p>
                         </div>
@@ -433,7 +476,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             {activeTab === 'bom' && (
                 <div className="space-y-6">
                     {!bom ? (
-                        <div className="h-48 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-800 rounded-3xl gap-2">
+                        <div className="h-48 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-200 rounded-3xl gap-2">
                             <DollarSign size={36} className="opacity-20" />
                             <p>Click "Calculate BOM" to generate the bill of materials.</p>
                         </div>
@@ -445,9 +488,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                     { label: 'Total NRC', value: `$${bom.totals.totalNrc.toFixed(2)}`, sub: 'One-time' },
                                     { label: 'Total MRC', value: `$${bom.totals.totalMrc.toFixed(2)}`, sub: 'Per month' },
                                 ].map(stat => (
-                                    <div key={stat.label} className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                                    <div key={stat.label} className="bg-white border border-slate-200 rounded-2xl p-5">
                                         <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">{stat.label}</p>
-                                        <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
+                                        <p className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</p>
                                         <p className="text-xs text-slate-600 mt-0.5">{stat.sub}</p>
                                     </div>
                                 ))}
@@ -455,16 +498,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
                             {/* Per-site breakdown */}
                             {bom.sites.map(site => (
-                                <div key={site.siteId} className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden">
-                                    <div className="flex items-center justify-between px-5 py-3 border-b border-slate-800 bg-slate-900/80">
+                                <div key={site.siteId} className="bg-white/50 border border-slate-200 rounded-2xl overflow-hidden">
+                                    <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-white/80">
                                         <div className="flex items-center gap-2">
                                             <Building2 size={14} className="text-blue-400" />
                                             <span className="font-bold text-sm">{site.siteName}</span>
                                             {site.region && <span className="text-[10px] text-slate-500">{site.region}</span>}
                                         </div>
-                                        <div className="flex gap-4 text-xs text-slate-400">
-                                            <span>NRC: <span className="text-white font-bold">${site.bom.totals.totalNrc.toFixed(2)}</span></span>
-                                            <span>MRC: <span className="text-white font-bold">${site.bom.totals.totalMrc.toFixed(2)}</span></span>
+                                        <div className="flex gap-4 text-xs text-slate-600">
+                                            <span>NRC: <span className="text-slate-900 font-bold">${site.bom.totals.totalNrc.toFixed(2)}</span></span>
+                                            <span>MRC: <span className="text-slate-900 font-bold">${site.bom.totals.totalMrc.toFixed(2)}</span></span>
                                         </div>
                                     </div>
 
@@ -481,7 +524,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
                                     <table className="w-full text-sm">
                                         <thead>
-                                            <tr className="text-[9px] uppercase tracking-widest text-slate-600 border-b border-slate-800">
+                                            <tr className="text-[9px] uppercase tracking-widest text-slate-600 border-b border-slate-200">
                                                 <th className="text-left px-5 py-2">Item</th>
                                                 <th className="text-left px-3 py-2">SKU</th>
                                                 <th className="text-center px-3 py-2">Qty</th>
@@ -491,14 +534,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                         </thead>
                                         <tbody>
                                             {site.bom.lineItems.map(item => (
-                                                <tr key={item.id} className="border-b border-slate-800/50 hover:bg-slate-800/20">
+                                                <tr key={item.id} className="border-b border-slate-200/50 hover:bg-slate-100/20">
                                                     <td className="px-5 py-2.5">
-                                                        <span className="text-white font-medium">{item.name}</span>
+                                                        <span className="text-slate-900 font-medium">{item.name}</span>
                                                         {item.role && (
                                                             <span className={`ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded border ${
                                                                 item.role === 'PRIMARY'
                                                                     ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                                                    : 'bg-slate-800 border-slate-700 text-slate-500'
+                                                                    : 'bg-slate-100 border-slate-300 text-slate-500'
                                                             }`}>{item.role}</span>
                                                         )}
                                                         {item.parentSku && (
@@ -506,9 +549,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                                         )}
                                                     </td>
                                                     <td className="px-3 py-2.5 font-mono text-[10px] text-blue-500">{item.sku}</td>
-                                                    <td className="px-3 py-2.5 text-center text-slate-400">{item.quantity}</td>
-                                                    <td className="px-3 py-2.5 text-right text-slate-300">${item.pricing.nrc.toFixed(2)}</td>
-                                                    <td className="px-5 py-2.5 text-right text-slate-300">${item.pricing.mrc.toFixed(2)}/mo</td>
+                                                    <td className="px-3 py-2.5 text-center text-slate-600">{item.quantity}</td>
+                                                    <td className="px-3 py-2.5 text-right text-slate-700">${item.pricing.nrc.toFixed(2)}</td>
+                                                    <td className="px-5 py-2.5 text-right text-slate-700">${item.pricing.mrc.toFixed(2)}/mo</td>
                                                 </tr>
                                             ))}
                                         </tbody>

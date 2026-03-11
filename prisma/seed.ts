@@ -89,20 +89,14 @@ async function main() {
         },
     });
 
-    const licenseItem = await prisma.catalogItem.create({
-        data: {
-            sku: "LIC-ADV-SEC-1Y",
-            name: "Advanced Security License (1 Year)",
-            type: ItemType.LICENSE,
-        },
-    });
+
 
     // --- Service Family: SD-WAN ---
     const sdwanFamily = await prisma.catalogItem.create({
         data: {
             sku: "FAM-SDWAN",
             name: "SD-WAN",
-            description: "Software-Defined Wide Area Network service family",
+            shortDescription: "Software-Defined Wide Area Network service family",
             type: ItemType.SERVICE_FAMILY,
         },
     });
@@ -112,7 +106,7 @@ async function main() {
         data: {
             sku: "SVC-MERAKI-SDWAN",
             name: "Meraki SD-WAN",
-            description: "Cisco Meraki cloud-managed SD-WAN",
+            shortDescription: "Cisco Meraki cloud-managed SD-WAN",
             type: ItemType.SERVICE_OPTION,
             configSchema: {
                 type: "object",
@@ -147,7 +141,7 @@ async function main() {
         data: {
             sku: "SVC-CATALYST-SDWAN",
             name: "Cisco Catalyst SD-WAN",
-            description: "Cisco Catalyst (Viptela) SD-WAN",
+            shortDescription: "Cisco Catalyst (Viptela) SD-WAN",
             type: ItemType.SERVICE_OPTION,
             configSchema: {
                 type: "object",
@@ -177,7 +171,7 @@ async function main() {
         data: {
             sku: "HW-MX68",
             name: "Meraki MX68",
-            description: "Small branch SD-WAN appliance",
+            shortDescription: "Small branch SD-WAN appliance",
             type: ItemType.HARDWARE,
         },
     });
@@ -186,7 +180,7 @@ async function main() {
         data: {
             sku: "HW-MX85",
             name: "Meraki MX85",
-            description: "Medium branch SD-WAN appliance",
+            shortDescription: "Medium branch SD-WAN appliance",
             type: ItemType.HARDWARE,
         },
     });
@@ -196,7 +190,7 @@ async function main() {
         data: {
             sku: "SVC-MGMT-SMALL",
             name: "Managed SD-WAN - Small",
-            description: "Managed service for small branch appliances",
+            shortDescription: "Managed service for small branch appliances",
             type: ItemType.MANAGED_SERVICE,
         },
     });
@@ -205,7 +199,7 @@ async function main() {
         data: {
             sku: "SVC-MGMT-MEDIUM",
             name: "Managed SD-WAN - Medium",
-            description: "Managed service for medium branch appliances",
+            shortDescription: "Managed service for medium branch appliances",
             type: ItemType.MANAGED_SERVICE,
         },
     });
@@ -215,7 +209,7 @@ async function main() {
         data: {
             sku: "CONN-BROADBAND",
             name: "Business Broadband",
-            description: "Standard business broadband internet access",
+            shortDescription: "Standard business broadband internet access",
             type: ItemType.CONNECTIVITY,
         },
     });
@@ -241,24 +235,7 @@ async function main() {
         },
     });
 
-    const licensePricing = await prisma.pricing.create({
-        data: {
-            itemId: licenseItem.id,
-            pricingModel: PricingModel.TIERED,
-            priceNrc: 0,
-            priceMrc: 150,
-        },
-    });
 
-    await prisma.pricingTier.create({
-        data: {
-            pricingId: licensePricing.id,
-            startingUnit: 1,
-            endingUnit: 5,
-            priceMrc: 140,
-            costMrc: 100,
-        },
-    });
 
     // Meraki SD-WAN - month-to-month (default)
     await prisma.pricing.create({
@@ -433,13 +410,7 @@ async function main() {
         },
     });
 
-    await prisma.itemDependency.create({
-        data: {
-            parentId: hardwareItemMx64.id,
-            childId: licenseItem.id,
-            type: DependencyType.MANDATORY_ATTACHMENT,
-        },
-    });
+
 
     // IS_A: SD-WAN family → service options
     await prisma.itemDependency.create({
@@ -608,7 +579,7 @@ async function main() {
     console.log("Seeding complete!");
     console.log("Package ID:", packageItem.id);
     console.log("Hardware ID:", hardwareItemMx64.id);
-    console.log("License ID:", licenseItem.id);
+
     console.log("SD-WAN Family ID:", sdwanFamily.id);
     console.log("Meraki SD-WAN ID:", merakiSdwan.id);
     console.log("Catalyst SD-WAN ID:", catalystSdwan.id);

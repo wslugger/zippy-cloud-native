@@ -24,8 +24,8 @@ export function TermSelector({ value, onChange }: TermSelectorProps) {
                         onClick={() => onChange(t.value)}
                         className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                             value === t.value
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700'
+                                ? 'bg-blue-600 text-slate-900'
+                                : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
                         }`}
                     >
                         {t.label}

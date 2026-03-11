@@ -19,8 +19,11 @@ export async function GET(
             include: {
                 items: {
                     include: {
-                        catalogItem: true
-                    }
+                        catalogItem: true,
+                        designOptions: {
+                            include: { term: true }
+                        }
+                    } as any
                 },
                 sites: {
                     include: {

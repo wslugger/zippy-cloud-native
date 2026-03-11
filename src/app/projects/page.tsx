@@ -26,11 +26,11 @@ interface Project {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-    DRAFT: 'bg-slate-800 border-slate-700 text-slate-400',
-    IN_REVIEW: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
-    APPROVED: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-    ORDERED: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
-    ARCHIVED: 'bg-slate-900 border-slate-800 text-slate-600',
+    DRAFT: 'bg-slate-100 border-slate-300 text-slate-600',
+    IN_REVIEW: 'bg-amber-500/10 border-amber-500/20 text-amber-600',
+    APPROVED: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600',
+    ORDERED: 'bg-blue-500/10 border-blue-500/20 text-blue-600',
+    ARCHIVED: 'bg-slate-900 border-slate-200 text-slate-50',
 };
 
 export default function ProjectsPage() {
@@ -77,8 +77,8 @@ export default function ProjectsPage() {
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white">Projects</h1>
-                    <p className="text-slate-400">Multi-site solution quotes for your customers.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Projects</h1>
+                    <p className="text-slate-600">Multi-site solution quotes for your customers.</p>
                 </div>
                 <Button onClick={() => setShowCreate(true)} className="gap-2">
                     <Plus size={18} /> New Project
@@ -86,16 +86,16 @@ export default function ProjectsPage() {
             </div>
 
             {showCreate && (
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg">
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-lg">
                     <h3 className="font-bold text-lg mb-4">Create Project</h3>
                     <form onSubmit={createProject} className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Project Name</label>
-                            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Acme Corp SD-WAN Rollout" className="bg-slate-950" required />
+                            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Acme Corp SD-WAN Rollout" className="bg-slate-50" required />
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Customer Name</label>
-                            <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="e.g. Acme Corporation" className="bg-slate-950" />
+                            <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="e.g. Acme Corporation" className="bg-slate-50" />
                         </div>
                         <div className="flex gap-3 pt-2">
                             <Button type="submit" disabled={!name}>Create Project</Button>
@@ -113,7 +113,7 @@ export default function ProjectsPage() {
                             <Link
                                 key={project.id}
                                 href={`/projects/${project.id}`}
-                                className="group bg-slate-900/50 border border-slate-800 rounded-2xl p-5 hover:border-blue-500/30 transition-all relative overflow-hidden"
+                                className="group bg-white/50 border border-slate-200 rounded-2xl p-5 hover:border-blue-500/30 transition-all relative overflow-hidden"
                             >
                                 <div className="flex items-start justify-between mb-4">
                                     <div className={`text-[9px] font-bold px-2 py-0.5 rounded border ${STATUS_COLORS[project.status] ?? STATUS_COLORS.DRAFT}`}>
@@ -122,7 +122,7 @@ export default function ProjectsPage() {
                                 </div>
 
                                 <div className="mb-4">
-                                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{project.name}</h3>
+                                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-400 transition-colors">{project.name}</h3>
                                     {project.customerName && (
                                         <p className="text-xs text-slate-500">{project.customerName}</p>
                                     )}
@@ -142,7 +142,7 @@ export default function ProjectsPage() {
                     })}
                 </div>
             ) : (
-                <div className="h-64 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-800 rounded-3xl gap-4">
+                <div className="h-64 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-200 rounded-3xl gap-4">
                     <FolderKanban size={48} className="opacity-20" />
                     <p>No projects yet. Create one to get started.</p>
                 </div>

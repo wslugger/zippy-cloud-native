@@ -30,10 +30,13 @@ export async function GET() {
             id: family.id,
             sku: family.sku,
             name: family.name,
-            description: family.description,
+            description: family.shortDescription,
             type: family.type,
             attributes: family.attributes,
-            options: family.parentDependencies.map(dep => dep.childItem),
+            options: family.parentDependencies.map(dep => ({
+                ...dep.childItem,
+                description: dep.childItem?.shortDescription
+            })),
         }));
 
         return NextResponse.json(result);

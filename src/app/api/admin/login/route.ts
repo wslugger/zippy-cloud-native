@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { encrypt, SESSION_COOKIE } from '@/lib/auth';
 import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
@@ -10,18 +11,18 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Set a long-lived HTTP-only cookie
-        // In production, use secure: true and sameSite: 'strict'
-        const response = NextResponse.json({ success: true });
+        // Issue a signed JWT session for the admin (same mechanism as regular users)
+        const token = await encrypt({ userId: 'admin', email: 'admin', role: 'ADMIN' });
 
-        // Using native cookies API for Next.js 13+
-        (await cookies()).set('admin_token', adminPassphrase, {
+        (await cookies()).set(SESSION_COOKIE, token, {
             httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
             path: '/',
             maxAge: 60 * 60 * 24 * 7, // 1 week
         });
 
-        return response;
+        return NextResponse.json({ success: true });
     } catch (error) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

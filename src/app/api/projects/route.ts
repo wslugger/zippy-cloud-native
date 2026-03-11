@@ -28,6 +28,7 @@ export async function GET() {
                 },
             },
             orderBy: { updatedAt: 'desc' },
+            take: 100,
         });
 
         return NextResponse.json(projects);

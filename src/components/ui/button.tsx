@@ -1,11 +1,6 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs))
-}
+import { cn } from "@/lib/utils"
 
 export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -21,10 +16,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         const variants = {
             default: "bg-blue-600 text-white hover:bg-blue-700 shadow-sm",
             destructive: "bg-red-600 text-white hover:bg-red-700 shadow-sm",
-            outline: "border border-slate-700 bg-transparent hover:bg-slate-800 text-slate-200",
-            secondary: "bg-slate-800 text-slate-100 hover:bg-slate-700",
-            ghost: "hover:bg-slate-800 text-slate-400 hover:text-white",
-            link: "text-blue-500 underline-offset-4 hover:underline",
+            outline: "border border-slate-300 bg-transparent hover:bg-slate-100 text-slate-800",
+            secondary: "bg-slate-100 text-slate-800 hover:bg-slate-200",
+            ghost: "hover:bg-slate-100 text-slate-600 hover:text-slate-900",
+            link: "text-blue-600 underline-offset-4 hover:underline",
         }
 
         const sizes = {

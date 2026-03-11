@@ -1,12 +1,21 @@
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/projects/[id]/sites
 export async function GET(
-    _request: NextRequest,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id: projectId } = await params;
+
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    if (project.userId !== session.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     try {
         const sites = await prisma.solutionSite.findMany({
             where: { projectId },
@@ -32,7 +41,15 @@ export async function POST(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id: projectId } = await params;
+
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    if (project.userId !== session.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     try {
         const { name, address, region, primaryServiceId } = await request.json();
 

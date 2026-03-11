@@ -126,11 +126,11 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                 </Link>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                        <div className="bg-white p-3 rounded-xl border border-slate-200">
                             <Building2 size={20} className="text-blue-500" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-white">{site.name}</h1>
+                            <h1 className="text-2xl font-bold text-slate-900">{site.name}</h1>
                             {site.region && <p className="text-xs text-slate-500">Region: {site.region}</p>}
                         </div>
                     </div>
@@ -145,7 +145,7 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                 {/* Service Selector — 3 cols */}
                 <div className="lg:col-span-3 space-y-4">
                     <div>
-                        <h2 className="text-sm font-bold text-white mb-1">Select Services</h2>
+                        <h2 className="text-sm font-bold text-slate-900 mb-1">Select Services</h2>
                         <p className="text-xs text-slate-500">Choose service options and configure design parameters for this site.</p>
                     </div>
                     <ServiceFamilySelector
@@ -159,7 +159,7 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                 {/* Live BOM Preview — 2 cols */}
                 <div className="lg:col-span-2 space-y-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-bold text-white">Live BOM Preview</h2>
+                        <h2 className="text-sm font-bold text-slate-900">Live BOM Preview</h2>
                         {bomLoading && <Loader2 size={14} className="animate-spin text-blue-400" />}
                         {!bomLoading && bom && (
                             <button onClick={calculateBOM} className="text-slate-600 hover:text-slate-300">
@@ -169,14 +169,14 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                     </div>
 
                     {!bom ? (
-                        <div className="h-48 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-800 rounded-2xl gap-2 text-sm">
+                        <div className="h-48 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-200 rounded-2xl gap-2 text-sm">
                             <DollarSign size={28} className="opacity-20" />
                             Select services to preview pricing
                         </div>
                     ) : (
-                        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden">
+                        <div className="bg-white/50 border border-slate-200 rounded-2xl overflow-hidden">
                             {/* Totals */}
-                            <div className="grid grid-cols-3 divide-x divide-slate-800 border-b border-slate-800">
+                            <div className="grid grid-cols-3 divide-x divide-slate-800 border-b border-slate-200">
                                 {[
                                     { label: 'NRC', value: `$${bom.totals.totalNrc.toFixed(0)}` },
                                     { label: 'MRC', value: `$${bom.totals.totalMrc.toFixed(0)}/mo` },
@@ -184,7 +184,7 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                                 ].map(stat => (
                                     <div key={stat.label} className="p-3 text-center">
                                         <p className="text-[9px] uppercase font-bold tracking-widest text-slate-600">{stat.label}</p>
-                                        <p className="text-sm font-bold text-white mt-0.5">{stat.value}</p>
+                                        <p className="text-sm font-bold text-slate-900 mt-0.5">{stat.value}</p>
                                     </div>
                                 ))}
                             </div>
@@ -207,12 +207,12 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                                     <div key={item.id} className="px-4 py-2.5 flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1.5 flex-wrap">
-                                                <span className="text-xs font-medium text-white truncate">{item.name}</span>
+                                                <span className="text-xs font-medium text-slate-900 truncate">{item.name}</span>
                                                 {item.role && (
                                                     <span className={`text-[8px] font-bold px-1 py-0.5 rounded border shrink-0 ${
                                                         item.role === 'PRIMARY'
                                                             ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                                            : 'bg-slate-800 border-slate-700 text-slate-500'
+                                                            : 'bg-slate-100 border-slate-300 text-slate-500'
                                                     }`}>{item.role}</span>
                                                 )}
                                             </div>
@@ -225,7 +225,7 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                                             {item.pricing.nrc > 0 && (
                                                 <p className="text-[10px] text-slate-500">${item.pricing.nrc.toFixed(0)} NRC</p>
                                             )}
-                                            <p className="text-xs font-bold text-white">${item.pricing.mrc.toFixed(0)}/mo</p>
+                                            <p className="text-xs font-bold text-slate-900">${item.pricing.mrc.toFixed(0)}/mo</p>
                                         </div>
                                     </div>
                                 ))}
