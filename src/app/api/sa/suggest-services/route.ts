@@ -1,12 +1,31 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
+
+// 10 requests per user per minute for the AI endpoint
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 60_000;
 
 export async function POST(request: NextRequest) {
     try {
         const session = await getSession();
         if (!session) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const rl = rateLimit(`suggest:${session.userId}`, RATE_LIMIT, RATE_WINDOW_MS);
+        if (!rl.allowed) {
+            return NextResponse.json(
+                { error: "Too many requests. Please wait before trying again." },
+                {
+                    status: 429,
+                    headers: {
+                        'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+                        'X-RateLimit-Remaining': '0',
+                    },
+                }
+            );
         }
 
         const { rawRequirements } = await request.json();

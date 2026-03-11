@@ -68,6 +68,33 @@ export async function PUT(
 
         const { name, customerName, status, termMonths, rawRequirements } = await request.json();
 
+        if (status) {
+            const current = await prisma.project.findUnique({
+                where: { id, userId: session.userId },
+                select: { status: true },
+            });
+
+            if (!current) {
+                return NextResponse.json({ error: "Project not found" }, { status: 404 });
+            }
+
+            const VALID_TRANSITIONS: Record<string, string[]> = {
+                DRAFT:     ['IN_REVIEW', 'ARCHIVED'],
+                IN_REVIEW: ['DRAFT', 'APPROVED', 'ARCHIVED'],
+                APPROVED:  ['IN_REVIEW', 'ORDERED', 'ARCHIVED'],
+                ORDERED:   ['ARCHIVED'],
+                ARCHIVED:  [],
+            };
+
+            const allowed = VALID_TRANSITIONS[current.status] ?? [];
+            if (!allowed.includes(status)) {
+                return NextResponse.json(
+                    { error: `Cannot transition from ${current.status} to ${status}` },
+                    { status: 422 }
+                );
+            }
+        }
+
         const project = await prisma.project.update({
             where: { id, userId: session.userId },
             data: { name, customerName, status, termMonths, rawRequirements },

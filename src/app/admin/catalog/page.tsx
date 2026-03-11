@@ -180,13 +180,15 @@ export default function CatalogPage() {
                                 </div>
                             </div>
 
-                            <Button
-                                variant="ghost"
-                                className="w-full justify-between text-xs hover:bg-blue-600/10 hover:text-blue-400 border border-transparent hover:border-blue-600/20"
-                            >
-                                Manage Dependencies & Rules
-                                <ChevronRight size={14} />
-                            </Button>
+                            <Link href={`/admin/catalog/${item.id}`}>
+                                <Button
+                                    variant="ghost"
+                                    className="w-full justify-between text-xs hover:bg-blue-600/10 hover:text-blue-400 border border-transparent hover:border-blue-600/20"
+                                >
+                                    Manage Dependencies & Rules
+                                    <ChevronRight size={14} />
+                                </Button>
+                            </Link>
 
                             {/* Subtle background glow */}
                             <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-blue-600/5 rounded-full blur-2xl group-hover:bg-blue-600/10 transition-all pointer-events-none" />

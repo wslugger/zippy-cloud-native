@@ -1,6 +1,8 @@
 'use client';
 
-const TERMS = [
+import { useState, useEffect } from 'react';
+
+const FALLBACK_TERMS = [
     { value: 1, label: 'MTM' },
     { value: 12, label: '12 mo' },
     { value: 36, label: '36 mo' },
@@ -13,11 +15,28 @@ interface TermSelectorProps {
 }
 
 export function TermSelector({ value, onChange }: TermSelectorProps) {
+    const [terms, setTerms] = useState(FALLBACK_TERMS);
+
+    useEffect(() => {
+        fetch('/api/admin/taxonomy')
+            .then(r => r.ok ? r.json() : null)
+            .then((all: { category: string; value: string; label: string }[] | null) => {
+                if (!all) return;
+                const contractTerms = all
+                    .filter(t => t.category === 'CONTRACT_TERM')
+                    .map(t => ({ value: parseInt(t.value), label: t.label }))
+                    .filter(t => !isNaN(t.value))
+                    .sort((a, b) => a.value - b.value);
+                if (contractTerms.length > 0) setTerms(contractTerms);
+            })
+            .catch(() => { /* keep fallback */ });
+    }, []);
+
     return (
         <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Term</span>
             <div className="flex gap-1">
-                {TERMS.map(t => (
+                {terms.map(t => (
                     <button
                         key={t.value}
                         type="button"
