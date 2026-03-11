@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
 
 // GET /api/projects/[id]
 export async function GET(
@@ -8,8 +9,13 @@ export async function GET(
 ) {
     const { id } = await params;
     try {
+        const session = await getSession();
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const project = await prisma.project.findUnique({
-            where: { id },
+            where: { id, userId: session.userId },
             include: {
                 sites: {
                     include: {
@@ -47,10 +53,15 @@ export async function PUT(
 ) {
     const { id } = await params;
     try {
+        const session = await getSession();
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const { name, customerName, status, termMonths } = await request.json();
 
         const project = await prisma.project.update({
-            where: { id },
+            where: { id, userId: session.userId },
             data: { name, customerName, status, termMonths },
         });
 
@@ -67,7 +78,12 @@ export async function DELETE(
 ) {
     const { id } = await params;
     try {
-        await prisma.project.delete({ where: { id } });
+        const session = await getSession();
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        await prisma.project.delete({ where: { id, userId: session.userId } });
         return new NextResponse(null, { status: 204 });
     } catch (error) {
         return NextResponse.json({ error: "Failed to delete project" }, { status: 500 });

@@ -1,7 +1,11 @@
 import Link from 'next/link';
-import { FolderKanban, Settings, ArrowLeft } from 'lucide-react';
+import { FolderKanban, Settings } from 'lucide-react';
+import LogoutButton from '@/components/auth/LogoutButton';
+import { getSession } from '@/lib/auth';
 
-export default function ProjectsLayout({ children }: { children: React.ReactNode }) {
+export default async function ProjectsLayout({ children }: { children: React.ReactNode }) {
+    const session = await getSession();
+
     return (
         <div className="min-h-screen bg-slate-950 text-slate-50">
             <header className="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl flex items-center px-6 gap-6">
@@ -14,13 +18,27 @@ export default function ProjectsLayout({ children }: { children: React.ReactNode
                         All Projects
                     </Link>
                 </nav>
-                <Link
-                    href="/admin"
-                    className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300 transition-colors"
-                >
-                    <Settings size={14} />
-                    Admin
-                </Link>
+                <div className="flex items-center gap-4">
+                    {session?.role === 'ADMIN' && (
+                        <Link
+                            href="/admin"
+                            className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300 transition-colors mr-2"
+                        >
+                            <Settings size={14} />
+                            Admin
+                        </Link>
+                    )}
+                    <div className="flex flex-col items-end mr-2">
+                        <span className="text-xs font-bold text-white">{session?.name || session?.email}</span>
+                        <span className="text-[10px] text-slate-500 uppercase">{session?.role}</span>
+                    </div>
+                    <div className="w-px h-6 bg-slate-800"></div>
+                    <LogoutButton 
+                        className="flex items-center gap-2 text-xs text-slate-500 hover:text-red-400 transition-colors" 
+                        iconSize={16} 
+                        showText={false} 
+                    />
+                </div>
             </header>
             <main className="p-8 max-w-7xl mx-auto">
                 {children}

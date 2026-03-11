@@ -1,10 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
 
 // GET /api/projects
 export async function GET() {
     try {
+        const session = await getSession();
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const projects = await prisma.project.findMany({
+            where: {
+                userId: session.userId,
+            },
             include: {
                 sites: {
                     include: {
@@ -30,6 +39,11 @@ export async function GET() {
 // POST /api/projects
 export async function POST(request: NextRequest) {
     try {
+        const session = await getSession();
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const { name, customerName, termMonths } = await request.json();
 
         if (!name) {
@@ -37,7 +51,12 @@ export async function POST(request: NextRequest) {
         }
 
         const project = await prisma.project.create({
-            data: { name, customerName, termMonths: termMonths ?? 36 },
+            data: { 
+              name, 
+              customerName, 
+              termMonths: termMonths ?? 36,
+              userId: session.userId 
+            },
         });
 
         return NextResponse.json(project, { status: 201 });

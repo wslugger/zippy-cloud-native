@@ -1,15 +1,18 @@
 import Link from 'next/link';
-import { LayoutDashboard, Database, MessageSquare, Settings, LogOut, Workflow, FolderKanban } from 'lucide-react';
+import { LayoutDashboard, Database, MessageSquare, Settings, Workflow, FolderKanban } from 'lucide-react';
+import LogoutButton from '@/components/auth/LogoutButton';
+import { getSession } from '@/lib/auth';
 
-export default function AdminLayout({
+export default async function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const session = await getSession();
     return (
         <div className="flex min-h-screen bg-slate-950 text-slate-50">
             {/* Sidebar */}
-            <aside className="w-64 border-r border-slate-800 bg-slate-900/50 backdrop-blur-xl">
+            <aside className="w-64 border-r border-slate-800 bg-slate-900/50 backdrop-blur-xl flex flex-col">
                 <div className="flex h-16 items-center px-6 border-b border-slate-800">
                     <Link href="/admin" className="text-xl font-bold tracking-tighter text-blue-500">
                         ZIPPY <span className="text-slate-500 font-normal">ADMIN</span>
@@ -59,14 +62,8 @@ export default function AdminLayout({
                         AI Prompts
                     </Link>
                 </nav>
-                <div className="absolute bottom-4 w-64 px-4">
-                    <Link
-                        href="/"
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:text-slate-300"
-                    >
-                        <LogOut size={20} />
-                        Return to App
-                    </Link>
+                <div className="mt-auto p-4 border-t border-slate-800/50">
+                    <LogoutButton />
                 </div>
             </aside>
 
@@ -77,8 +74,12 @@ export default function AdminLayout({
                         Zippy Networks Operations Console
                     </h1>
                     <div className="flex items-center gap-4">
-                        <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xs">
-                            AD
+                        <div className="flex flex-col items-end mr-2">
+                            <span className="text-xs font-bold text-white">{session?.name || session?.email}</span>
+                            <span className="text-[10px] text-slate-500 uppercase">{session?.role}</span>
+                        </div>
+                        <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xs uppercase">
+                            {(session?.name || session?.email || "U").substring(0, 2)}
                         </div>
                     </div>
                 </header>

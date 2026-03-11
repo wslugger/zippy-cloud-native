@@ -6,6 +6,7 @@ datasource db {
   provider = "postgresql"
 }
 
+
 // -- 1. TAXONOMY (Dynamic Dropdowns & Attributes) --
 model TaxonomyTerm {
   id             String          @id @default(uuid())
@@ -140,6 +141,8 @@ model Project {
   status       ProjectStatus @default(DRAFT)
   termMonths   Int           @default(1) // Global contract term for the quote
   sites        SolutionSite[]
+  userId       String?
+  user         User?         @relation(fields: [userId], references: [id])
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -172,7 +175,23 @@ model SiteSelection {
   @@unique([siteId, catalogItemId])
 }
 
-// -- 6. SYSTEM CONFIGURATION --
+// -- 6. USER MANAGEMENT --
+enum Role {
+  SA
+  ADMIN
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  role      Role      @default(SA)
+  projects  Project[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// -- 7. SYSTEM CONFIGURATION --
 model SystemConfig {
   id          String   @id @default(uuid())
   key         String   @unique
