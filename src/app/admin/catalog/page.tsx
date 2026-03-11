@@ -8,13 +8,12 @@ import {
     Search,
     Filter,
     Box,
-    ChevronRight,
     Loader2,
     Package,
     HardDrive,
     FileText,
     Workflow,
-    ExternalLink,
+    Settings,
     Briefcase,
     Layers,
     Trash2
@@ -162,9 +161,10 @@ export default function CatalogPage() {
                                 <div className="flex items-center gap-2">
                                     <Link
                                         href={`/admin/catalog/${item.id}`}
-                                        className="text-slate-500 hover:text-slate-900 transition-colors"
+                                        className="text-slate-400 hover:text-blue-500 transition-colors"
+                                        title="Item Settings"
                                     >
-                                        <ExternalLink size={16} />
+                                        <Settings size={18} />
                                     </Link>
                                     <button
                                         type="button"
@@ -195,15 +195,6 @@ export default function CatalogPage() {
                                 </p>
                             </div>
 
-                            <Link href={`/admin/catalog/${item.id}`}>
-                                <Button
-                                    variant="ghost"
-                                    className="w-full justify-between text-xs hover:bg-blue-600/10 hover:text-blue-400 border border-transparent hover:border-blue-600/20"
-                                >
-                                    Manage Dependencies & Rules
-                                    <ChevronRight size={14} />
-                                </Button>
-                            </Link>
 
                             {/* Subtle background glow */}
                             <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-blue-600/5 rounded-full blur-2xl group-hover:bg-blue-600/10 transition-all pointer-events-none" />
