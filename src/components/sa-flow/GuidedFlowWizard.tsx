@@ -27,6 +27,11 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
     const [selectedOption, setSelectedOption] = useState<any>(null);
     const [selectedDesignOptions, setSelectedDesignOptions] = useState<string[]>([]); // Term IDs
     const [selectedAttachments, setSelectedAttachments] = useState<any[]>([]);
+    
+    // New restructuring state
+    const [configValues, setConfigValues] = useState<Record<string, any>>({});
+    const [selectedServiceOptions, setSelectedServiceOptions] = useState<any[]>([]);
+    const [selectedTransports, setSelectedTransports] = useState<any[]>([]);
 
     // Navigation
     const nextStep = () => setStep((s) => (s + 1) as WizardStep);
@@ -40,27 +45,31 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
         const items = [
             selectedBase,
             selectedOption,
-            ...selectedAttachments
+            ...selectedAttachments,
+            ...selectedServiceOptions,
+            ...selectedTransports
         ].filter(Boolean);
 
         // Required items from dependencies
         const requiredDeps = [
             ...(selectedBase?.childDependencies || []),
             ...(selectedOption?.childDependencies || [])
-        ].filter(d => d.type === 'REQUIRES');
+        ].filter(d => d.type === 'REQUIRES' || d.type === 'INCLUDES');
         
-        requiredDeps.forEach(d => items.push(d.childItem));
+        requiredDeps.forEach(d => {
+            if (d.childItem) items.push(d.childItem);
+        });
 
         items.forEach(item => {
             const pricing = item.pricing?.[0];
             if (pricing) {
-                mrc += pricing.costMrc || 0;
-                nrc += pricing.costNrc || 0;
+                mrc += pricing.priceMrc || 0;
+                nrc += pricing.priceNrc || 0;
             }
         });
 
         return { mrc, nrc };
-    }, [selectedBase, selectedOption, selectedAttachments]);
+    }, [selectedBase, selectedOption, selectedAttachments, selectedServiceOptions, selectedTransports]);
 
     const handleToggleDesignOption = (termId: string) => {
         setSelectedDesignOptions(prev => 
@@ -76,35 +85,44 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
         );
     };
 
+    const handleToggleServiceOption = (item: any) => {
+        setSelectedServiceOptions(prev => {
+            const exists = prev.find(a => a.id === item.id);
+            if (exists) return prev.filter(a => a.id !== item.id);
+            
+            // Handle incompatibility
+            const incompatibleIds = item.incompatibleWith || [];
+            return [...prev.filter(a => !incompatibleIds.includes(a.id)), item];
+        });
+    };
+
+    const handleToggleTransport = (item: any) => {
+        setSelectedTransports(prev => 
+            prev.some(a => a.id === item.id) 
+                ? prev.filter(a => a.id !== item.id) 
+                : [...prev, item]
+        );
+    };
+
     const handleComplete = async () => {
         setIsSaving(true);
         setSaveError(null);
         try {
-            const itemsToSave = [
-                { catalogItemId: selectedBase.id, quantity: 1 },
-                { catalogItemId: selectedOption.id, quantity: 1 },
-                ...selectedAttachments.map(a => ({ catalogItemId: a.id, quantity: 1 }))
-            ];
-
-            // Required dependencies
-            const requiredDeps = [
-                ...(selectedBase?.childDependencies || []),
-                ...(selectedOption?.childDependencies || [])
-            ].filter(d => d.type === 'REQUIRES');
-
-            requiredDeps.forEach(d => {
-                if (!itemsToSave.some(it => it.catalogItemId === d.childId)) {
-                    itemsToSave.push({ catalogItemId: d.childId, quantity: 1 });
-                }
-            });
-
-            // Combine selected attachments with auto-included required dependencies
+            // Combine all selected items
             const allAttachmentIds = [
                 ...selectedAttachments.map(a => a.id),
-                ...requiredDeps.map(d => d.childId)
+                ...selectedServiceOptions.map(a => a.id),
+                ...selectedTransports.map(a => a.id),
+                // Auto-includes
+                ...(selectedBase?.childDependencies || [])
+                    .filter((d: any) => d.type === 'INCLUDES' || d.type === 'REQUIRES')
+                    .map((d: any) => d.childId),
+                ...(selectedOption?.childDependencies || [])
+                    .filter((d: any) => d.type === 'INCLUDES' || d.type === 'REQUIRES')
+                    .map((d: any) => d.childId),
             ].filter((id, index, self) => self.indexOf(id) === index); // Unique
 
-            // Atomic commit using the new design API
+            // Atomic commit using the design API
             const res = await fetch(`/api/projects/${projectId}/design`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -112,7 +130,8 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                     baseId: selectedBase.id,
                     optionId: selectedOption?.id,
                     attachmentIds: allAttachmentIds,
-                    designOptionIds: selectedDesignOptions
+                    designOptionIds: selectedDesignOptions,
+                    configValues: configValues
                 }),
             });
 
@@ -169,6 +188,9 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                                 setSelectedBase(item);
                                 setSelectedOption(null); // Reset downstream
                                 setSelectedAttachments([]);
+                                setSelectedServiceOptions([]);
+                                setSelectedTransports([]);
+                                setConfigValues({});
                                 nextStep();
                             }} 
                         />
@@ -187,6 +209,9 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                             onSelect={(item) => {
                                 setSelectedOption(item);
                                 setSelectedAttachments([]);
+                                setSelectedServiceOptions([]);
+                                setSelectedTransports([]);
+                                setConfigValues({});
                                 nextStep();
                             }}
                         />
@@ -201,8 +226,12 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                         </div>
                         <Step3DesignOptions 
                             selectedOption={selectedOption}
-                            selectedDesignOptions={selectedDesignOptions}
-                            onToggle={handleToggleDesignOption}
+                            configValues={configValues}
+                            onConfigChange={setConfigValues}
+                            selectedServiceOptions={selectedServiceOptions}
+                            onToggleServiceOption={handleToggleServiceOption}
+                            selectedTransports={selectedTransports}
+                            onToggleTransport={handleToggleTransport}
                         />
                     </div>
                 )}
@@ -216,7 +245,9 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                         <Step4Attachments 
                             selectedBase={selectedBase}
                             selectedOption={selectedOption}
-                            selectedDesignOptions={selectedDesignOptions}
+                            configValues={configValues}
+                            selectedServiceOptions={selectedServiceOptions}
+                            selectedTransports={selectedTransports}
                             selectedAttachments={selectedAttachments.map(a => a.id)}
                             onToggleAttachment={handleToggleAttachment}
                         />
@@ -260,7 +291,12 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
 
                     <Button 
                         onClick={step === 4 ? handleComplete : nextStep} 
-                        disabled={isSaving || (step === 1 && !selectedBase) || (step === 2 && !selectedOption)}
+                        disabled={
+                            isSaving || 
+                            (step === 1 && !selectedBase) || 
+                            (step === 2 && !selectedOption) ||
+                            (step === 3 && selectedTransports.length === 0)
+                        }
                         className={cn(
                             "gap-2 h-12 px-8 rounded-xl shadow-md transition-all font-bold",
                             step === 4 ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"

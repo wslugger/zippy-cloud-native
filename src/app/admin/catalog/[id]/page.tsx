@@ -281,6 +281,7 @@ export default function CatalogItemDetail() {
     const isPanelVisible = (panelName: string) => {
         if (!item) return false;
         const allowedTypes = getVisibilityRules(panelName);
+        if (allowedTypes.length === 0) return true; // Default to visible if no rules are set
         return allowedTypes.includes(item.type);
     };
 

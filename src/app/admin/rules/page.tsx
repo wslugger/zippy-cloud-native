@@ -52,7 +52,7 @@ export default function RulesPage() {
     async function fetchCatalog() {
         const res = await fetch('/api/admin/catalog');
         const data = await res.json();
-        setCatalogItems(data);
+        setCatalogItems(data.items || []);
     }
 
     const handleCreateRule = async (e: React.FormEvent) => {
