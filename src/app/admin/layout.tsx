@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LayoutDashboard, Database, MessageSquare, Settings, LogOut, Workflow } from 'lucide-react';
+import { LayoutDashboard, Database, MessageSquare, Settings, LogOut, Workflow, FolderKanban } from 'lucide-react';
 
 export default function AdminLayout({
     children,
@@ -22,6 +22,13 @@ export default function AdminLayout({
                     >
                         <LayoutDashboard size={20} />
                         Dashboard
+                    </Link>
+                    <Link
+                        href="/projects"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors text-slate-300 hover:text-white"
+                    >
+                        <FolderKanban size={20} />
+                        Projects
                     </Link>
                     <Link
                         href="/admin/catalog"

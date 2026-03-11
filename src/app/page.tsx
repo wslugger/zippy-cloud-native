@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -26,12 +27,18 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col space-y-4 sm:flex-row sm:space-x-4 sm:space-y-0">
-            <button className="h-12 cursor-pointer rounded-xl bg-white px-8 font-semibold text-black transition-all hover:bg-zinc-200 active:scale-95">
+            <Link 
+              href="/projects"
+              className="flex h-12 items-center justify-center rounded-xl bg-white px-8 font-semibold text-black transition-all hover:bg-zinc-200 active:scale-95"
+            >
               Launch Dashboard
-            </button>
-            <button className="h-12 cursor-pointer rounded-xl border border-white/10 bg-white/5 px-8 font-semibold text-white backdrop-blur-md transition-all hover:bg-white/10 active:scale-95">
-              View Catalog
-            </button>
+            </Link>
+            <Link 
+              href="/admin"
+              className="flex h-12 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-8 font-semibold text-white backdrop-blur-md transition-all hover:bg-white/10 active:scale-95"
+            >
+              Admin Portal
+            </Link>
           </div>
         </div>
 

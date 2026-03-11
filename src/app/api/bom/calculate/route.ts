@@ -4,7 +4,7 @@ import { calculateBOM } from "@/lib/bom-engine";
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { sku_ids } = body;
+        const { sku_ids, termMonths, primaryServiceId, siteRegion, configValues } = body;
 
         if (!sku_ids || !Array.isArray(sku_ids)) {
             return NextResponse.json(
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        const result = await calculateBOM(sku_ids);
+        const result = await calculateBOM(sku_ids, { termMonths, primaryServiceId, siteRegion, configValues });
 
         return NextResponse.json(result);
     } catch (error: any) {

@@ -36,10 +36,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { sku, name, description, type } = body;
+        const { sku, name, description, type, configSchema } = body;
 
         const item = await prisma.catalogItem.create({
-            data: { sku, name, description, type },
+            data: { sku, name, description, type, configSchema },
         });
 
         return NextResponse.json(item);

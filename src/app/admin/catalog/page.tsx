@@ -14,11 +14,11 @@ import {
     Loader2,
     Package,
     HardDrive,
-    Code,
     FileText,
     Workflow,
     ExternalLink,
-    Briefcase
+    Briefcase,
+    Layers
 } from 'lucide-react';
 
 interface CatalogItem {
@@ -66,6 +66,7 @@ export default function CatalogPage() {
             case 'LICENSE': return <FileText size={16} className="text-emerald-400" />;
             case 'PACKAGE': return <Package size={16} className="text-amber-400" />;
             case 'CONNECTIVITY': return <Workflow size={16} className="text-cyan-400" />;
+            case 'SERVICE_FAMILY': return <Layers size={16} className="text-indigo-400" />;
             default: return <Box size={16} className="text-slate-400" />;
         }
     };
@@ -95,7 +96,7 @@ export default function CatalogPage() {
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
                     <Filter size={18} className="text-slate-500 shrink-0" />
-                    {['ALL', 'HARDWARE', 'MANAGED_SERVICE', 'LICENSE', 'PACKAGE', 'CONNECTIVITY'].map((type) => (
+                    {['ALL', 'HARDWARE', 'MANAGED_SERVICE', 'SERVICE_OPTION', 'LICENSE', 'PACKAGE', 'CONNECTIVITY', 'SERVICE_FAMILY'].map((type) => (
                         <button
                             key={type}
                             onClick={() => setFilterType(type)}
@@ -104,7 +105,7 @@ export default function CatalogPage() {
                                     : 'bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700'
                                 }`}
                         >
-                            {type === 'MANAGED_SERVICE' ? 'SERVICE' : type}
+                            {type === 'MANAGED_SERVICE' ? 'SERVICE' : type === 'SERVICE_FAMILY' ? 'FAMILY' : type === 'SERVICE_OPTION' ? 'OPTION' : type}
                         </button>
                     ))}
                 </div>

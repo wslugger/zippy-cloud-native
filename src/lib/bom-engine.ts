@@ -1,5 +1,12 @@
 import { prisma } from "./prisma";
-import { ItemType, DependencyType, PricingModel } from "@prisma/client";
+import { ItemType, DependencyType, PricingModel, Prisma } from "@prisma/client";
+
+export interface BOMOptions {
+    termMonths?: number;
+    primaryServiceId?: string;
+    siteRegion?: string;
+    configValues?: Record<string, Record<string, any>>;
+}
 
 export interface LineItem {
     id: string;
@@ -8,9 +15,12 @@ export interface LineItem {
     type: ItemType;
     quantity: number;
     parentSku?: string;
+    role?: string; // "PRIMARY" | "SECONDARY"
+    configValues?: Record<string, any>;
     pricing: {
         nrc: number;
         mrc: number;
+        termMonths?: number;
     };
 }
 
@@ -19,24 +29,108 @@ export interface BOMResult {
     totals: {
         totalNrc: number;
         totalMrc: number;
+        totalTcv?: number; // NRC + (MRC * termMonths)
     };
+    termMonths?: number;
     warnings: string[];
+}
+
+type PricingWithTiers = Prisma.PricingGetPayload<{ include: { tiers: true } }>;
+
+/**
+ * Select the best pricing record for a given quantity, term, and context.
+ * Priority: exact (termMonths + context) → termMonths only → context only → null/null fallback
+ */
+function selectPricingWithContext(
+    pricingRecords: PricingWithTiers[],
+    quantity: number,
+    termMonths: number | null,
+    context: string | null
+): PricingWithTiers | null {
+    const now = new Date();
+
+    const eligible = pricingRecords.filter(p => {
+        if (quantity < p.minQuantity) return false;
+        if (p.maxQuantity !== null && quantity > p.maxQuantity) return false;
+        if (p.effectiveDate > now) return false;
+        if (p.expirationDate !== null && p.expirationDate < now) return false;
+        return true;
+    });
+
+    if (eligible.length === 0) return null;
+
+    const priorities: Array<(p: PricingWithTiers) => boolean> = [
+        (p) => p.termMonths === termMonths && p.context === context,
+        (p) => p.termMonths === termMonths && p.context === null,
+        (p) => p.termMonths === null && p.context === context,
+        (p) => p.termMonths === null && p.context === null,
+    ];
+
+    for (const matcher of priorities) {
+        const match = eligible.find(matcher);
+        if (match) return match;
+    }
+
+    return eligible[0];
+}
+
+function computePricing(
+    pricing: PricingWithTiers,
+    quantity: number
+): { nrc: number; mrc: number } {
+    if (pricing.pricingModel === PricingModel.FLAT) {
+        return {
+            nrc: Number(pricing.priceNrc) * quantity,
+            mrc: Number(pricing.priceMrc) * quantity,
+        };
+    } else if (pricing.pricingModel === PricingModel.TIERED) {
+        const tier = pricing.tiers.find(
+            t => quantity >= t.startingUnit && (t.endingUnit === null || quantity <= t.endingUnit)
+        );
+        return {
+            nrc: Number(pricing.priceNrc) * quantity,
+            mrc: (tier ? Number(tier.priceMrc) : Number(pricing.priceMrc)) * quantity,
+        };
+    } else {
+        return {
+            nrc: Number(pricing.priceNrc) * quantity,
+            mrc: Number(pricing.priceMrc) * quantity,
+        };
+    }
 }
 
 const MAX_DEPTH = 7;
 
-export async function calculateBOM(skuIds: string[]): Promise<BOMResult> {
+// Service types that can have PRIMARY/SECONDARY context
+const SERVICE_TYPES: ItemType[] = [
+    ItemType.MANAGED_SERVICE,
+    ItemType.SERVICE_OPTION,
+    ItemType.CONNECTIVITY,
+];
+
+export async function calculateBOM(
+    skuIds: string[],
+    options: BOMOptions = {}
+): Promise<BOMResult> {
     const warnings: string[] = [];
     const lineItemMap = new Map<string, LineItem>();
 
-    // Use a queue for breadth-first traversal of dependencies
+    const termMonths = options.termMonths ?? null;
+
     let queue: { id: string; parentSku?: string; depth: number; quantity: number }[] = skuIds.map(id => ({
         id,
         depth: 0,
         quantity: 1,
     }));
 
-    const processed = new Set<string>();
+    // Pre-fetch REGION attributes if geo-filtering requested
+    let siteRegionTermId: string | null = null;
+    if (options.siteRegion) {
+        const regionTerm = await prisma.taxonomyTerm.findUnique({
+            where: { category_value: { category: 'REGION', value: options.siteRegion } },
+        });
+        siteRegionTermId = regionTerm?.id ?? null;
+    }
 
     while (queue.length > 0) {
         const { id, parentSku, depth, quantity } = queue.shift()!;
@@ -46,21 +140,18 @@ export async function calculateBOM(skuIds: string[]): Promise<BOMResult> {
             continue;
         }
 
-        // Fetch the item with its pricing and mandatory dependencies
         const item = await prisma.catalogItem.findUnique({
             where: { id },
             include: {
-                pricing: {
-                    include: {
-                        tiers: true,
-                    },
-                },
+                pricing: { include: { tiers: true } },
                 parentDependencies: {
                     where: {
-                        type: {
-                            in: [DependencyType.INCLUDES, DependencyType.MANDATORY_ATTACHMENT],
-                        },
+                        // IS_A is not auto-expanded — it's used for family classification only
+                        type: { in: [DependencyType.INCLUDES, DependencyType.MANDATORY_ATTACHMENT] },
                     },
+                },
+                attributes: {
+                    include: { term: true },
                 },
             },
         });
@@ -70,28 +161,43 @@ export async function calculateBOM(skuIds: string[]): Promise<BOMResult> {
             continue;
         }
 
-        // Calculate pricing
+        // Determine role (PRIMARY or SECONDARY) for service types
+        let role: string | undefined;
+        if (options.primaryServiceId && SERVICE_TYPES.includes(item.type)) {
+            role = item.id === options.primaryServiceId ? 'PRIMARY' : 'SECONDARY';
+        }
+
+        // Context for pricing selection
+        const pricingContext = role ?? null;
+
+        // Geo-region check
+        if (siteRegionTermId && options.siteRegion) {
+            const regionAttrs = item.attributes.filter(a => a.term.category === 'REGION');
+            if (regionAttrs.length > 0) {
+                const hasMatchingRegion = regionAttrs.some(a => a.term.value === options.siteRegion);
+                if (!hasMatchingRegion) {
+                    warnings.push(
+                        `Item "${item.name}" (${item.sku}) may not be serviceable in region "${options.siteRegion}". ` +
+                        `Available regions: ${regionAttrs.map(a => a.term.label).join(', ')}.`
+                    );
+                }
+            }
+        }
+
+        // Select best pricing record
+        const selectedPricing = selectPricingWithContext(item.pricing, quantity, termMonths, pricingContext);
+
         let nrc = 0;
         let mrc = 0;
 
-        const pricing = item.pricing[0]; // For now, assume one primary pricing record
-        if (pricing) {
-            if (pricing.pricingModel === PricingModel.FLAT) {
-                nrc = Number(pricing.priceNrc) * quantity;
-                mrc = Number(pricing.priceMrc) * quantity;
-            } else if (pricing.pricingModel === PricingModel.TIERED) {
-                // Find the correct tier
-                const tier = pricing.tiers.find(
-                    t => quantity >= t.startingUnit && (t.endingUnit === null || quantity <= t.endingUnit)
-                );
-                nrc = Number(pricing.priceNrc) * quantity; // NRC often flat even in tiered MRC
-                mrc = (tier ? Number(tier.priceMrc) : Number(pricing.priceMrc)) * quantity;
-            } else {
-                // Fallback for other models (PER_UNIT, etc.)
-                nrc = Number(pricing.priceNrc) * quantity;
-                mrc = Number(pricing.priceMrc) * quantity;
-            }
+        if (selectedPricing) {
+            const computed = computePricing(selectedPricing, quantity);
+            nrc = computed.nrc;
+            mrc = computed.mrc;
         }
+
+        // Attach configValues if provided for this item
+        const itemConfigValues = options.configValues?.[id];
 
         // Update or add line item
         const existing = lineItemMap.get(id);
@@ -107,11 +213,17 @@ export async function calculateBOM(skuIds: string[]): Promise<BOMResult> {
                 type: item.type,
                 quantity,
                 parentSku,
-                pricing: { nrc, mrc },
+                role,
+                configValues: itemConfigValues,
+                pricing: {
+                    nrc,
+                    mrc,
+                    termMonths: selectedPricing?.termMonths ?? undefined,
+                },
             });
         }
 
-        // Add child dependencies to queue
+        // Enqueue child dependencies (INCLUDES + MANDATORY_ATTACHMENT only)
         for (const dep of item.parentDependencies) {
             queue.push({
                 id: dep.childId,
@@ -132,9 +244,17 @@ export async function calculateBOM(skuIds: string[]): Promise<BOMResult> {
         { totalNrc: 0, totalMrc: 0 }
     );
 
+    const totalTcv = termMonths
+        ? totals.totalNrc + totals.totalMrc * termMonths
+        : undefined;
+
     return {
         lineItems,
-        totals,
+        totals: {
+            ...totals,
+            totalTcv,
+        },
+        termMonths: termMonths ?? undefined,
         warnings,
     };
 }

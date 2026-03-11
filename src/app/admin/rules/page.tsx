@@ -143,6 +143,9 @@ export default function RulesPage() {
                                     <option value="INCLUDES">INCLUDES</option>
                                     <option value="MANDATORY_ATTACHMENT">MANDATORY</option>
                                     <option value="OPTIONAL_ATTACHMENT">OPTIONAL</option>
+                                    <option value="IS_A">IS_A</option>
+                                    <option value="INCOMPATIBLE">INCOMPATIBLE</option>
+                                    <option value="RECOMMENDS">RECOMMENDS</option>
                                 </select>
                             </div>
                             <div className="space-y-2">
@@ -185,10 +188,14 @@ export default function RulesPage() {
                                         </div>
 
                                         <div className="flex flex-col items-center px-4">
-                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mb-1 ${rule.type === 'REQUIRES' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
-                                                    rule.type === 'INCLUDES' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                                                        'bg-slate-800 border-slate-700 text-slate-400'
-                                                }`}>
+                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mb-1 ${
+                                                rule.type === 'REQUIRES' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+                                                rule.type === 'INCLUDES' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                                                rule.type === 'IS_A' ? 'bg-teal-500/10 border-teal-500/20 text-teal-400' :
+                                                rule.type === 'INCOMPATIBLE' ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' :
+                                                rule.type === 'RECOMMENDS' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                                                'bg-slate-800 border-slate-700 text-slate-400'
+                                            }`}>
                                                 {rule.type}
                                             </span>
                                             <ArrowRight size={14} className="text-slate-700" />
@@ -202,7 +209,13 @@ export default function RulesPage() {
                                     </div>
                                 </div>
 
-                                <button className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg text-slate-500">
+                                <button
+                                    onClick={async () => {
+                                        await fetch(`/api/admin/rules?id=${rule.id}`, { method: 'DELETE' });
+                                        fetchRules();
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/10 hover:text-red-500 rounded-lg text-slate-500"
+                                >
                                     <Trash2 size={18} />
                                 </button>
                             </div>

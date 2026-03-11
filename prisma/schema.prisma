@@ -9,7 +9,7 @@ datasource db {
 // -- 1. TAXONOMY (Dynamic Dropdowns & Attributes) --
 model TaxonomyTerm {
   id             String          @id @default(uuid())
-  category       String // e.g., "VENDOR", "INTERFACE_TYPE"
+  category       String // e.g., "VENDOR", "INTERFACE_TYPE", "FEATURE", "SLA", "REGION"
   value          String // e.g., "Cisco Meraki", "WAN"
   label          String
   itemAttributes ItemAttribute[]
@@ -26,6 +26,7 @@ enum ItemType {
   LICENSE
   MANAGED_SERVICE
   SERVICE_OPTION
+  SERVICE_FAMILY
   CONNECTIVITY
 }
 
@@ -35,10 +36,13 @@ model CatalogItem {
   name               String
   description        String?
   type               ItemType
+  configSchema       Json? // JSON Schema for dynamic design option forms (topology, breakout, etc.)
   pricing            Pricing[]
   attributes         ItemAttribute[]
   parentDependencies ItemDependency[] @relation("ParentItem")
   childDependencies  ItemDependency[] @relation("ChildItem")
+  primarySites       SolutionSite[]   @relation("PrimarySiteService")
+  siteSelections     SiteSelection[]
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 }
@@ -61,6 +65,7 @@ enum DependencyType {
   OPTIONAL_ATTACHMENT
   INCOMPATIBLE
   RECOMMENDS
+  IS_A // child IS_A variant of parent SERVICE_FAMILY
 }
 
 model ItemDependency {
@@ -96,12 +101,15 @@ model Pricing {
   priceNrc       Decimal       @default(0.00) @db.Decimal(10, 2)
   priceMrc       Decimal       @default(0.00) @db.Decimal(10, 2)
   percentageRate Decimal?      @db.Decimal(5, 4)
+  termMonths     Int? // Contract term: 12, 36, 60. null = month-to-month
+  context        String? // "PRIMARY", "SECONDARY" for role-based pricing
   effectiveDate  DateTime      @default(now())
   expirationDate DateTime?
   item           CatalogItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
   tiers          PricingTier[]
 
   @@index([itemId])
+  @@index([itemId, termMonths, context])
 }
 
 model PricingTier {
@@ -115,6 +123,56 @@ model PricingTier {
 
   @@unique([pricingId, startingUnit])
 }
+
+// -- 5. PROJECT & SITE QUOTING --
+enum ProjectStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  ORDERED
+  ARCHIVED
+}
+
+model Project {
+  id           String        @id @default(uuid())
+  name         String
+  customerName String?
+  status       ProjectStatus @default(DRAFT)
+  termMonths   Int           @default(1) // Global contract term for the quote
+  sites        SolutionSite[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model SolutionSite {
+  id               String          @id @default(uuid())
+  projectId        String
+  name             String // e.g., "New York HQ"
+  address          String?
+  region           String? // REGION taxonomy value for geo-filtering
+  primaryServiceId String? // Which service is "primary" at this site
+  siteSelections   SiteSelection[]
+  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  primaryService   CatalogItem?    @relation("PrimarySiteService", fields: [primaryServiceId], references: [id])
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model SiteSelection {
+  id            String       @id @default(uuid())
+  siteId        String
+  catalogItemId String
+  quantity      Int          @default(1)
+  configValues  Json? // User's answers from the configSchema form
+  role          String? // "PRIMARY" | "SECONDARY"
+  site          SolutionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  catalogItem   CatalogItem  @relation(fields: [catalogItemId], references: [id])
+  createdAt     DateTime     @default(now())
+
+  @@unique([siteId, catalogItemId])
+}
+
+// -- 6. SYSTEM CONFIGURATION --
 model SystemConfig {
   id          String   @id @default(uuid())
   key         String   @unique

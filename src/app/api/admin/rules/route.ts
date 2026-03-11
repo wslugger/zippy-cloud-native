@@ -15,6 +15,20 @@ export async function GET() {
     }
 }
 
+export async function DELETE(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) {
+        return NextResponse.json({ error: "'id' query param is required" }, { status: 400 });
+    }
+    try {
+        await prisma.itemDependency.delete({ where: { id } });
+        return new NextResponse(null, { status: 204 });
+    } catch (error) {
+        return NextResponse.json({ error: "Failed to delete rule" }, { status: 500 });
+    }
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
