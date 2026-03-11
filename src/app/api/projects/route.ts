@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { name, customerName, termMonths } = await request.json();
+        const { name, customerName, termMonths, rawRequirements } = await request.json();
 
         if (!name) {
             return NextResponse.json({ error: "'name' is required" }, { status: 400 });
@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
               name, 
               customerName, 
               termMonths: termMonths ?? 36,
+              rawRequirements,
               userId: session.userId 
             },
         });

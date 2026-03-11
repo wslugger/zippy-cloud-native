@@ -17,6 +17,11 @@ export async function GET(
         const project = await prisma.project.findUnique({
             where: { id, userId: session.userId },
             include: {
+                items: {
+                    include: {
+                        catalogItem: true
+                    }
+                },
                 sites: {
                     include: {
                         primaryService: true,
@@ -58,11 +63,11 @@ export async function PUT(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { name, customerName, status, termMonths } = await request.json();
+        const { name, customerName, status, termMonths, rawRequirements } = await request.json();
 
         const project = await prisma.project.update({
             where: { id, userId: session.userId },
-            data: { name, customerName, status, termMonths },
+            data: { name, customerName, status, termMonths, rawRequirements },
         });
 
         return NextResponse.json(project);

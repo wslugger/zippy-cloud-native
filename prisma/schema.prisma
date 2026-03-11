@@ -44,6 +44,8 @@ model CatalogItem {
   childDependencies  ItemDependency[] @relation("ChildItem")
   primarySites       SolutionSite[]   @relation("PrimarySiteService")
   siteSelections     SiteSelection[]
+  collaterals        Collateral[]
+  projectItems       ProjectItem[]
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 }
@@ -56,6 +58,17 @@ model ItemAttribute {
   term           TaxonomyTerm @relation(fields: [taxonomyTermId], references: [id], onDelete: Cascade)
 
   @@unique([itemId, taxonomyTermId])
+}
+
+model Collateral {
+  id            String       @id @default(uuid())
+  catalogItemId String
+  title         String
+  url           String
+  type          String       // e.g., "PDF", "DIAGRAM"
+  catalogItem   CatalogItem  @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
 
 // -- 3. DEPENDENCY ENGINE (Solves Licensing & Bundles) --
@@ -138,14 +151,30 @@ model Project {
   id           String        @id @default(uuid())
   name         String
   customerName String?
-  status       ProjectStatus @default(DRAFT)
-  termMonths   Int           @default(1) // Global contract term for the quote
-  sites        SolutionSite[]
-  userId       String?
-  user         User?         @relation(fields: [userId], references: [id])
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  status          ProjectStatus @default(DRAFT)
+  termMonths      Int           @default(1) // Global contract term for the quote
+  rawRequirements String?       @db.Text
+  sites           SolutionSite[]
+  items           ProjectItem[]
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 }
+
+model ProjectItem {
+  id            String       @id @default(uuid())
+  projectId     String
+  catalogItemId String
+  quantity      Int          @default(1)
+  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  catalogItem   CatalogItem  @relation(fields: [catalogItemId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([projectId, catalogItemId])
+}
+
 
 model SolutionSite {
   id               String          @id @default(uuid())
