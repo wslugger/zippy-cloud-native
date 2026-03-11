@@ -101,13 +101,13 @@ async function main() {
         },
     });
 
-    // --- Service Options ---
+    // --- Managed Services (Vendor Stacks) ---
     const merakiSdwan = await prisma.catalogItem.create({
         data: {
             sku: "SVC-MERAKI-SDWAN",
             name: "Meraki SD-WAN",
             shortDescription: "Cisco Meraki cloud-managed SD-WAN",
-            type: ItemType.SERVICE_OPTION,
+            type: ItemType.MANAGED_SERVICE,
             configSchema: {
                 type: "object",
                 properties: {
@@ -142,7 +142,7 @@ async function main() {
             sku: "SVC-CATALYST-SDWAN",
             name: "Cisco Catalyst SD-WAN",
             shortDescription: "Cisco Catalyst (Viptela) SD-WAN",
-            type: ItemType.SERVICE_OPTION,
+            type: ItemType.MANAGED_SERVICE,
             configSchema: {
                 type: "object",
                 properties: {
@@ -166,6 +166,53 @@ async function main() {
         },
     });
 
+    // --- Service Options (Support Tiers) ---
+    const watchAlert = await prisma.catalogItem.create({
+        data: {
+            sku: "SVC-WATCH-ALERT",
+            name: "Watch & Alert",
+            shortDescription: "24/7 Monitoring and basic alerting",
+            type: ItemType.SERVICE_OPTION,
+        },
+    });
+
+    const hardwarePlus = await prisma.catalogItem.create({
+        data: {
+            sku: "SVC-HW-PLUS",
+            name: "Hardware Plus",
+            shortDescription: "Next-business-day hardware replacement",
+            type: ItemType.SERVICE_OPTION,
+        },
+    });
+
+    const totalCare = await prisma.catalogItem.create({
+        data: {
+            sku: "SVC-TOTAL-CARE",
+            name: "Total Care",
+            shortDescription: "Full proactive management and incident response",
+            type: ItemType.SERVICE_OPTION,
+        },
+    });
+
+    // Old mgmt tiers retyped to SERVICE_OPTION
+    const mgmtSmall = await prisma.catalogItem.create({
+        data: {
+            sku: "SVC-MGMT-SMALL",
+            name: "Managed SD-WAN - Small",
+            shortDescription: "Managed service for small branch appliances",
+            type: ItemType.SERVICE_OPTION,
+        },
+    });
+
+    const mgmtMedium = await prisma.catalogItem.create({
+        data: {
+            sku: "SVC-MGMT-MEDIUM",
+            name: "Managed SD-WAN - Medium",
+            shortDescription: "Managed service for medium branch appliances",
+            type: ItemType.SERVICE_OPTION,
+        },
+    });
+
     // --- Hardware ---
     const mx68 = await prisma.catalogItem.create({
         data: {
@@ -185,31 +232,48 @@ async function main() {
         },
     });
 
-    // --- Managed Services ---
-    const mgmtSmall = await prisma.catalogItem.create({
-        data: {
-            sku: "SVC-MGMT-SMALL",
-            name: "Managed SD-WAN - Small",
-            shortDescription: "Managed service for small branch appliances",
-            type: ItemType.MANAGED_SERVICE,
-        },
-    });
-
-    const mgmtMedium = await prisma.catalogItem.create({
-        data: {
-            sku: "SVC-MGMT-MEDIUM",
-            name: "Managed SD-WAN - Medium",
-            shortDescription: "Managed service for medium branch appliances",
-            type: ItemType.MANAGED_SERVICE,
-        },
-    });
-
     // --- Connectivity ---
+    const dia = await prisma.catalogItem.create({
+        data: {
+            sku: "CONN-DIA",
+            name: "Dedicated Internet Access (DIA)",
+            shortDescription: "Fiber-based symmetric internet with SLA",
+            type: ItemType.CONNECTIVITY,
+        },
+    });
+
     const broadband = await prisma.catalogItem.create({
         data: {
             sku: "CONN-BROADBAND",
             name: "Business Broadband",
             shortDescription: "Standard business broadband internet access",
+            type: ItemType.CONNECTIVITY,
+        },
+    });
+
+    const mpls = await prisma.catalogItem.create({
+        data: {
+            sku: "CONN-MPLS",
+            name: "Managed MPLS",
+            shortDescription: "Private Wide Area Network circuit",
+            type: ItemType.CONNECTIVITY,
+        },
+    });
+
+    const fwa = await prisma.catalogItem.create({
+        data: {
+            sku: "CONN-FWA",
+            name: "Fixed Wireless Access (5G)",
+            shortDescription: "High-speed wireless primary or failover",
+            type: ItemType.CONNECTIVITY,
+        },
+    });
+
+    const leo = await prisma.catalogItem.create({
+        data: {
+            sku: "CONN-LEO",
+            name: "Starlink LEO Satellite",
+            shortDescription: "Low-Earth Orbit satellite connectivity",
             type: ItemType.CONNECTIVITY,
         },
     });
@@ -323,67 +387,87 @@ async function main() {
         },
     });
 
-    // Managed Service - Small - PRIMARY context
+    // --- Support Tier Pricing ---
     await prisma.pricing.create({
         data: {
-            itemId: mgmtSmall.id,
+            itemId: watchAlert.id,
             pricingModel: PricingModel.FLAT,
-            context: "PRIMARY",
-            priceNrc: 500,
-            priceMrc: 150,
-            costNrc: 200,
-            costMrc: 80,
+            priceNrc: 0,
+            priceMrc: 50,
         },
     });
 
-    // Managed Service - Small - SECONDARY context (discounted)
     await prisma.pricing.create({
         data: {
-            itemId: mgmtSmall.id,
+            itemId: hardwarePlus.id,
             pricingModel: PricingModel.FLAT,
-            context: "SECONDARY",
+            priceNrc: 0,
+            priceMrc: 100,
+        },
+    });
+
+    await prisma.pricing.create({
+        data: {
+            itemId: totalCare.id,
+            pricingModel: PricingModel.FLAT,
             priceNrc: 250,
-            priceMrc: 75,
-            costNrc: 100,
-            costMrc: 40,
+            priceMrc: 300,
         },
     });
 
-    // Managed Service - Small - default (no context, fallback)
+    // Managed Service re-priced as billable tiers
     await prisma.pricing.create({
         data: {
             itemId: mgmtSmall.id,
             pricingModel: PricingModel.FLAT,
             priceNrc: 500,
             priceMrc: 150,
-            costNrc: 200,
-            costMrc: 80,
         },
     });
 
-    // Managed Service - Medium - PRIMARY context
     await prisma.pricing.create({
         data: {
             itemId: mgmtMedium.id,
             pricingModel: PricingModel.FLAT,
-            context: "PRIMARY",
             priceNrc: 750,
             priceMrc: 250,
-            costNrc: 350,
-            costMrc: 140,
         },
     });
 
-    // Managed Service - Medium - SECONDARY context
+    // --- Connectivity Pricing ---
     await prisma.pricing.create({
         data: {
-            itemId: mgmtMedium.id,
+            itemId: dia.id,
             pricingModel: PricingModel.FLAT,
-            context: "SECONDARY",
-            priceNrc: 375,
-            priceMrc: 125,
-            costNrc: 175,
-            costMrc: 70,
+            priceNrc: 1000,
+            priceMrc: 800,
+        },
+    });
+
+    await prisma.pricing.create({
+        data: {
+            itemId: mpls.id,
+            pricingModel: PricingModel.FLAT,
+            priceNrc: 1500,
+            priceMrc: 1200,
+        },
+    });
+
+    await prisma.pricing.create({
+        data: {
+            itemId: fwa.id,
+            pricingModel: PricingModel.FLAT,
+            priceNrc: 250,
+            priceMrc: 150,
+        },
+    });
+
+    await prisma.pricing.create({
+        data: {
+            itemId: leo.id,
+            pricingModel: PricingModel.FLAT,
+            priceNrc: 500,
+            priceMrc: 200,
         },
     });
 
@@ -394,25 +478,21 @@ async function main() {
             pricingModel: PricingModel.FLAT,
             priceNrc: 200,
             priceMrc: 99,
-            costNrc: 100,
-            costMrc: 55,
         },
     });
 
     // 5. Create Dependencies
 
-    // Original seed dependencies (backwards compat)
+    // --- Package Includes ---
     await prisma.itemDependency.create({
         data: {
             parentId: packageItem.id,
-            childId: hardwareItemMx64.id,
+            childId: sdwanFamily.id,
             type: DependencyType.INCLUDES,
         },
     });
 
-
-
-    // IS_A: SD-WAN family → service options
+    // IS_A: SD-WAN family → managed services (vendor stacks)
     await prisma.itemDependency.create({
         data: {
             parentId: sdwanFamily.id,
@@ -429,7 +509,8 @@ async function main() {
         },
     });
 
-    // Meraki SD-WAN INCLUDES hardware and MANDATORY_ATTACHMENT to management
+    // --- Meraki Attachments ---
+    // Mandatory hardware
     await prisma.itemDependency.create({
         data: {
             parentId: merakiSdwan.id,
@@ -438,29 +519,87 @@ async function main() {
         },
     });
 
+    // Optional Support Tiers (Service Options)
     await prisma.itemDependency.create({
         data: {
             parentId: merakiSdwan.id,
-            childId: mgmtSmall.id,
-            type: DependencyType.MANDATORY_ATTACHMENT,
+            childId: watchAlert.id,
+            type: DependencyType.OPTIONAL_ATTACHMENT,
         },
     });
 
-    // Catalyst SD-WAN MANDATORY_ATTACHMENT to management medium
+    await prisma.itemDependency.create({
+        data: {
+            parentId: merakiSdwan.id,
+            childId: hardwarePlus.id,
+            type: DependencyType.OPTIONAL_ATTACHMENT,
+        },
+    });
+
+    await prisma.itemDependency.create({
+        data: {
+            parentId: merakiSdwan.id,
+            childId: totalCare.id,
+            type: DependencyType.OPTIONAL_ATTACHMENT,
+        },
+    });
+
+    // Optional Transports (Connectivity)
+    await prisma.itemDependency.create({
+        data: {
+            parentId: merakiSdwan.id,
+            childId: dia.id,
+            type: DependencyType.OPTIONAL_ATTACHMENT,
+        },
+    });
+
+    await prisma.itemDependency.create({
+        data: {
+            parentId: merakiSdwan.id,
+            childId: broadband.id,
+            type: DependencyType.OPTIONAL_ATTACHMENT,
+        },
+    });
+
+    await prisma.itemDependency.create({
+        data: {
+            parentId: merakiSdwan.id,
+            childId: mpls.id,
+            type: DependencyType.OPTIONAL_ATTACHMENT,
+        },
+    });
+
+    // --- Support Tier Mutual Exclusion (Incompatible) ---
+    await prisma.itemDependency.create({
+        data: {
+            parentId: watchAlert.id,
+            childId: totalCare.id,
+            type: DependencyType.INCOMPATIBLE,
+        },
+    });
+
+    await prisma.itemDependency.create({
+        data: {
+            parentId: hardwarePlus.id,
+            childId: totalCare.id,
+            type: DependencyType.INCOMPATIBLE,
+        },
+    });
+
+    // --- Catalyst Attachments ---
     await prisma.itemDependency.create({
         data: {
             parentId: catalystSdwan.id,
-            childId: mgmtMedium.id,
-            type: DependencyType.MANDATORY_ATTACHMENT,
+            childId: dia.id,
+            type: DependencyType.OPTIONAL_ATTACHMENT,
         },
     });
 
-    // SD-WAN RECOMMENDS broadband
     await prisma.itemDependency.create({
         data: {
-            parentId: sdwanFamily.id,
-            childId: broadband.id,
-            type: DependencyType.RECOMMENDS,
+            parentId: catalystSdwan.id,
+            childId: mpls.id,
+            type: DependencyType.OPTIONAL_ATTACHMENT,
         },
     });
 

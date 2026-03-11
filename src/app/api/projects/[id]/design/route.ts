@@ -22,19 +22,22 @@ export async function POST(
         }
 
         const body = await request.json();
-        const { baseId, optionId, attachmentIds, designOptionIds } = body;
+        const { baseId, optionId, attachmentIds, designOptionIds, configValues } = body;
 
         // Use a transaction for atomic commit
         const result = await prisma.$transaction(async (tx) => {
-            // 1. Delete existing items from this design flow if we want to allow re-runs
-            // Or just add them. For now, we'll just add. 
-            // Better: use upsert or check existence.
-
+            // 1. Identify items to create/update
             const itemsToCreate = [
-                { catalogItemId: baseId, quantity: 1 },
-                ...(optionId ? [{ catalogItemId: optionId, quantity: 1 }] : []),
-                ...attachmentIds.map((id: string) => ({ catalogItemId: id, quantity: 1 }))
+                { catalogItemId: baseId, quantity: 1, config: null },
+                ...(optionId ? [{ catalogItemId: optionId, quantity: 1, config: configValues }] : []),
+                ...attachmentIds.map((id: string) => ({ catalogItemId: id, quantity: 1, config: null }))
             ];
+
+            // If no optionId, apply config to baseId
+            if (!optionId) {
+                const baseItem = itemsToCreate.find(it => it.catalogItemId === baseId);
+                if (baseItem) baseItem.config = configValues;
+            }
 
             const createdItems = [];
 
@@ -46,29 +49,44 @@ export async function POST(
                             catalogItemId: itemData.catalogItemId
                         }
                     },
-                    update: { quantity: itemData.quantity },
+                    update: { 
+                        quantity: itemData.quantity,
+                        configValues: itemData.config || undefined
+                    },
                     create: {
                         projectId,
                         catalogItemId: itemData.catalogItemId,
-                        quantity: itemData.quantity
+                        quantity: itemData.quantity,
+                        configValues: itemData.config
                     }
                 });
                 createdItems.push(item);
             }
 
-            // 2. Link design options to the 'Option' item (or Base if no Option)
-            const primaryItem = createdItems.find(it => it.catalogItemId === (optionId || baseId));
+            // 2. Clear old items that are no longer in the selection
+            // This is important for re-running the flow
+            const currentItemIds = itemsToCreate.map(it => it.catalogItemId);
+            await tx.projectItem.deleteMany({
+                where: {
+                    projectId,
+                    catalogItemId: { notIn: currentItemIds }
+                }
+            });
+
+            // 3. Link legacy taxonomy design options if any
+            const primaryItemId = optionId || baseId;
+            const primaryProjectItem = createdItems.find(it => it.catalogItemId === primaryItemId);
             
-            if (primaryItem && designOptionIds && designOptionIds.length > 0) {
+            if (primaryProjectItem && designOptionIds && designOptionIds.length > 0) {
                 // Clear existing
-                await (tx as any).projectItemDesignOption.deleteMany({
-                    where: { projectItemId: primaryItem.id }
+                await tx.projectItemDesignOption.deleteMany({
+                    where: { projectItemId: primaryProjectItem.id }
                 });
 
                 // Add new
-                await (tx as any).projectItemDesignOption.createMany({
+                await tx.projectItemDesignOption.createMany({
                     data: designOptionIds.map((termId: string) => ({
-                        projectItemId: primaryItem.id,
+                        projectItemId: primaryProjectItem.id,
                         taxonomyTermId: termId
                     }))
                 });

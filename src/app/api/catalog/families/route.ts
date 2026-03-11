@@ -18,6 +18,31 @@ export async function GET() {
                             include: {
                                 attributes: { include: { term: true } },
                                 pricing: true,
+                                parentDependencies: {
+                                    where: {
+                                        type: { 
+                                            in: [
+                                                DependencyType.MANDATORY_ATTACHMENT, 
+                                                DependencyType.OPTIONAL_ATTACHMENT,
+                                                DependencyType.INCLUDES
+                                            ] 
+                                        }
+                                    },
+                                    include: {
+                                        childItem: {
+                                            include: {
+                                                pricing: true,
+                                                // Fetch incompatible dependencies for the attachment
+                                                parentDependencies: {
+                                                    where: { type: DependencyType.INCOMPATIBLE }
+                                                },
+                                                childDependencies: {
+                                                    where: { type: DependencyType.INCOMPATIBLE }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             },
                         },
                     },
@@ -33,10 +58,28 @@ export async function GET() {
             description: family.shortDescription,
             type: family.type,
             attributes: family.attributes,
-            options: family.parentDependencies.map(dep => ({
-                ...dep.childItem,
-                description: dep.childItem?.shortDescription
-            })),
+            options: family.parentDependencies.map(dep => {
+                const managedService = dep.childItem;
+                if (!managedService) return null;
+
+                return {
+                    ...managedService,
+                    description: managedService.shortDescription,
+                    attachments: managedService.parentDependencies.map(attDep => {
+                        const attachment = attDep.childItem;
+                        if (!attachment) return null;
+
+                        return {
+                            ...attachment,
+                            dependencyType: attDep.type,
+                            incompatibleWith: [
+                                ...attachment.parentDependencies.map(id => id.childId),
+                                ...attachment.childDependencies.map(id => id.parentId)
+                            ]
+                        };
+                    }).filter(Boolean)
+                };
+            }).filter(Boolean),
         }));
 
         return NextResponse.json(result);
