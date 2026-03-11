@@ -166,17 +166,6 @@ export default function CatalogPage() {
                                     >
                                         <Settings size={18} />
                                     </Link>
-                                    <button
-                                        type="button"
-                                        onClick={() => deleteItem(item.id)}
-                                        disabled={deletingId === item.id}
-                                        className="text-slate-400 hover:text-red-500 transition-colors disabled:opacity-40"
-                                        aria-label="Delete item"
-                                    >
-                                        {deletingId === item.id
-                                            ? <Loader2 size={16} className="animate-spin" />
-                                            : <Trash2 size={16} />}
-                                    </button>
                                 </div>
                             </div>
 
@@ -195,6 +184,20 @@ export default function CatalogPage() {
                                 </p>
                             </div>
 
+                            {/* Delete Button - Bottom Right for safety */}
+                            <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => deleteItem(item.id)}
+                                    disabled={deletingId === item.id}
+                                    className="p-2 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-full transition-all disabled:opacity-40"
+                                    title="Delete Item"
+                                >
+                                    {deletingId === item.id
+                                        ? <Loader2 size={16} className="animate-spin" />
+                                        : <Trash2 size={16} />}
+                                </button>
+                            </div>
 
                             {/* Subtle background glow */}
                             <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-blue-600/5 rounded-full blur-2xl group-hover:bg-blue-600/10 transition-all pointer-events-none" />
