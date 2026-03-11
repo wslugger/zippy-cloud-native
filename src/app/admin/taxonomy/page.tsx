@@ -21,6 +21,22 @@ interface TaxonomyTerm {
     value: string;
 }
 
+const PANEL_CATEGORIES = [
+    'PANEL_PRICING',
+    'PANEL_ATTACHMENTS',
+    'PANEL_SERVICE_OPTIONS',
+    'PANEL_FEATURES'
+];
+
+const ITEM_TYPES = [
+    'SERVICE_FAMILY',
+    'HARDWARE',
+    'MANAGED_SERVICE',
+    'CONNECTIVITY',
+    'PACKAGE',
+    'SERVICE_OPTION'
+];
+
 export default function TaxonomyPage() {
     const [terms, setTerms] = useState<TaxonomyTerm[]>([]);
     const [loading, setLoading] = useState(true);
@@ -156,13 +172,46 @@ export default function TaxonomyPage() {
                         {editingId === 'new' && (
                             <tr className="bg-blue-500/5 transition-colors">
                                 <td className="px-6 py-4">
-                                    <Input placeholder="e.g. TIER" value={form.category} onChange={e => setForm({ ...form, category: e.target.value.toUpperCase() })} className="h-8" />
+                                    <select 
+                                        value={form.category} 
+                                        onChange={e => setForm({ ...form, category: e.target.value.toUpperCase() })} 
+                                        className="w-full h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs"
+                                    >
+                                        <option value="">Select Category...</option>
+                                        <optgroup label="Panel Visibility">
+                                            {PANEL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                        </optgroup>
+                                        <optgroup label="Other">
+                                            {Array.from(new Set(terms.map(t => t.category))).filter(c => !PANEL_CATEGORIES.includes(c)).map(c => (
+                                                <option key={c} value={c}>{c}</option>
+                                            ))}
+                                            <option value="CUSTOM">+ New Category...</option>
+                                        </optgroup>
+                                    </select>
+                                    {form.category === 'CUSTOM' && (
+                                        <Input 
+                                            placeholder="Enter Custom Category" 
+                                            className="h-8 mt-1" 
+                                            onChange={e => setForm({ ...form, category: e.target.value.toUpperCase() })} 
+                                        />
+                                    )}
                                 </td>
                                 <td className="px-6 py-4">
                                     <Input placeholder="Human Label" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} className="h-8" />
                                 </td>
                                 <td className="px-6 py-4">
-                                    <Input placeholder="Technical Value" value={form.value || ''} onChange={e => setForm({ ...form, value: e.target.value })} className="h-8" />
+                                    {PANEL_CATEGORIES.includes(form.category || '') ? (
+                                        <select
+                                            value={form.value || ''}
+                                            onChange={e => setForm({ ...form, value: e.target.value })}
+                                            className="w-full h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs"
+                                        >
+                                            <option value="">Select Item Type...</option>
+                                            {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                    ) : (
+                                        <Input placeholder="Technical Value" value={form.value || ''} onChange={e => setForm({ ...form, value: e.target.value })} className="h-8" />
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
@@ -192,25 +241,44 @@ export default function TaxonomyPage() {
                             </tr>
                         ) : filteredTerms.map(term => (
                             <tr key={term.id} className="hover:bg-slate-100/50 transition-colors group">
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 font-medium text-slate-900 uppercase text-[11px]">
                                     {editingId === term.id ? (
-                                        <Input value={form.category} onChange={e => setForm({ ...form, category: e.target.value.toUpperCase() })} className="h-8" />
+                                        <select 
+                                            value={form.category} 
+                                            onChange={e => setForm({ ...form, category: e.target.value.toUpperCase() })} 
+                                            className="w-full h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs"
+                                        >
+                                            {PANEL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                            {Array.from(new Set(terms.map(t => t.category))).filter(c => !PANEL_CATEGORIES.includes(c)).map(c => (
+                                                <option key={c} value={c}>{c}</option>
+                                            ))}
+                                        </select>
                                     ) : (
                                         <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-[10px] font-bold text-slate-700">
                                             {term.category}
                                         </span>
                                     )}
                                 </td>
-                                <td className="px-6 py-4 font-medium">
+                                <td className="px-6 py-4 font-medium text-slate-800">
                                     {editingId === term.id ? (
-                                        <Input value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} className="h-8" />
+                                        <Input value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} className="h-8 shadow-sm" />
                                     ) : (
                                         term.label
                                     )}
                                 </td>
                                 <td className="px-6 py-4 text-slate-600 font-mono text-[11px]">
                                     {editingId === term.id ? (
-                                        <Input value={form.value || ''} onChange={e => setForm({ ...form, value: e.target.value })} className="h-8" />
+                                        PANEL_CATEGORIES.includes(form.category || '') ? (
+                                            <select
+                                                value={form.value || ''}
+                                                onChange={e => setForm({ ...form, value: e.target.value })}
+                                                className="w-full h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs"
+                                            >
+                                                {ITEM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        ) : (
+                                            <Input value={form.value || ''} onChange={e => setForm({ ...form, value: e.target.value })} className="h-8 shadow-sm" />
+                                        )
                                     ) : (
                                         term.value || '—'
                                     )}

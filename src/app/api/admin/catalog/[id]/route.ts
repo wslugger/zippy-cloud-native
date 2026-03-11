@@ -95,8 +95,8 @@ export async function PATCH(
                     await (tx.itemCollateral as any).createMany({
                         data: body.collaterals.map((c: any) => ({
                             itemId: id,
-                            name: c.name || c.title,
-                            url: c.url || c.documentUrl,
+                            title: c.title || c.name,
+                            documentUrl: c.documentUrl || c.url,
                             type: c.type
                         }))
                     });
@@ -133,34 +133,38 @@ export async function PATCH(
 
             // Update Pricing
             if (body.pricing) {
-                const p = body.pricing;
-                const effectiveDate = p.effectiveDate ? new Date(p.effectiveDate) : new Date("2000-01-01");
-                
-                await (tx.pricing as any).upsert({
-                    where: { 
-                        itemId_effectiveDate: { 
-                            itemId: id, 
-                            effectiveDate 
-                        } 
-                    },
-                    update: {
-                        costMrc: p.costMrc || 0,
-                        costNrc: p.costNrc || 0,
-                        priceMrc: p.priceMrc || p.costMrc || 0,
-                        priceNrc: p.priceNrc || p.costNrc || 0,
-                        currency: p.currency || 'USD',
-                    },
-                    create: {
-                        itemId: id,
-                        effectiveDate,
-                        costMrc: p.costMrc || 0,
-                        costNrc: p.costNrc || 0,
-                        priceMrc: p.priceMrc || p.costMrc || 0,
-                        priceNrc: p.priceNrc || p.costNrc || 0,
-                        currency: p.currency || 'USD',
-                        pricingModel: 'FLAT'
-                    }
-                });
+                const pricingArray = Array.isArray(body.pricing) ? body.pricing : [body.pricing];
+                if (pricingArray.length > 0) {
+                    const p = pricingArray[0];
+                    const effectiveDate = p.effectiveDate ? new Date(p.effectiveDate) : new Date("2000-01-01");
+                    
+                    await (tx.pricing as any).upsert({
+                        where: { 
+                            itemId_effectiveDate: { 
+                                itemId: id, 
+                                effectiveDate 
+                            } 
+                        },
+                        update: {
+                            costMrc: p.costMrc || 0,
+                            costNrc: p.costNrc || 0,
+                            priceMrc: p.priceMrc || p.costMrc || 0,
+                            priceNrc: p.priceNrc || p.costNrc || 0,
+                            currency: p.currency || 'USD',
+                            pricingModel: p.pricingModel || 'FLAT'
+                        },
+                        create: {
+                            itemId: id,
+                            effectiveDate,
+                            costMrc: p.costMrc || 0,
+                            costNrc: p.costNrc || 0,
+                            priceMrc: p.priceMrc || p.costMrc || 0,
+                            priceNrc: p.priceNrc || p.costNrc || 0,
+                            currency: p.currency || 'USD',
+                            pricingModel: p.pricingModel || 'FLAT'
+                        }
+                    });
+                }
             }
 
             return updated;
@@ -169,6 +173,24 @@ export async function PATCH(
         return NextResponse.json(item);
     } catch (error: any) {
         console.error("PATCH CATALOG ERROR:", error);
+        require('fs').appendFileSync('/tmp/zippy_error.log', new Date().toISOString() + ' PATCH: ' + error.message + '\n' + error.stack + '\n');
         return NextResponse.json({ error: "Failed to update item", details: error.message }, { status: 500 });
+    }
+}
+
+export async function DELETE(
+    _request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        await prisma.catalogItem.delete({ where: { id } });
+        return new NextResponse(null, { status: 204 });
+    } catch (error: any) {
+        console.error("DELETE CATALOG ERROR:", error);
+        if (error.code === 'P2025') {
+            return NextResponse.json({ error: "Item not found" }, { status: 404 });
+        }
+        return NextResponse.json({ error: "Failed to delete item" }, { status: 500 });
     }
 }
