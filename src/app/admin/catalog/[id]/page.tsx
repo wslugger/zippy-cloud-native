@@ -52,7 +52,7 @@ export default function CatalogItemDetail() {
     const [attachmentQuery, setAttachmentQuery] = useState('');
     const [attachmentResults, setAttachmentResults] = useState<{id: string, name: string, sku: string, type: string}[]>([]);
     const [isAttachmentSearching, setIsAttachmentSearching] = useState(false);
-    const [taxonomyTerms, setTaxonomyTerms] = useState<{id: string, label: string, category: string}[]>([]);
+    const [taxonomyTerms, setTaxonomyTerms] = useState<{id: string, label: string, category: string, value: string | null}[]>([]);
     const [isTaxonomyLoading, setIsTaxonomyLoading] = useState(false);
 
     useEffect(() => {
@@ -118,15 +118,18 @@ export default function CatalogItemDetail() {
                 body: JSON.stringify(item)
             });
 
-            if (!res.ok) throw new Error('Failed to save');
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || errorData.details || 'Failed to save');
+            }
             
             setStatus({ type: 'success', message: 'Item saved successfully' });
             if (id === 'new') {
                 const newItem = await res.json();
                 router.push(`/admin/catalog/${newItem.id}`);
             }
-        } catch (err) {
-            setStatus({ type: 'error', message: 'Error saving item' });
+        } catch (err: any) {
+            setStatus({ type: 'error', message: err.message || 'Error saving item' });
         } finally {
             setSaving(false);
         }
@@ -267,6 +270,18 @@ export default function CatalogItemDetail() {
         const newPricing = [...item.pricing];
         newPricing[0] = { ...newPricing[0], [field]: value };
         setItem({ ...item, pricing: newPricing });
+    };
+
+    // --- Visibility Logic ---
+    const getVisibilityRules = (panelName: string) => {
+        const terms = taxonomyTerms.filter(t => t.category === `PANEL_${panelName}`);
+        return terms.map(t => t.value).filter((v): v is string => !!v);
+    };
+
+    const isPanelVisible = (panelName: string) => {
+        if (!item) return false;
+        const allowedTypes = getVisibilityRules(panelName);
+        return allowedTypes.includes(item.type);
     };
 
     if (loading) return (
@@ -453,50 +468,52 @@ export default function CatalogItemDetail() {
                     </section>
 
                     {/* Pricing Methodology */}
-                    <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <h2 className="font-bold text-slate-900">Pricing Configuration</h2>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Model</label>
-                                <select 
-                                    value={item.pricing[0]?.pricingModel || 'FLAT'}
-                                    onChange={(e) => updatePricing('pricingModel', e.target.value)}
-                                    className="w-full h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs"
-                                >
-                                    <option value="FLAT">Flat Rate</option>
-                                    <option value="TIERED">Tiered</option>
-                                    <option value="PER_UNIT">Per Unit</option>
-                                    <option value="USAGE_BASED">Usage Based</option>
-                                    <option value="PERCENTAGE">Percentage</option>
-                                </select>
+                    {isPanelVisible('PRICING') && (
+                        <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+                            <div className="flex items-center justify-between mb-2">
+                                <h2 className="font-bold text-slate-900">Pricing Configuration</h2>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Default MRC</label>
-                                    <Input 
-                                        type="number"
-                                        value={item.pricing[0]?.costMrc || 0}
-                                        onChange={(e) => updatePricing('costMrc', parseFloat(e.target.value) || 0)}
-                                        className="h-8 text-xs bg-slate-50"
-                                    />
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Model</label>
+                                    <select 
+                                        value={item.pricing[0]?.pricingModel || 'FLAT'}
+                                        onChange={(e) => updatePricing('pricingModel', e.target.value)}
+                                        className="w-full h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs"
+                                    >
+                                        <option value="FLAT">Flat Rate</option>
+                                        <option value="TIERED">Tiered</option>
+                                        <option value="PER_UNIT">Per Unit</option>
+                                        <option value="USAGE_BASED">Usage Based</option>
+                                        <option value="PERCENTAGE">Percentage</option>
+                                    </select>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Default NRC</label>
-                                    <Input 
-                                        type="number"
-                                        value={item.pricing[0]?.costNrc || 0}
-                                        onChange={(e) => updatePricing('costNrc', parseFloat(e.target.value) || 0)}
-                                        className="h-8 text-xs bg-slate-50"
-                                    />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Default MRC</label>
+                                        <Input 
+                                            type="number"
+                                            value={item.pricing[0]?.costMrc || 0}
+                                            onChange={(e) => updatePricing('costMrc', parseFloat(e.target.value) || 0)}
+                                            className="h-8 text-xs bg-slate-50"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Default NRC</label>
+                                        <Input 
+                                            type="number"
+                                            value={item.pricing[0]?.costNrc || 0}
+                                            onChange={(e) => updatePricing('costNrc', parseFloat(e.target.value) || 0)}
+                                            className="h-8 text-xs bg-slate-50"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+                    )}
 
-                    {/* Service Options (only for Families) */}
-                    {(item.type === 'SERVICE_FAMILY' || item.type === 'PACKAGE') && (
+                    {/* Service Options */}
+                    {isPanelVisible('SERVICE_OPTIONS') && (
                         <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
                                 <h2 className="font-bold text-slate-900">
@@ -567,126 +584,130 @@ export default function CatalogItemDetail() {
                     )}
 
                     {/* Attachments & Licensing */}
-                    <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <h2 className="font-bold text-slate-900">Attachments & Licensing</h2>
-                        </div>
-                        
-                        <div className="relative">
-                            <Input
-                                value={attachmentQuery}
-                                onChange={(e) => searchAttachments(e.target.value)}
-                                placeholder="Search to attach..."
-                                className="text-xs h-8 bg-slate-50"
-                            />
-                            {isAttachmentSearching && <div className="absolute right-3 top-2"><Loader2 size={12} className="animate-spin text-blue-500" /></div>}
-                            {attachmentResults.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto p-1 divide-y divide-slate-100">
-                                    {attachmentResults.map(res => (
-                                        <div key={res.id} className="p-1">
-                                            <p className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Attach as:</p>
-                                            <div className="grid grid-cols-2 gap-1">
-                                                <button
-                                                    onClick={() => { addDependency(res, 'MANDATORY_ATTACHMENT'); setAttachmentQuery(''); setAttachmentResults([]); }}
-                                                    className="text-[10px] font-bold py-1 px-2 bg-rose-50 text-rose-600 rounded hover:bg-rose-100 text-center"
-                                                >
-                                                    Mandatory
-                                                </button>
-                                                <button
-                                                    onClick={() => { addDependency(res, 'RECOMMENDS'); setAttachmentQuery(''); setAttachmentResults([]); }}
-                                                    className="text-[10px] font-bold py-1 px-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-center"
-                                                >
-                                                    Recommends
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            {item.childDependencies
-                                .map((d, i) => {
-                                    if (d.type !== 'MANDATORY_ATTACHMENT' && d.type !== 'RECOMMENDS') return null;
-                                    return (
-                                        <div key={d.id} className="p-3 rounded-lg border border-slate-100 bg-slate-50 space-y-2">
-                                            <div className="flex items-start justify-between">
-                                                <div className="min-w-0">
-                                                    <div className="flex items-center gap-1.5 mb-0.5">
-                                                        <span className={`text-[8px] font-bold px-1 rounded ${
-                                                            d.type === 'MANDATORY_ATTACHMENT' 
-                                                            ? 'bg-rose-100 text-rose-600' 
-                                                            : 'bg-blue-100 text-blue-600'
-                                                        }`}>
-                                                            {d.type === 'MANDATORY_ATTACHMENT' ? 'MANDATORY' : 'RECOMMENDED'}
-                                                        </span>
-                                                        <span className="text-[10px] font-mono text-slate-400">{d.childItem.sku}</span>
-                                                    </div>
-                                                    <p className="text-xs font-bold text-slate-700 truncate">{d.childItem.name}</p>
+                    {isPanelVisible('ATTACHMENTS') && (
+                        <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+                            <div className="flex items-center justify-between mb-2">
+                                <h2 className="font-bold text-slate-900">Attachments & Licensing</h2>
+                            </div>
+                            
+                            <div className="relative">
+                                <Input
+                                    value={attachmentQuery}
+                                    onChange={(e) => searchAttachments(e.target.value)}
+                                    placeholder="Search to attach..."
+                                    className="text-xs h-8 bg-slate-50"
+                                />
+                                {isAttachmentSearching && <div className="absolute right-3 top-2"><Loader2 size={12} className="animate-spin text-blue-500" /></div>}
+                                {attachmentResults.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto p-1 divide-y divide-slate-100">
+                                        {attachmentResults.map(res => (
+                                            <div key={res.id} className="p-1">
+                                                <p className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Attach as:</p>
+                                                <div className="grid grid-cols-2 gap-1">
+                                                    <button
+                                                        onClick={() => { addDependency(res, 'MANDATORY_ATTACHMENT'); setAttachmentQuery(''); setAttachmentResults([]); }}
+                                                        className="text-[10px] font-bold py-1 px-2 bg-rose-50 text-rose-600 rounded hover:bg-rose-100 text-center"
+                                                    >
+                                                        Mandatory
+                                                    </button>
+                                                    <button
+                                                        onClick={() => { addDependency(res, 'RECOMMENDS'); setAttachmentQuery(''); setAttachmentResults([]); }}
+                                                        className="text-[10px] font-bold py-1 px-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-center"
+                                                    >
+                                                        Recommends
+                                                    </button>
                                                 </div>
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="ghost" 
-                                                    className="h-6 w-6 p-0 text-slate-300 hover:text-rose-500"
-                                                    onClick={() => removeDependency(i)}
-                                                >
-                                                    <Trash2 size={12} />
-                                                </Button>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <label className="text-[9px] font-bold text-slate-400 uppercase">Qty Multiplier</label>
-                                                <Input 
-                                                    type="number"
-                                                    value={d.quantityMultiplier}
-                                                    onChange={(e) => updateDependencyMultiplier(i, parseInt(e.target.value) || 1)}
-                                                    className="h-6 w-16 text-[10px] px-1.5"
-                                                />
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                {item.childDependencies
+                                    .map((d, i) => {
+                                        if (d.type !== 'MANDATORY_ATTACHMENT' && d.type !== 'RECOMMENDS') return null;
+                                        return (
+                                            <div key={d.id} className="p-3 rounded-lg border border-slate-100 bg-slate-50 space-y-2">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                                            <span className={`text-[8px] font-bold px-1 rounded ${
+                                                                d.type === 'MANDATORY_ATTACHMENT' 
+                                                                ? 'bg-rose-100 text-rose-600' 
+                                                                : 'bg-blue-100 text-blue-600'
+                                                            }`}>
+                                                                {d.type === 'MANDATORY_ATTACHMENT' ? 'MANDATORY' : 'RECOMMENDED'}
+                                                            </span>
+                                                            <span className="text-[10px] font-mono text-slate-400">{d.childItem.sku}</span>
+                                                        </div>
+                                                        <p className="text-xs font-bold text-slate-700 truncate">{d.childItem.name}</p>
+                                                    </div>
+                                                    <Button 
+                                                        size="sm" 
+                                                        variant="ghost" 
+                                                        className="h-6 w-6 p-0 text-slate-300 hover:text-rose-500"
+                                                        onClick={() => removeDependency(i)}
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </Button>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-[9px] font-bold text-slate-400 uppercase">Qty Multiplier</label>
+                                                    <Input 
+                                                        type="number"
+                                                        value={d.quantityMultiplier}
+                                                        onChange={(e) => updateDependencyMultiplier(i, parseInt(e.target.value) || 1)}
+                                                        className="h-6 w-16 text-[10px] px-1.5"
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-                        </div>
-                    </section>
+                                        );
+                                    })}
+                            </div>
+                        </section>
+                    )}
                     
                     {/* Features & Capabilities */}
-                    <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <h2 className="font-bold text-slate-900">Features & Capabilities</h2>
-                            {isTaxonomyLoading && <Loader2 size={12} className="animate-spin text-blue-500" />}
-                        </div>
-                        
-                        <div className="space-y-4">
-                            {/* Group terms by category */}
-                            {Array.from(new Set(taxonomyTerms.map(t => t.category))).map(category => (
-                                <div key={category} className="space-y-2">
-                                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{category}</h3>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {taxonomyTerms.filter(t => t.category === category).map(term => {
-                                            const isActive = item.attributes.some(a => a.taxonomyTermId === term.id);
-                                            return (
-                                                <button
-                                                    key={term.id}
-                                                    type="button"
-                                                    onClick={() => toggleAttribute(term.id)}
-                                                    className={`text-[10px] px-2 py-1 rounded-full transition-all border ${
-                                                        isActive 
-                                                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100' 
-                                                        : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'
-                                                    }`}
-                                                >
-                                                    {term.label}
-                                                </button>
-                                            );
-                                        })}
+                    {isPanelVisible('FEATURES') && (
+                        <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+                            <div className="flex items-center justify-between mb-2">
+                                <h2 className="font-bold text-slate-900">Features & Capabilities</h2>
+                                {isTaxonomyLoading && <Loader2 size={12} className="animate-spin text-blue-500" />}
+                            </div>
+                            
+                            <div className="space-y-4">
+                                {/* Group terms by category */}
+                                {Array.from(new Set(taxonomyTerms.filter(t => !t.category.startsWith('PANEL_')).map(t => t.category))).map(category => (
+                                    <div key={category} className="space-y-2">
+                                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{category}</h3>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {taxonomyTerms.filter(t => t.category === category).map(term => {
+                                                const isActive = item.attributes.some(a => a.taxonomyTermId === term.id);
+                                                return (
+                                                    <button
+                                                        key={term.id}
+                                                        type="button"
+                                                        onClick={() => toggleAttribute(term.id)}
+                                                        className={`text-[10px] px-2 py-1 rounded-full transition-all border ${
+                                                            isActive 
+                                                            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100' 
+                                                            : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'
+                                                        }`}
+                                                    >
+                                                        {term.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                            {taxonomyTerms.length === 0 && !isTaxonomyLoading && (
-                                <p className="text-xs text-slate-400 italic py-2 text-center">No taxonomy terms found.</p>
-                            )}
-                        </div>
-                    </section>
+                                ))}
+                                {taxonomyTerms.length === 0 && !isTaxonomyLoading && (
+                                    <p className="text-xs text-slate-400 italic py-2 text-center">No taxonomy terms found.</p>
+                                )}
+                            </div>
+                        </section>
+                    )}
 
                     {/* Collateral */}
                     <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">

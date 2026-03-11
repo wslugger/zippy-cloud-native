@@ -148,59 +148,60 @@ export default function CatalogPage() {
                     items.map((item) => (
                         <div
                             key={item.id}
-                            className="bg-white/50 border border-slate-200 rounded-2xl p-5 hover:border-blue-500/30 transition-all group overflow-hidden relative"
+                            className="bg-white/50 border border-slate-200 rounded-[24px] p-6 hover:border-blue-500/30 transition-all group relative flex flex-col min-h-[220px]"
                         >
-                            {/* Type Badge */}
+                            {/* Header Section */}
                             <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2 px-2 py-1 bg-slate-50 rounded-lg border border-slate-200">
+                                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 rounded-xl border border-slate-200/60">
                                     {getTypeIcon(item.type)}
-                                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-600">
-                                        {item.type}
+                                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500">
+                                        {item.type.replace('_', ' ')}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Link
-                                        href={`/admin/catalog/${item.id}`}
-                                        className="text-slate-400 hover:text-blue-500 transition-colors"
-                                        title="Item Settings"
-                                    >
-                                        <Settings size={18} />
-                                    </Link>
-                                </div>
+                                <Link
+                                    href={`/admin/catalog/${item.id}`}
+                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"
+                                    title="Item Settings"
+                                >
+                                    <Settings size={20} />
+                                </Link>
                             </div>
 
-                            <div className="space-y-1 mb-4">
-                                <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                            {/* Content Section */}
+                            <div className="flex-1 space-y-2">
+                                <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
                                     {item.name}
                                 </h3>
-                                <code className="text-xs text-blue-500 font-mono tracking-tight bg-blue-50/50 px-1.5 py-0.5 rounded">
-                                    SKU: {item.sku}
-                                </code>
-                            </div>
-
-                            <div className="mb-8 min-h-[4.5rem]">
-                                <p className="text-base text-slate-600 line-clamp-3 leading-relaxed">
+                                <div className="flex items-center gap-2">
+                                    <code className="text-[10px] text-blue-600 font-mono tracking-tight bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                                        {item.sku}
+                                    </code>
+                                </div>
+                                <p className="text-base text-slate-600 line-clamp-3 leading-relaxed pt-2">
                                     {item.shortDescription || 'No description provided.'}
                                 </p>
                             </div>
 
-                            {/* Delete Button - Bottom Right for safety */}
-                            <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
+                            {/* Footer Section - Reliable Bottom Right */}
+                            <div className="flex justify-end items-center mt-6">
                                 <button
                                     type="button"
-                                    onClick={() => deleteItem(item.id)}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        deleteItem(item.id);
+                                    }}
                                     disabled={deletingId === item.id}
-                                    className="p-2 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-full transition-all disabled:opacity-40"
+                                    className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all disabled:opacity-40"
                                     title="Delete Item"
                                 >
                                     {deletingId === item.id
-                                        ? <Loader2 size={16} className="animate-spin" />
-                                        : <Trash2 size={16} />}
+                                        ? <Loader2 size={18} className="animate-spin" />
+                                        : <Trash2 size={18} />}
                                 </button>
                             </div>
 
-                            {/* Subtle background glow */}
-                            <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-blue-600/5 rounded-full blur-2xl group-hover:bg-blue-600/10 transition-all pointer-events-none" />
+                            {/* Decorative background glow */}
+                            <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-blue-600/[0.03] rounded-full blur-3xl group-hover:bg-blue-600/[0.06] transition-all pointer-events-none -z-10" />
                         </div>
                     ))
                 ) : (

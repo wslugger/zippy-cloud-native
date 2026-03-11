@@ -101,8 +101,14 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json(item, { status: 201 });
-    } catch (error) {
+    } catch (error: any) {
         console.error("POST CATALOG ERROR:", error);
-        return NextResponse.json({ error: "Failed to create catalog item" }, { status: 500 });
+        require('fs').appendFileSync('/tmp/zippy_error.log', new Date().toISOString() + ' POST: ' + error.message + '\n' + error.stack + '\n');
+        
+        if (error.code === 'P2002') {
+            return NextResponse.json({ error: "An item with this SKU already exists" }, { status: 409 });
+        }
+        
+        return NextResponse.json({ error: "Failed to create catalog item", details: error.message }, { status: 500 });
     }
 }

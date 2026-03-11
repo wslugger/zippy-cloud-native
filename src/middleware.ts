@@ -20,7 +20,17 @@ export async function middleware(req: NextRequest) {
     if (session.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    return NextResponse.next();
+    
+    // Refresh cookie on API requests too
+    const res = NextResponse.next();
+    const { encrypt } = await import("@/lib/auth");
+    res.cookies.set({
+      name: SESSION_COOKIE,
+      value: await encrypt(session),
+      httpOnly: true,
+      expires: new Date(Date.now() + 2 * 60 * 60 * 1000), // bump 2 hours
+    });
+    return res;
   }
 
   // 1. Redirect to /login if there's no session and path is not public
@@ -39,7 +49,17 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.nextUrl));
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next();
+  if (session) {
+    const { encrypt } = await import("@/lib/auth");
+    res.cookies.set({
+      name: SESSION_COOKIE,
+      value: await encrypt(session),
+      httpOnly: true,
+      expires: new Date(Date.now() + 2 * 60 * 60 * 1000), // bump 2 hours
+    });
+  }
+  return res;
 }
 
 export const config = {
