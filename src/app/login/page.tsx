@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -10,7 +9,6 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [role, setRole] = useState<"SA" | "ADMIN">("SA");
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,14 +19,13 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, name, role }),
+        signal: AbortSignal.timeout(10000),
       });
 
       if (res.ok) {
-        if (role === "ADMIN") {
-          router.push("/admin");
-        } else {
-          router.push("/projects");
-        }
+        // Use full navigation to bypass Next.js router cache,
+        // which may have cached pre-login 307 redirects for these routes
+        window.location.href = role === "ADMIN" ? "/admin" : "/projects";
       } else {
         alert("Login failed");
       }
