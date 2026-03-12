@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
 // List all taxonomy terms (capped to prevent runaway queries)
 export async function GET() {
@@ -9,7 +10,7 @@ export async function GET() {
             take: 1000,
         });
         return NextResponse.json(terms);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: "Failed to fetch taxonomy terms" }, { status: 500 });
     }
 }
@@ -47,27 +48,33 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json(term);
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Failed to save taxonomy term";
+        const stack = error instanceof Error ? error.stack?.split('\n')[0] : undefined;
+        const prismaCode = error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
+        const prismaMeta = error instanceof Prisma.PrismaClientKnownRequestError ? error.meta : undefined;
+
         // Log details to server console for debugging
         console.error("DEBUG: Taxonomy Save Error:", {
-            message: error.message,
-            code: error.code,
-            meta: error.meta,
-            stack: error.stack?.split('\n')[0] // Just first line for cleaner logs
+            message,
+            code: prismaCode,
+            meta: prismaMeta,
+            stack // Just first line for cleaner logs
         });
         
         // Handle unique constraint violation specifically
-        if (error.code === 'P2002') {
-            const fields = error.meta?.target || ['category', 'value'];
+        if (prismaCode === 'P2002') {
+            const target = (prismaMeta as { target?: unknown } | undefined)?.target;
+            const fields = Array.isArray(target) ? target : ['category', 'value'];
             return NextResponse.json({ 
                 error: `Duplicate Entry: A term with this ${fields.join(' and ')} already exists.` 
             }, { status: 400 });
         }
         
         return NextResponse.json({ 
-            error: error.message || "Failed to save taxonomy term",
-            code: error.code || 'UNKNOWN_DB_ERROR',
-            details: error.meta || {}
+            error: message,
+            code: prismaCode || 'UNKNOWN_DB_ERROR',
+            details: prismaMeta || {}
         }, { status: 500 });
     }
 }

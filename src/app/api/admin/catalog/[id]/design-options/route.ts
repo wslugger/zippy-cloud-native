@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAssignableServiceType } from "@/lib/catalog-item-types";
 
 type PrismaWithDesignAssignmentDelegates = typeof prisma & {
   catalogItemDesignOption?: {
@@ -29,10 +30,6 @@ async function getCatalogItemType(catalogItemId: string): Promise<string | null>
   return item?.type ?? null;
 }
 
-function isDesignOptionTargetType(type: string | null): boolean {
-  return type === "MANAGED_SERVICE" || type === "SERVICE_OPTION" || type === "CONNECTIVITY";
-}
-
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -49,7 +46,7 @@ export async function GET(
       return NextResponse.json({
         catalogItemId,
         catalogItemType: itemType,
-        editable: isDesignOptionTargetType(itemType),
+        editable: isAssignableServiceType(itemType),
         options: [],
         definitions: [],
         warning: "Prisma client is outdated for design option assignment delegates; run 'npx prisma generate' and restart dev server.",
@@ -107,7 +104,7 @@ export async function GET(
     return NextResponse.json({
       catalogItemId,
       catalogItemType: itemType,
-      editable: isDesignOptionTargetType(itemType),
+      editable: isAssignableServiceType(itemType),
       options: itemOptions,
       definitions,
     });
@@ -131,7 +128,7 @@ export async function PUT(
     }
 
     const itemType = await getCatalogItemType(catalogItemId);
-    if (!isDesignOptionTargetType(itemType)) {
+    if (!isAssignableServiceType(itemType)) {
       return NextResponse.json(
         { error: "Design options can only be assigned to MANAGED_SERVICE, SERVICE_OPTION, or CONNECTIVITY items" },
         { status: 400 }
@@ -148,7 +145,71 @@ export async function PUT(
       }>;
     };
 
-    const options = body.options ?? [];
+    const options = (body.options ?? []).map((option) => ({
+      designOptionId: option.designOptionId,
+      isRequired: option.isRequired ?? false,
+      allowMulti: option.allowMulti ?? false,
+      defaultValueId: option.defaultValueId ?? null,
+      allowedValueIds: Array.from(new Set((option.allowedValueIds ?? []).filter(Boolean))),
+    }));
+
+    const designOptionIds = new Set<string>();
+    for (const option of options) {
+      if (!option.designOptionId) {
+        return NextResponse.json({ error: "Each assignment requires a designOptionId" }, { status: 400 });
+      }
+      if (designOptionIds.has(option.designOptionId)) {
+        return NextResponse.json({ error: "Duplicate design option assignments are not allowed" }, { status: 400 });
+      }
+      designOptionIds.add(option.designOptionId);
+    }
+
+    const definitions = await prisma.designOptionDefinition.findMany({
+      where: { id: { in: Array.from(designOptionIds) } },
+      select: {
+        id: true,
+        key: true,
+        label: true,
+        values: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (definitions.length !== designOptionIds.size) {
+      return NextResponse.json({ error: "One or more selected design options are invalid" }, { status: 400 });
+    }
+
+    const definitionsById = new Map(definitions.map((definition) => [definition.id, definition]));
+    for (const option of options) {
+      const definition = definitionsById.get(option.designOptionId);
+      if (!definition) {
+        return NextResponse.json({ error: "One or more selected design options are invalid" }, { status: 400 });
+      }
+      const allowedDefinitionValueIds = new Set(definition.values.map((value) => value.id));
+
+      const invalidAllowedValue = option.allowedValueIds.find((valueId) => !allowedDefinitionValueIds.has(valueId));
+      if (invalidAllowedValue) {
+        return NextResponse.json(
+          { error: `Value '${invalidAllowedValue}' is not valid for design option '${definition.label || definition.key}'` },
+          { status: 400 }
+        );
+      }
+
+      if (option.defaultValueId && !allowedDefinitionValueIds.has(option.defaultValueId)) {
+        return NextResponse.json(
+          { error: `Default value '${option.defaultValueId}' is not valid for design option '${definition.label || definition.key}'` },
+          { status: 400 }
+        );
+      }
+
+      if (option.defaultValueId && !option.allowedValueIds.includes(option.defaultValueId)) {
+        return NextResponse.json(
+          { error: `Default value must be included in allowed values for '${definition.label || definition.key}'` },
+          { status: 400 }
+        );
+      }
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       await tx.catalogItemDesignOptionValue.deleteMany({
