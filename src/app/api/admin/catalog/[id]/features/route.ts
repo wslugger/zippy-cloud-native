@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { ASSIGNABLE_SERVICE_TYPE_SET } from "@/lib/catalog-item-types";
 
-const SUPPORT_ITEM_TYPES = new Set(["MANAGED_SERVICE", "SERVICE_OPTION", "CONNECTIVITY"]);
 const PACKAGE_ITEM_TYPE = "PACKAGE";
 const FEATURE_STATUSES = new Set(["REQUIRED", "STANDARD", "OPTIONAL"] as const);
 type FeatureStatus = "REQUIRED" | "STANDARD" | "OPTIONAL";
@@ -113,7 +113,7 @@ export async function GET(
       });
     }
 
-    if (SUPPORT_ITEM_TYPES.has(itemType)) {
+    if (ASSIGNABLE_SERVICE_TYPE_SET.has(itemType)) {
       const featureTerms = await prisma.taxonomyTerm.findMany({
         where: { category: "FEATURE" },
         orderBy: [{ label: "asc" }],
@@ -231,7 +231,7 @@ export async function PUT(
       });
     }
 
-    if (!SUPPORT_ITEM_TYPES.has(itemType)) {
+    if (!ASSIGNABLE_SERVICE_TYPE_SET.has(itemType)) {
       return NextResponse.json(
         { error: "Feature support can only be managed for PACKAGE, MANAGED_SERVICE, SERVICE_OPTION, or CONNECTIVITY items" },
         { status: 400 }

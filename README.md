@@ -34,3 +34,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Branch Workflow (Code Window)
+
+Use these local commands from the terminal/code window:
+
+1. Start work on a new branch:
+   - `npm run workflow:start -- feature add-catalog-search`
+   - optional base validation: `npm run workflow:start -- feature add-catalog-search --run-tests`
+2. Finish work (test, commit, merge to `main`, push):
+   - `npm run workflow:finish -- --message "add catalog search"`
+   - include new files: `npm run workflow:finish -- --message "add catalog search" --include-untracked`
+   - stricter checks: add `--run-lint` and/or `--run-build`
+   - cleanup branch after merge: add `--delete-branch`
+
+Slash workflows `/start` and `/finish` are wired to these commands in:
+
+- `.agents/workflows/start.md`
+- `.agents/workflows/finish.md`
+
+GitHub CI still validates `main` with lint, tests, and build in `.github/workflows/ci.yml`.
