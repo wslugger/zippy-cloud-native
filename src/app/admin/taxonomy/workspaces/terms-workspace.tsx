@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Check, Edit3, Filter, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
 import {
     EMPTY_TAXONOMY_FORM,
@@ -14,7 +13,6 @@ import {
     type TaxonomyTerm,
     type TermsWorkspaceProps,
 } from '../types';
-import { parseList } from '../utils';
 import { InlineNotice } from '../components/inline-notice';
 
 export function TermsWorkspace({
@@ -71,8 +69,8 @@ export function TermsWorkspace({
             label: term.label,
             value: term.value,
             description: term.description ?? '',
-            constraintsText: (term.constraints ?? []).join('\n'),
-            assumptionsText: (term.assumptions ?? []).join('\n'),
+            constraintsText: '',
+            assumptionsText: '',
         });
         setLocalError(null);
     }
@@ -97,8 +95,6 @@ export function TermsWorkspace({
                 label: taxonomyForm.label.trim(),
                 value: taxonomyForm.value.trim(),
                 description: taxonomyForm.description.trim() || null,
-                constraints: parseList(taxonomyForm.constraintsText),
-                assumptions: parseList(taxonomyForm.assumptionsText),
             };
 
             const res = await fetch('/api/admin/taxonomy', {
@@ -247,20 +243,6 @@ export function TermsWorkspace({
                             />
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <Textarea
-                            value={taxonomyForm.constraintsText}
-                            onChange={(event) => setTaxonomyForm((previous) => ({ ...previous, constraintsText: event.target.value }))}
-                            placeholder="Constraints (one per line)"
-                            className="min-h-[70px]"
-                        />
-                        <Textarea
-                            value={taxonomyForm.assumptionsText}
-                            onChange={(event) => setTaxonomyForm((previous) => ({ ...previous, assumptionsText: event.target.value }))}
-                            placeholder="Assumptions (one per line)"
-                            className="min-h-[70px]"
-                        />
-                    </div>
                     <div className="flex items-center justify-end gap-2">
                         <Button variant="outline" onClick={cancelTaxonomyEdit} disabled={taxonomySaving}>
                             <X size={14} className="mr-1" /> Cancel
@@ -297,7 +279,11 @@ export function TermsWorkspace({
                             </tr>
                         ) : (
                             filteredTerms.map((term) => (
-                                <tr key={term.id} className="hover:bg-slate-100/60 transition-colors group">
+                                <tr
+                                    key={term.id}
+                                    className="hover:bg-slate-100/60 transition-colors group cursor-pointer"
+                                    onClick={() => beginEditTaxonomyTerm(term)}
+                                >
                                     <td className="px-6 py-4">
                                         <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-300 text-[10px] font-bold text-slate-700">
                                             {term.category}
@@ -307,19 +293,27 @@ export function TermsWorkspace({
                                     <td className="px-6 py-4 text-slate-600 text-xs max-w-[22rem] truncate">{term.description || '—'}</td>
                                     <td className="px-6 py-4 font-mono text-[11px] text-slate-700">{term.value}</td>
                                     <td className="px-6 py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center justify-end gap-2 opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                             <Button
+                                                type="button"
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => beginEditTaxonomyTerm(term)}
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    beginEditTaxonomyTerm(term);
+                                                }}
                                                 className="h-8 w-8 p-0 text-slate-600 hover:text-slate-900"
                                             >
                                                 <Edit3 size={14} />
                                             </Button>
                                             <Button
+                                                type="button"
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => deleteTaxonomyTerm(term.id)}
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    deleteTaxonomyTerm(term.id);
+                                                }}
                                                 className="h-8 w-8 p-0 text-slate-600 hover:text-rose-500"
                                             >
                                                 <Trash2 size={14} />
