@@ -213,8 +213,14 @@ export default function CatalogPage() {
 
                             {/* Content Section */}
                             <div className="flex-1 space-y-2">
-                                <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
-                                    {item.name}
+                                <h3 className="text-xl font-bold line-clamp-1">
+                                    <Link
+                                        href={`/admin/catalog/${item.id}`}
+                                        className="text-slate-900 hover:text-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 rounded-sm"
+                                        title={`Open settings for ${item.name}`}
+                                    >
+                                        {item.name}
+                                    </Link>
                                 </h3>
                                 <div className="flex items-center gap-2">
                                     <code className="text-[10px] text-blue-600 font-mono tracking-tight bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
