@@ -71,9 +71,20 @@ jobs:
       - name: Run Database Migrations
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm ci
+
+      - name: Migration Safety Check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
-          npm ci
+          node scripts/migration-safety-check.mjs
+
+      - name: Run Database Migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
           attempt=1
           max_attempts=5
 

@@ -66,4 +66,25 @@ Common task shortcuts are available via `Makefile`:
 - `make start TYPE=feature NAME=add-catalog-search [RUN_TESTS=1]`
 - `make finish MSG="add catalog search" [INCLUDE_UNTRACKED=1] [DELETE_BRANCH=1]`
 - `make finish-strict MSG="add catalog search" [INCLUDE_UNTRACKED=1] [DELETE_BRANCH=1]`
-- `make test`, `make lint`, `make lint-changed`, `make build`
+- `make test`, `make lint`, `make lint-changed`, `make build`, `make deploy-check`
+
+## PR And Branch Policy
+
+- PR template is enabled via:
+  - `.github/pull_request_template.md`
+- Apply required CI check policy on `main`:
+  - `make protect-main`
+  - optional context override: `make protect-main CHECK="build"`
+
+## Lint Performance
+
+- Full lint uses ESLint cache:
+  - `npm run lint`
+- Changed-file lint also uses cache:
+  - `npm run lint:changed`
+
+## Migration Safety
+
+- Run lock/connectivity guard before migrations:
+  - `make deploy-check DATABASE_URL="<postgres-url>"`
+- Deploy workflow also runs this guard before `prisma migrate deploy`.

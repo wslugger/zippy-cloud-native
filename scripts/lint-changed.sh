@@ -43,4 +43,4 @@ fi
 
 echo "Linting changed files:"
 printf ' - %s\n' "${lint_targets[@]}"
-npx eslint "${lint_targets[@]}"
+npx eslint --cache --cache-location .cache/eslint/.eslintcache "${lint_targets[@]}"

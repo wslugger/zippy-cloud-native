@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --cache --cache-location .cache/eslint/.eslintcache .",
     "lint:changed": "bash scripts/lint-changed.sh",
     "test": "vitest run",
     "test:watch": "vitest",
