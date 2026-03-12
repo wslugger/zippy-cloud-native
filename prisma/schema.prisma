@@ -22,12 +22,12 @@ model TaxonomyTerm {
 }
 
 model CatalogItem {
-  id                  String           @id @default(uuid())
-  sku                 String           @unique
+  id                  String                      @id @default(uuid())
+  sku                 String                      @unique
   name                String
   type                ItemType
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
   configSchema        Json?
   detailedDescription String?
   shortDescription    String?
@@ -35,12 +35,18 @@ model CatalogItem {
   attributes          ItemAttribute[]
   collaterals         ItemCollateral[]
   constraints         ItemConstraint[]
-  parentDependencies  ItemDependency[] @relation("ChildItem")
-  childDependencies   ItemDependency[] @relation("ParentItem")
+  parentDependencies  ItemDependency[]            @relation("ChildItem")
+  childDependencies   ItemDependency[]            @relation("ParentItem")
   pricing             Pricing[]
   projectItems        ProjectItem[]
   siteSelections      SiteSelection[]
-  primarySites        SolutionSite[]   @relation("PrimarySiteService")
+  primarySites        SolutionSite[]              @relation("PrimarySiteService")
+  designOptions       CatalogItemDesignOption[]
+  packageCompositions PackageCompositionItem[]    @relation("PackageCompositionPackage")
+  packageMembers      PackageCompositionItem[]    @relation("PackageCompositionMember")
+  packagePolicies     PackageDesignOptionPolicy[] @relation("PackagePolicyPackage")
+  policyTargets       PackageDesignOptionPolicy[] @relation("PackagePolicyTarget")
+  recommendations     ProjectRecommendation[]
 }
 
 model ItemConstraint {
@@ -138,18 +144,20 @@ model PricingTier {
 }
 
 model Project {
-  id              String         @id @default(uuid())
+  id              String                       @id @default(uuid())
   name            String
   customerName    String?
-  status          ProjectStatus  @default(DRAFT)
-  termMonths      Int            @default(1)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  status          ProjectStatus                @default(DRAFT)
+  termMonths      Int                          @default(1)
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
   userId          String?
   rawRequirements String?
-  user            User?          @relation(fields: [userId], references: [id])
+  user            User?                        @relation(fields: [userId], references: [id])
   items           ProjectItem[]
   sites           SolutionSite[]
+  requirementDocs ProjectRequirementDocument[]
+  recommendations ProjectRecommendation[]
 }
 
 model ProjectItem {
@@ -226,6 +234,159 @@ model SystemConfig {
   @@map("system_configs")
 }
 
+model DesignOptionDefinition {
+  id          String                      @id @default(uuid())
+  key         String                      @unique
+  label       String
+  description String?
+  constraints String[]                    @default([])
+  assumptions String[]                    @default([])
+  valueType   DesignOptionValueType
+  isActive    Boolean                     @default(true)
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  values      DesignOptionValue[]
+  itemOptions CatalogItemDesignOption[]
+  policies    PackageDesignOptionPolicy[]
+}
+
+model DesignOptionValue {
+  id               String                           @id @default(uuid())
+  designOptionId   String
+  value            String
+  label            String
+  description      String?
+  constraints      String[]                         @default([])
+  assumptions      String[]                         @default([])
+  sortOrder        Int                              @default(0)
+  isActive         Boolean                          @default(true)
+  createdAt        DateTime                         @default(now())
+  updatedAt        DateTime                         @updatedAt
+  designOption     DesignOptionDefinition           @relation(fields: [designOptionId], references: [id], onDelete: Cascade)
+  itemOptions      CatalogItemDesignOption[]        @relation("CatalogItemDesignOptionDefault")
+  itemOptionValues CatalogItemDesignOptionValue[]
+  policyValues     PackageDesignOptionPolicyValue[]
+
+  @@unique([designOptionId, value])
+  @@index([designOptionId, sortOrder])
+}
+
+model CatalogItemDesignOption {
+  id             String                         @id @default(uuid())
+  catalogItemId  String
+  designOptionId String
+  isRequired     Boolean                        @default(false)
+  allowMulti     Boolean                        @default(false)
+  defaultValueId String?
+  createdAt      DateTime                       @default(now())
+  updatedAt      DateTime                       @updatedAt
+  catalogItem    CatalogItem                    @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+  designOption   DesignOptionDefinition         @relation(fields: [designOptionId], references: [id], onDelete: Cascade)
+  defaultValue   DesignOptionValue?             @relation("CatalogItemDesignOptionDefault", fields: [defaultValueId], references: [id], onDelete: SetNull)
+  allowedValues  CatalogItemDesignOptionValue[]
+
+  @@unique([catalogItemId, designOptionId])
+  @@index([catalogItemId])
+  @@index([designOptionId])
+}
+
+model CatalogItemDesignOptionValue {
+  id                  String                  @id @default(uuid())
+  itemDesignOptionId  String
+  designOptionValueId String
+  itemDesignOption    CatalogItemDesignOption @relation(fields: [itemDesignOptionId], references: [id], onDelete: Cascade)
+  designOptionValue   DesignOptionValue       @relation(fields: [designOptionValueId], references: [id], onDelete: Cascade)
+
+  @@unique([itemDesignOptionId, designOptionValueId])
+  @@index([itemDesignOptionId])
+  @@index([designOptionValueId])
+}
+
+model PackageCompositionItem {
+  id            String                 @id @default(uuid())
+  packageId     String
+  catalogItemId String
+  role          PackageCompositionRole
+  minQty        Int                    @default(1)
+  maxQty        Int?
+  defaultQty    Int                    @default(1)
+  isSelectable  Boolean                @default(true)
+  displayOrder  Int                    @default(0)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  package       CatalogItem            @relation("PackageCompositionPackage", fields: [packageId], references: [id], onDelete: Cascade)
+  catalogItem   CatalogItem            @relation("PackageCompositionMember", fields: [catalogItemId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, catalogItemId])
+  @@index([packageId, role])
+}
+
+model PackageDesignOptionPolicy {
+  id                  String                           @id @default(uuid())
+  packageId           String
+  targetCatalogItemId String
+  designOptionId      String
+  operator            PackagePolicyOperator
+  scope               PackagePolicyScope               @default(PROJECT)
+  active              Boolean                          @default(true)
+  createdAt           DateTime                         @default(now())
+  updatedAt           DateTime                         @updatedAt
+  package             CatalogItem                      @relation("PackagePolicyPackage", fields: [packageId], references: [id], onDelete: Cascade)
+  targetCatalogItem   CatalogItem                      @relation("PackagePolicyTarget", fields: [targetCatalogItemId], references: [id], onDelete: Cascade)
+  designOption        DesignOptionDefinition           @relation(fields: [designOptionId], references: [id], onDelete: Cascade)
+  values              PackageDesignOptionPolicyValue[]
+
+  @@unique([packageId, targetCatalogItemId, designOptionId, operator])
+  @@index([packageId, active])
+  @@index([targetCatalogItemId, designOptionId])
+}
+
+model PackageDesignOptionPolicyValue {
+  id                  String                    @id @default(uuid())
+  policyId            String
+  designOptionValueId String
+  policy              PackageDesignOptionPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  designOptionValue   DesignOptionValue         @relation(fields: [designOptionValueId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, designOptionValueId])
+  @@index([policyId])
+}
+
+model ProjectRequirementDocument {
+  id            String                    @id @default(uuid())
+  projectId     String
+  fileName      String
+  mimeType      String
+  gcsUri        String
+  extractedText String?
+  status        RequirementDocumentStatus @default(UPLOADED)
+  errorMessage  String?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  project       Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+}
+
+model ProjectRecommendation {
+  id                  String              @id @default(uuid())
+  projectId           String
+  catalogItemId       String
+  reason              String
+  score               Decimal             @default(0) @db.Decimal(6, 3)
+  sourceModel         String
+  state               RecommendationState @default(PENDING)
+  requiredIncluded    String[]
+  optionalRecommended String[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  project             Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  catalogItem         CatalogItem         @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, catalogItemId])
+  @@index([projectId, state])
+}
+
 enum ItemType {
   PACKAGE
   HARDWARE
@@ -253,6 +414,12 @@ enum PricingModel {
   PERCENTAGE
 }
 
+enum DesignOptionValueType {
+  STRING
+  NUMBER
+  BOOLEAN
+}
+
 enum ProjectStatus {
   DRAFT
   IN_REVIEW
@@ -264,4 +431,34 @@ enum ProjectStatus {
 enum Role {
   SA
   ADMIN
+}
+
+enum PackageCompositionRole {
+  REQUIRED
+  OPTIONAL
+  AUTO_INCLUDED
+}
+
+enum PackagePolicyOperator {
+  FORCE
+  FORBID
+  ALLOW_ONLY
+  REQUIRE_ONE_OF
+}
+
+enum PackagePolicyScope {
+  PROJECT
+  SITE
+}
+
+enum RequirementDocumentStatus {
+  UPLOADED
+  PARSED
+  FAILED
+}
+
+enum RecommendationState {
+  PENDING
+  ADOPTED
+  DISMISSED
 }

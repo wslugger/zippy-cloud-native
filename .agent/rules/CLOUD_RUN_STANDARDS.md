@@ -2,12 +2,11 @@
 trigger: always_on
 ---
 
-# Cloud Run & Next.js Deployment Standards
+# Cloud Run & Next.js Deployment Standards (Wrapper)
 
-## Core Philosophy
-We are deploying to a fully managed, stateless containerized environment (Google Cloud Run). Scalability to zero and rapid cold starts are critical for our performance metrics.
+Canonical shared source: `.agent/shared/standards/CLOUD_RUN.md`.
 
-## Architectural Rules
-* **Strict Statelessness:** All Next.js API routes MUST be completely stateless. Do not rely on local memory, file system state, or server-side sessions. Use JWTs for authentication and externalize all application state to the database.
-* **Cold-Start Optimization:** Avoid heavy, synchronous imports at the top level of your files. Use dynamic imports where applicable to keep the initial Node execution context as light as possible.
-* **Container Dependency Parity:** If you add a Node module that relies on native bindings or requires specific OS-level packages (e.g., sharp, bcrypt), you MUST immediately update the `Dockerfile` to include the required Alpine Linux packages.
+Enforce these always:
+- Stateless server behavior only; persist mutable state externally.
+- Keep cold-start paths lean and update Docker OS deps for native Node modules.
+- Bind to Cloud Run `PORT` (8080 default) and fail fast on missing runtime env.

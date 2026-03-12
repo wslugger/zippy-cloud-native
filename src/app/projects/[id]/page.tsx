@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
-    Building2, Plus, ArrowLeft, Loader2, ChevronRight,
-    DollarSign, AlertTriangle, FileText, Sparkles, FolderKanban, ShieldCheck, Download, Trash2, Shield,
+    ArrowLeft, Loader2,
+    FileText, Sparkles, FolderKanban, ShieldCheck, Download,
     Compass
 } from 'lucide-react';
 import { GuidedFlowWizard } from '@/components/sa-flow/GuidedFlowWizard';
@@ -17,7 +16,7 @@ interface SolutionSite {
     name: string;
     address: string | null;
     primaryServiceId: string | null;
-    siteSelections: any[];
+    siteSelections: Array<{ id: string }>;
 }
 
 interface ProjectItem {
@@ -29,7 +28,8 @@ interface ProjectItem {
         name: string;
         sku: string;
         type: string;
-        description: string;
+        shortDescription?: string | null;
+        detailedDescription?: string | null;
         collaterals?: Collateral[];
     };
 }
@@ -37,7 +37,7 @@ interface ProjectItem {
 interface Collateral {
     id: string;
     title: string;
-    url: string;
+    documentUrl: string;
     type: string;
 }
 
@@ -50,119 +50,264 @@ interface Project {
     termMonths: number;
     sites: SolutionSite[];
     items: ProjectItem[];
+    recommendations?: Array<{
+        id: string;
+        reason: string;
+        score: string | number;
+        certaintyPercent?: number;
+        matchedCharacteristics?: string[];
+        requiredIncluded: string[];
+        optionalRecommended: string[];
+        catalogItem: {
+            id: string;
+            sku: string;
+            name: string;
+            type: string;
+            shortDescription: string | null;
+        };
+    }>;
 }
 
-interface BOMSite {
-    siteId: string;
-    siteName: string;
-    bom: {
-        lineItems: any[];
-        totals: { totalNrc: number; totalMrc: number; totalTcv?: number };
-        warnings: string[];
+type Recommendation = NonNullable<Project['recommendations']>[number];
+
+interface Suggestion {
+    id: string;
+    sku: string;
+    name: string;
+    type: string;
+    description: string | null;
+    reason: string;
+    certaintyPercent: number;
+    matchedCharacteristics: string[];
+    requiredIncluded: string[];
+    optionalRecommended: string[];
+    recommendationId?: string;
+}
+
+function toCertaintyPercent(value: unknown): number {
+    const numeric = Number(value ?? 0);
+    if (!Number.isFinite(numeric)) return 0;
+    if (numeric <= 1) return Math.round(Math.max(0, Math.min(1, numeric)) * 100);
+    return Math.round(Math.max(0, Math.min(100, numeric)));
+}
+
+function parseMatchedCharacteristicsFromReason(reason: string): string[] {
+    const marker = 'Matched characteristics:';
+    const idx = reason.indexOf(marker);
+    if (idx === -1) return [];
+    const tail = reason.slice(idx + marker.length).trim();
+    const normalized = tail.endsWith('.') ? tail.slice(0, -1) : tail;
+    return normalized
+        .split(',')
+        .map((part) => part.trim())
+        .filter((part) => part.length > 0);
+}
+
+function normalizeProjectResponse(payload: unknown): Project | null {
+    if (!payload || typeof payload !== 'object') return null;
+    const raw = payload as Partial<Project>;
+    if (!raw.id || !raw.name) return null;
+
+    return {
+        id: raw.id,
+        name: raw.name,
+        customerName: raw.customerName ?? null,
+        rawRequirements: raw.rawRequirements ?? null,
+        status: raw.status ?? 'DRAFT',
+        termMonths: typeof raw.termMonths === 'number' ? raw.termMonths : 36,
+        sites: Array.isArray(raw.sites) ? raw.sites : [],
+        items: Array.isArray(raw.items) ? raw.items : [],
+        recommendations: Array.isArray(raw.recommendations) ? raw.recommendations : [],
     };
 }
 
-interface ProjectBOM {
-    projectId: string;
-    termMonths: number;
-    sites: BOMSite[];
-    totals: { totalNrc: number; totalMrc: number; totalTcv: number };
+function mapRecommendation(rec: Recommendation): Suggestion {
+    return {
+        id: rec.catalogItem.id,
+        sku: rec.catalogItem.sku,
+        name: rec.catalogItem.name,
+        type: rec.catalogItem.type,
+        description: rec.catalogItem.shortDescription,
+        reason: rec.reason,
+        certaintyPercent: typeof rec.certaintyPercent === 'number' ? rec.certaintyPercent : toCertaintyPercent(rec.score),
+        matchedCharacteristics: rec.matchedCharacteristics ?? parseMatchedCharacteristicsFromReason(rec.reason),
+        requiredIncluded: rec.requiredIncluded ?? [],
+        optionalRecommended: rec.optionalRecommended ?? [],
+        recommendationId: rec.id,
+    };
 }
-
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const [project, setProject] = useState<Project | null>(null);
-    const [bom, setBOM] = useState<ProjectBOM | null>(null);
     const [loading, setLoading] = useState(true);
-    const [bomLoading, setBOMLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'kickoff' | 'services' | 'collateral' | 'sites' | 'bom'>('kickoff');
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'kickoff' | 'services'>('kickoff');
     
     const [requirements, setRequirements] = useState('');
     const [analyzing, setAnalyzing] = useState(false);
-    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+    const [uploading, setUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
     const [showWizard, setShowWizard] = useState(false);
 
-    const [showAddSite, setShowAddSite] = useState(false);
-    const [siteName, setSiteName] = useState('');
+    const fetchProject = useCallback(async () => {
+        try {
+            setLoadError(null);
+            const res = await fetch(`/api/projects/${id}`);
+            const payload = await res.json();
+            const data = normalizeProjectResponse(payload);
 
-    const [siteAddress, setSiteAddress] = useState('');
+            if (!res.ok || !data) {
+                setProject(null);
+                setLoadError('Failed to load project data');
+                setLoading(false);
+                return;
+            }
 
-    useEffect(() => { fetchProject(); }, [id]);
-
-    async function fetchProject() {
-        const res = await fetch(`/api/projects/${id}`);
-        const data = await res.json();
-        setProject(data);
-        if (data.rawRequirements && !requirements) {
-            setRequirements(data.rawRequirements);
+            setProject(data);
+            if (data.rawRequirements) {
+                setRequirements((prev) => prev || data.rawRequirements);
+            }
+            if (Array.isArray(data.recommendations) && data.recommendations.length > 0) {
+                setSuggestions(data.recommendations.map(mapRecommendation));
+            }
+            setLoading(false);
+        } catch {
+            setProject(null);
+            setLoadError('Failed to load project data');
+            setLoading(false);
         }
-        setLoading(false);
-    }
+    }, [id]);
+
+    useEffect(() => {
+        void fetchProject();
+    }, [fetchProject]);
 
     async function saveAndAnalyze() {
         setAnalyzing(true);
-        // Save requirements
-        await fetch(`/api/projects/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rawRequirements: requirements }),
-        });
-        
-        // Analyze
-        const res = await fetch('/api/sa/suggest-services', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rawRequirements: requirements })
-        });
-        const data = await res.json();
-        if (data.suggestions) {
-            setSuggestions(data.suggestions);
+        try {
+            // Analyze with package-aware matcher using direct requirement text (DB-persistence optional)
+            const res = await fetch(`/api/projects/${id}/match`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rawRequirements: requirements }),
+            });
+            const data = await res.json().catch(() => ({}));
+
+            if (res.ok && Array.isArray(data.recommendations)) {
+                setSuggestions((data.recommendations as Recommendation[]).map(mapRecommendation));
+            } else {
+                // Fallback: direct Gemini suggest endpoint (service/package recommendations)
+                const fallbackRes = await fetch('/api/sa/suggest-services', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rawRequirements: requirements }),
+                });
+                const fallbackData = await fallbackRes.json().catch(() => ({}));
+                if (fallbackRes.ok && Array.isArray(fallbackData.suggestions)) {
+                    setSuggestions(
+                        fallbackData.suggestions.map((s: {
+                            id: string;
+                            sku: string;
+                            name: string;
+                            type: string;
+                            description?: string | null;
+                            shortDescription?: string | null;
+                            reason?: string;
+                            score?: number;
+                            certaintyPercent?: number;
+                            matchedCharacteristics?: string[];
+                        }) => ({
+                            id: s.id,
+                            sku: s.sku,
+                            name: s.name,
+                            type: s.type,
+                            description: s.description ?? s.shortDescription ?? null,
+                            reason: s.reason ?? 'Matched by AI requirement analysis.',
+                            certaintyPercent: typeof s.certaintyPercent === 'number'
+                                ? s.certaintyPercent
+                                : toCertaintyPercent(s.score),
+                            matchedCharacteristics: Array.isArray(s.matchedCharacteristics) ? s.matchedCharacteristics : [],
+                            requiredIncluded: [],
+                            optionalRecommended: [],
+                        }))
+                    );
+                } else {
+                    setSuggestions([]);
+                }
+            }
+
+            // Best-effort persistence of raw requirements; do not block AI flow on failure.
+            await fetch(`/api/projects/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rawRequirements: requirements }),
+            }).catch(() => undefined);
+
+            await fetchProject();
+            setActiveTab('services');
+        } finally {
+            setAnalyzing(false);
         }
-        
+    }
+
+    async function uploadRequirementsFile(file: File) {
+        setUploading(true);
+        setUploadError(null);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await fetch(`/api/projects/${id}/requirements/upload`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || 'Upload failed');
+            }
+
+            await fetchProject();
+        } catch (err: unknown) {
+            setUploadError(err instanceof Error ? err.message : 'Failed to upload requirements file');
+        } finally {
+            setUploading(false);
+        }
+    }
+
+    async function addService(catalogItemId: string, recommendationId?: string) {
+        if (recommendationId) {
+            await fetch(`/api/projects/${id}/recommendations/${recommendationId}/adopt`, {
+                method: 'POST',
+            });
+        } else {
+            await fetch(`/api/projects/${id}/items`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ catalogItemId, quantity: 1 }),
+            });
+        }
         await fetchProject();
-        setAnalyzing(false);
-        setActiveTab('services');
-    }
-
-    async function addService(catalogItemId: string) {
-        await fetch(`/api/projects/${id}/items`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ catalogItemId, quantity: 1 }),
-        });
-        fetchProject();
     }
 
 
-    async function calculateBOM() {
-        setBOMLoading(true);
-        const res = await fetch(`/api/projects/${id}/calculate`, { method: 'POST' });
-        const data = await res.json();
-        setBOM(data);
-        setBOMLoading(false);
-        setActiveTab('bom');
-    }
-
-    async function addSite(e: React.FormEvent) {
-        e.preventDefault();
-        if (!siteName) return;
-        await fetch(`/api/projects/${id}/sites`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: siteName, address: siteAddress }),
-        });
-        setShowAddSite(false);
-        setSiteName('');
-        setSiteAddress('');
-        fetchProject();
-    }
-
-
-    if (loading || !project) {
+    if (loading) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
                 <Loader2 className="animate-spin text-blue-500" size={32} />
+            </div>
+        );
+    }
+
+    if (!project) {
+        return (
+            <div className="flex h-[60vh] flex-col items-center justify-center gap-3">
+                <p className="text-sm text-slate-600">{loadError || 'Project not found'}</p>
+                <Button variant="outline" onClick={() => { setLoading(true); void fetchProject(); }}>
+                    Retry
+                </Button>
             </div>
         );
     }
@@ -177,17 +322,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     <h1 className="text-3xl font-bold text-slate-900">{project.name}</h1>
                     {project.customerName && <p className="text-slate-600">{project.customerName}</p>}
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button onClick={calculateBOM} disabled={bomLoading} className="gap-2">
-                        {bomLoading ? <Loader2 size={16} className="animate-spin" /> : <DollarSign size={16} />}
-                        Calculate BOM
-                    </Button>
-                </div>
             </div>
 
             {/* Tabs */}
             <div className="flex gap-1 border-b border-slate-200 overflow-x-auto pb-px">
-                {(['kickoff', 'services', 'collateral', 'sites', 'bom'] as const).map(tab => (
+                {(['kickoff', 'services'] as const).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -197,7 +336,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 : 'border-transparent text-slate-500 hover:text-slate-300'
                         }`}
                     >
-                        {tab === 'bom' ? 'BOM Summary' : tab}
+                        {tab}
                     </button>
                 ))}
             </div>
@@ -213,6 +352,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             Paste customer meeting notes, RFC requirements, or typed summaries here. 
                             Our SA SA-bot will analyze the input to intelligently suggest standard managed services, connectivity profiles, and packaged solutions.
                         </p>
+
+                        <div className="mb-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <p className="text-xs font-semibold text-slate-700">Upload Requirement Document</p>
+                                    <p className="text-[11px] text-slate-500">TXT/JSON/PDF/DOC files are stored and linked to this project.</p>
+                                </div>
+                                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 cursor-pointer">
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) uploadRequirementsFile(file);
+                                            e.currentTarget.value = '';
+                                        }}
+                                    />
+                                    {uploading ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+                                    Upload File
+                                </label>
+                            </div>
+                            {uploadError && <p className="mt-2 text-xs text-red-600">{uploadError}</p>}
+                        </div>
                         
                         <textarea
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[250px] text-slate-700 placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono text-sm resize-y"
@@ -264,7 +426,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 projectId={id} 
                                 onComplete={() => {
                                     setShowWizard(false);
-                                    fetchProject();
+                                    void fetchProject();
                                 }} 
                             />
                         </div>
@@ -292,11 +454,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-blue-500/10 border-blue-500/20 text-blue-400">
                                                                 {s.type}
                                                             </span>
+                                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-emerald-500/10 border-emerald-500/20 text-emerald-500">
+                                                                {s.certaintyPercent}% certainty
+                                                            </span>
                                                         </h4>
                                                         <p className="text-xs font-mono text-slate-500 mt-1">{s.sku}</p>
-                                                        <p className="text-sm text-slate-600 mt-2">{s.description}</p>
+                                                    <p className="text-sm text-slate-600 mt-2">{s.description}</p>
+                                                    {s.matchedCharacteristics.length > 0 && (
+                                                        <p className="text-[11px] text-slate-500 mt-1">
+                                                            Matched: {s.matchedCharacteristics.join(', ')}
+                                                        </p>
+                                                    )}
+                                                    {s.requiredIncluded?.length > 0 && (
+                                                        <p className="text-[11px] text-slate-500 mt-2">
+                                                            Required: {s.requiredIncluded.join(', ')}
+                                                        </p>
+                                                    )}
+                                                    {s.optionalRecommended?.length > 0 && (
+                                                        <p className="text-[11px] text-slate-500 mt-1">
+                                                            Optional: {s.optionalRecommended.join(', ')}
+                                                        </p>
+                                                    )}
                                                     </div>
-                                                    <Button size="sm" variant="secondary" onClick={() => addService(s.id)} 
+                                                    <Button size="sm" variant="secondary" onClick={() => addService(s.id, s.recommendationId)} 
                                                         disabled={project.items.some(it => it.catalogItemId === s.id)}
                                                     >
                                                         {project.items.some(it => it.catalogItemId === s.id) ? 'Added' : 'Add'}
@@ -326,11 +506,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        {project.items.map(item => (
-                                            <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between">
+                                        {project.items.map(item => {
+                                            const isPackage = item.catalogItem.type === 'PACKAGE';
+                                            const collaterals = item.catalogItem.collaterals ?? [];
+                                            const description = item.catalogItem.detailedDescription || item.catalogItem.shortDescription;
+
+                                            return (
+                                            <div key={item.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+                                                <div className="flex items-center justify-between">
                                                 <div>
                                                     <p className="font-medium text-slate-800">{item.catalogItem.name}</p>
                                                     <p className="text-[10px] text-slate-500 font-mono mt-0.5">{item.catalogItem.sku}</p>
+                                                    {description && (
+                                                        <p className="text-xs text-slate-600 mt-2">{description}</p>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <Badge variant="outline" className="text-[10px] bg-white capitalize">
@@ -339,202 +528,53 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                                     <ShieldCheck size={18} className="text-emerald-500" />
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {activeTab === 'collateral' && (
-                <div className="space-y-6">
-                    <div className="bg-white/50 border border-slate-200 rounded-2xl p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                            <FileText size={20} className="text-blue-400" />
-                            <h2 className="text-lg font-bold text-slate-900">Solution Assets</h2>
-                        </div>
-                        
-                        {project.items.length === 0 ? (
-                            <p className="text-slate-500">Select services to view tailored collateral.</p>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {project.items.flatMap(item => item.catalogItem.collaterals || []).length === 0 ? (
-                                    <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 rounded-xl">
-                                        <p className="text-slate-500 text-sm">No specific collateral found for current selections.</p>
-                                    </div>
-                                ) : (
-                                    project.items.map(item => (
-                                        item.catalogItem.collaterals && item.catalogItem.collaterals.map((col, idx) => (
-                                            <a key={`${item.id}-${idx}`} href={col.url} target="_blank" rel="noopener noreferrer" 
-                                               className="group bg-slate-50 border border-slate-200 hover:border-blue-500/50 rounded-xl p-4 flex items-start gap-4 transition-all">
-                                                <div className="bg-blue-500/10 p-2.5 rounded-lg border border-blue-500/20 text-blue-400 group-hover:scale-105 transition-transform">
-                                                    <FileText size={20} />
+                                                <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-2">
+                                                    <p className="text-xs font-semibold text-slate-700">Collateral</p>
+                                                    {collaterals.length > 0 ? (
+                                                        <div className="space-y-2">
+                                                            {collaterals.map((col) => (
+                                                                <a
+                                                                    key={col.id}
+                                                                    href={col.documentUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="flex items-center justify-between rounded border border-slate-200 bg-slate-50 px-3 py-2 hover:border-blue-300"
+                                                                >
+                                                                    <div>
+                                                                        <p className="text-xs font-medium text-slate-800">{col.title}</p>
+                                                                        <p className="text-[10px] text-slate-500">{col.type}</p>
+                                                                    </div>
+                                                                    <Download size={14} className="text-blue-500" />
+                                                                </a>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs text-slate-500">No collateral linked for this service yet.</p>
+                                                    )}
                                                 </div>
-                                                <div className="flex-1">
-                                                    <h4 className="text-sm font-bold text-slate-800 group-hover:text-blue-400 transition-colors line-clamp-1">{col.title}</h4>
-                                                    <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">{item.catalogItem.name}</p>
-                                                </div>
-                                                <Download size={16} className="text-slate-600 group-hover:text-blue-500" />
-                                            </a>
-                                        ))
-                                    ))
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-
-            {activeTab === 'sites' && (
-                <div className="space-y-4">
-                    <div className="flex justify-end">
-                        <Button variant="ghost" onClick={() => setShowAddSite(true)} className="gap-2 border border-slate-200">
-                            <Plus size={16} /> Add Site
-                        </Button>
-                    </div>
-
-                    {showAddSite && (
-                        <form onSubmit={addSite} className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 max-w-md">
-                            <h3 className="font-bold">New Site</h3>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Site Name</label>
-                                <Input value={siteName} onChange={e => setSiteName(e.target.value)} placeholder="e.g. New York HQ" className="bg-slate-50" required />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Address</label>
-                                <Input value={siteAddress} onChange={e => setSiteAddress(e.target.value)} placeholder="Street address" className="bg-slate-50" />
-                            </div>
-                            <div className="flex gap-3">
-                                <Button type="submit" disabled={!siteName}>Add Site</Button>
-                                <Button type="button" variant="ghost" onClick={() => setShowAddSite(false)}>Cancel</Button>
-                            </div>
-                        </form>
-                    )}
-
-                    {project.sites.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {project.sites.map(site => (
-                                <Link
-                                    key={site.id}
-                                    href={`/projects/${id}/sites/${site.id}`}
-                                    className="group bg-white/50 border border-slate-200 rounded-2xl p-5 hover:border-blue-500/30 transition-all flex items-center justify-between"
-                                >
-                                    <div className="flex items-start gap-4">
-                                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                                            <Building2 size={20} className="text-blue-500" />
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-slate-900 group-hover:text-blue-400 transition-colors">{site.name}</p>
-                                            {site.address && <p className="text-xs text-slate-500">{site.address}</p>}
-                                            <div className="flex items-center gap-3 mt-1">
-                                                <p className="text-[10px] text-slate-600">{site.siteSelections.length} services</p>
+                                                {isPackage && (
+                                                    <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-2">
+                                                        <p className="text-xs font-semibold text-slate-700">Package Details</p>
+                                                        <p className="text-xs text-slate-600">
+                                                            This package is selected and ready for collateral download.
+                                                        </p>
+                                                        <p className="text-xs text-slate-500">
+                                                            {collaterals.length > 0
+                                                                ? `${collaterals.length} collateral item(s) available above.`
+                                                                : 'No collateral linked for this package yet.'}
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
+                                        );})}
                                     </div>
-                                    <ChevronRight size={16} className="text-slate-700 group-hover:text-blue-500 transition-colors" />
-                                </Link>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="h-48 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-200 rounded-3xl gap-2">
-                            <Building2 size={36} className="opacity-20" />
-                            <p>No sites yet. Add a site to start designing.</p>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {activeTab === 'bom' && (
-                <div className="space-y-6">
-                    {!bom ? (
-                        <div className="h-48 flex flex-col items-center justify-center text-slate-600 border-2 border-dashed border-slate-200 rounded-3xl gap-2">
-                            <DollarSign size={36} className="opacity-20" />
-                            <p>Click "Calculate BOM" to generate the bill of materials.</p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Project Totals */}
-                            <div className="grid grid-cols-3 gap-4">
-                                {[
-                                    { label: 'Total NRC', value: `$${bom.totals.totalNrc.toFixed(2)}`, sub: 'One-time' },
-                                    { label: 'Total MRC', value: `$${bom.totals.totalMrc.toFixed(2)}`, sub: 'Per month' },
-                                ].map(stat => (
-                                    <div key={stat.label} className="bg-white border border-slate-200 rounded-2xl p-5">
-                                        <p className="text-[10px] uppercase font-bold tracking-widest text-slate-500">{stat.label}</p>
-                                        <p className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</p>
-                                        <p className="text-xs text-slate-600 mt-0.5">{stat.sub}</p>
-                                    </div>
-                                ))}
+                                )}
                             </div>
-
-                            {/* Per-site breakdown */}
-                            {bom.sites.map(site => (
-                                <div key={site.siteId} className="bg-white/50 border border-slate-200 rounded-2xl overflow-hidden">
-                                    <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-white/80">
-                                        <div className="flex items-center gap-2">
-                                            <Building2 size={14} className="text-blue-400" />
-                                            <span className="font-bold text-sm">{site.siteName}</span>
-                                        </div>
-                                        <div className="flex gap-4 text-xs text-slate-600">
-                                            <span>NRC: <span className="text-slate-900 font-bold">${site.bom.totals.totalNrc.toFixed(2)}</span></span>
-                                            <span>MRC: <span className="text-slate-900 font-bold">${site.bom.totals.totalMrc.toFixed(2)}</span></span>
-                                        </div>
-                                    </div>
-
-                                    {site.bom.warnings.length > 0 && (
-                                        <div className="px-5 py-2 bg-amber-500/5 border-b border-amber-500/10">
-                                            {site.bom.warnings.map((w, i) => (
-                                                <div key={i} className="flex items-start gap-2 text-xs text-amber-400">
-                                                    <AlertTriangle size={12} className="shrink-0 mt-0.5" />
-                                                    {w}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="text-[9px] uppercase tracking-widest text-slate-600 border-b border-slate-200">
-                                                <th className="text-left px-5 py-2">Item</th>
-                                                <th className="text-left px-3 py-2">SKU</th>
-                                                <th className="text-center px-3 py-2">Qty</th>
-                                                <th className="text-right px-3 py-2">NRC</th>
-                                                <th className="text-right px-5 py-2">MRC</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {site.bom.lineItems.map(item => (
-                                                <tr key={item.id} className="border-b border-slate-200/50 hover:bg-slate-100/20">
-                                                    <td className="px-5 py-2.5">
-                                                        <span className="text-slate-900 font-medium">{item.name}</span>
-                                                        {item.role && (
-                                                            <span className={`ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded border ${
-                                                                item.role === 'PRIMARY'
-                                                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                                                    : 'bg-slate-100 border-slate-300 text-slate-500'
-                                                            }`}>{item.role}</span>
-                                                        )}
-                                                        {item.parentSku && (
-                                                            <span className="ml-2 text-[10px] text-slate-600">↳ {item.parentSku}</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-3 py-2.5 font-mono text-[10px] text-blue-500">{item.sku}</td>
-                                                    <td className="px-3 py-2.5 text-center text-slate-600">{item.quantity}</td>
-                                                    <td className="px-3 py-2.5 text-right text-slate-700">${item.pricing.nrc.toFixed(2)}</td>
-                                                    <td className="px-5 py-2.5 text-right text-slate-700">${item.pricing.mrc.toFixed(2)}/mo</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ))}
-                        </>
+                        </div>
                     )}
                 </div>
             )}
+
         </div>
     );
 }

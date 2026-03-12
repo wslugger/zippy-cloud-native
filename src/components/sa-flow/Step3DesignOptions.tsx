@@ -1,6 +1,6 @@
 'use client';
 
-import { Shield, Globe, Sliders, Check, Info, AlertCircle } from 'lucide-react';
+import { Shield, Globe, Sliders, Check, AlertCircle } from 'lucide-react';
 import { ConfigFormRenderer } from './ConfigFormRenderer';
 
 interface Step3DesignOptionsProps {
@@ -11,6 +11,7 @@ interface Step3DesignOptionsProps {
     onToggleServiceOption: (item: any) => void;
     selectedTransports: any[];
     onToggleTransport: (item: any) => void;
+    packagePolicies?: any[];
 }
 
 export function Step3DesignOptions({ 
@@ -20,11 +21,18 @@ export function Step3DesignOptions({
     selectedServiceOptions,
     onToggleServiceOption,
     selectedTransports,
-    onToggleTransport 
+    onToggleTransport,
+    packagePolicies = [],
 }: Step3DesignOptionsProps) {
     
     // Dependencies from selectedOption
-    const dependencies = selectedOption?.childDependencies || [];
+    const dependencies =
+        selectedOption?.childDependencies ||
+        (selectedOption?.attachments || []).map((attachment: any) => ({
+            type: attachment.dependencyType,
+            childItem: attachment,
+        })) ||
+        [];
     
     // Support Tiers are OPTIONAL_ATTACHMENT of type SERVICE_OPTION
     const serviceOptions = dependencies
@@ -38,6 +46,14 @@ export function Step3DesignOptions({
 
     const isServiceOptionSelected = (id: string) => selectedServiceOptions.some(o => o.id === id);
     const isTransportSelected = (id: string) => selectedTransports.some(t => t.id === id);
+
+    const policyHints = packagePolicies
+        .filter((policy: any) => policy.targetCatalogItemId === selectedOption?.id)
+        .map((policy: any) => ({
+            key: policy.designOption?.key || policy.designOptionId,
+            operator: policy.operator,
+            values: policy.values?.map((v: any) => v.designOptionValue?.label || v.designOptionValue?.value).join(', ') || 'N/A',
+        }));
 
     return (
         <div className="space-y-12 pb-10">
@@ -53,12 +69,50 @@ export function Step3DesignOptions({
                     </div>
                 </div>
 
+                {policyHints.length > 0 && (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-2">
+                        <p className="text-xs font-bold uppercase tracking-wide text-amber-700">Package-enforced design options</p>
+                        {policyHints.map((hint: any, idx: number) => (
+                            <p key={`${hint.key}-${idx}`} className="text-xs text-amber-800">
+                                <span className="font-semibold">{hint.key}</span>: {hint.operator} {hint.values}
+                            </p>
+                        ))}
+                    </div>
+                )}
+
                 {selectedOption?.configSchema ? (
+                    (() => {
+                        const optionConstraints: Record<string, { forcedValues?: string[]; forbiddenValues?: string[]; allowOnlyValues?: string[] }> = {};
+
+                        for (const policy of packagePolicies.filter((p: any) => p.targetCatalogItemId === selectedOption?.id)) {
+                            const key = policy.designOption?.key;
+                            if (!key) continue;
+                            const valueSet = (policy.values || [])
+                                .map((v: any) => v.designOptionValue?.value)
+                                .filter((v: any) => typeof v === 'string');
+                            if (!optionConstraints[key]) optionConstraints[key] = {};
+
+                            if (policy.operator === 'FORCE') {
+                                optionConstraints[key].forcedValues = valueSet;
+                            } else if (policy.operator === 'FORBID') {
+                                optionConstraints[key].forbiddenValues = [
+                                    ...(optionConstraints[key].forbiddenValues || []),
+                                    ...valueSet,
+                                ];
+                            } else if (policy.operator === 'ALLOW_ONLY') {
+                                optionConstraints[key].allowOnlyValues = valueSet;
+                            }
+                        }
+
+                        return (
                     <ConfigFormRenderer 
                         schema={selectedOption.configSchema} 
                         values={configValues} 
-                        onChange={onConfigChange} 
+                        onChange={onConfigChange}
+                        optionConstraints={optionConstraints}
                     />
+                        );
+                    })()
                 ) : (
                     <div className="p-8 border-2 border-dashed border-slate-100 rounded-3xl text-center">
                         <p className="text-sm text-slate-400">No dynamic configuration available for this vendor stack.</p>

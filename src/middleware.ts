@@ -40,13 +40,13 @@ export async function middleware(req: NextRequest) {
 
   // 2. Redirect to dashboard if session exists and path is /login
   if (path === "/login" && session) {
-    const redirectUrl = session.role === "ADMIN" ? "/admin" : "/dashboard";
+    const redirectUrl = session.role === "ADMIN" ? "/admin" : "/projects";
     return NextResponse.redirect(new URL(redirectUrl, req.nextUrl));
   }
 
   // 3. Role-based access control for /admin pages
   if (path.startsWith("/admin") && session?.role !== "ADMIN") {
-    return NextResponse.redirect(new URL("/", req.nextUrl));
+    return NextResponse.redirect(new URL("/projects", req.nextUrl));
   }
 
   const res = NextResponse.next();

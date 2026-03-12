@@ -31,8 +31,16 @@ interface CatalogItem {
     pricing: any[];
 }
 
+interface TaxonomyTerm {
+    id: string;
+    category: string;
+    label: string;
+    value: string;
+}
+
 export default function CatalogPage() {
     const [items, setItems] = useState<CatalogItem[]>([]);
+    const [taxonomyTerms, setTaxonomyTerms] = useState<TaxonomyTerm[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
@@ -47,7 +55,18 @@ export default function CatalogPage() {
 
     useEffect(() => {
         fetchItems();
+        fetchTaxonomies();
     }, [search, filterType, page]);
+
+    async function fetchTaxonomies() {
+        try {
+            const res = await fetch('/api/admin/taxonomy');
+            const data = await res.json();
+            setTaxonomyTerms(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error(err);
+        }
+    }
 
     async function deleteItem(id: string) {
         if (!confirm('Delete this catalog item? This cannot be undone.')) return;
@@ -123,13 +142,38 @@ export default function CatalogPage() {
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
                     <Filter size={18} className="text-slate-500 shrink-0" />
-                    {['ALL', 'HARDWARE', 'MANAGED_SERVICE', 'SERVICE_OPTION', 'PACKAGE', 'CONNECTIVITY', 'SERVICE_FAMILY'].map((type) => (
+                    <button
+                        onClick={() => setFilterType('ALL')}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${filterType === 'ALL'
+                            ? 'bg-slate-900 border-slate-900 text-white'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                    >
+                        ALL
+                    </button>
+                    {taxonomyTerms
+                        .filter(t => t.category === 'CLASSIFICATION')
+                        .map((t) => (
+                        <button
+                            key={t.value}
+                            onClick={() => setFilterType(t.value || 'ALL')}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm whitespace-nowrap ${filterType === t.value
+                                    ? 'bg-slate-900 border-slate-900 text-white'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                }`}
+                        >
+                            {t.label?.toUpperCase()}
+                        </button>
+                    ))}
+                    {/* Fallback if no taxonomy terms are loaded yet or database is empty */}
+                    {taxonomyTerms.filter(t => t.category === 'CLASSIFICATION').length === 0 && 
+                        ['HARDWARE', 'MANAGED_SERVICE', 'SERVICE_OPTION', 'PACKAGE', 'CONNECTIVITY', 'SERVICE_FAMILY'].map((type) => (
                         <button
                             key={type}
                             onClick={() => setFilterType(type)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 ${filterType === type
-                                    ? 'bg-blue-600 text-slate-900'
-                                    : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm ${filterType === type
+                                    ? 'bg-slate-900 border-slate-900 text-white'
+                                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                 }`}
                         >
                             {type === 'MANAGED_SERVICE' ? 'SERVICE' : type === 'SERVICE_FAMILY' ? 'FAMILY' : type === 'SERVICE_OPTION' ? 'OPTION' : type}

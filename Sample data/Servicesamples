@@ -1,0 +1,112 @@
+  {
+    name: "Zippy Managed SD-WAN",
+    shortDescription: "Cloud-delivered overlay WAN architecture for optimized, secure enterprise connectivity.",
+    detailedDescription: "Centralized management of WAN circuits (MPLS, DIA, LTE/5G) leveraging application-aware routing, dynamic path selection, and integrated Next-Generation Firewall (NGFW) capabilities. Ensures high availability and Quality of Experience (QoE) for mission-critical SaaS and corporate applications.",
+    constraints: "Requires compatible edge routing hardware (e.g., Cisco Catalyst 8000 series, Meraki MX). Maximum throughput is strictly bound by the underlying physical circuit speeds.",
+    assumptions: "Underlay transport circuits (Dedicated Internet, Broadband, MPLS) are quoted and provided by Zippy as companion managed services to build the SD-WAN underlay.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Secure Access Service Edge (SASE)",
+    shortDescription: "Converged network and security framework built on a Zero Trust foundation.",
+    detailedDescription: "Combines SD-WAN network capabilities with cloud-native security functions. Includes Secure Web Gateway (SWG), Cloud Access Security Broker (CASB), Firewall as a Service (FWaaS), and Zero Trust Network Access (ZTNA). Secures direct-to-internet breakouts without backhauling traffic to a central data center.",
+    constraints: "Requires endpoint agent deployment (e.g., Zscaler Client Connector or Cisco Secure Client) for remote users. Policy matrix complexity scales non-linearly with organizational size.",
+    assumptions: "Customer utilizes a modern Identity Provider (IdP) for SAML/SSO integration to drive user-based access policies.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Managed Campus LAN",
+    shortDescription: "High-availability, scalable wired local area network solution.",
+    detailedDescription: "End-to-end management of campus switching infrastructure leveraging a multilayer architecture (Access, Distribution, Core). Includes PoE budget management, dynamic segmentation (Cisco SD-Access/TrustSec), spanning-tree optimization, and continuous monitoring via AIOps.",
+    constraints: "Total port density and PoE delivery capabilities are hard-limited by the selected hardware chassis, stacking limits, and switch capacities.",
+    assumptions: "MDF/IDF physical environments possess adequate power, cooling, and compliant structured cabling.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Enterprise Managed WLAN (Wi-Fi 6/6E)",
+    shortDescription: "High-capacity, secure wireless networking for complex enterprise environments.",
+    detailedDescription: "AI-driven wireless network design and management tailored for challenging RF environments (Higher Ed, Healthcare, Large Public Venues). Features centralized controller management, granular QoS marking, Location Services (BLE), and dynamic radio frequency optimization.",
+    constraints: "Coverage quality and spatial stream performance are heavily dependent on physical environmental factors (e.g., wall density, metallic interference, changing physical layouts).",
+    assumptions: "Predictive and active RF site surveys have been completed and signed off prior to the final BOM generation and AP placement.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Cloud Contact Center (CCaaS) Migration",
+    shortDescription: "Omnichannel, cloud-native contact center solution and migration service.",
+    detailedDescription: "Comprehensive migration of legacy on-premise contact centers to a scalable cloud platform (Webex Contact Center). Includes multimedia routing (voice, chat, email), AI-powered conversational bots (Dialogflow, Amazon Lex), CRM screen-pops, and workforce optimization integration.",
+    constraints: "Deep integration with legacy, on-premise CRM or ERP systems may require custom API middleware development.",
+    assumptions: "Customer possesses a documented mapping of existing call flows, agent profiles, skill definitions, and SLA thresholds.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Multi-Cloud Interconnect",
+    shortDescription: "Secure, high-speed, direct connectivity to major public cloud providers.",
+    detailedDescription: "Software-Defined Interconnect (SDI) providing private, low-latency paths to AWS, Azure, and Google Cloud. Eliminates reliance on the public internet for mission-critical cloud workloads, offering bandwidth-on-demand and streamlined BGP peering.",
+    constraints: "Service availability and latency SLA are dependent on the customer's geographic proximity to regional cloud on-ramp facilities or carrier neutral data centers.",
+    assumptions: "Customer has an existing footprint of cloud workloads or a strictly defined hybrid-cloud migration strategy in place.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy AIOps & Digital Experience Monitoring (DEM)",
+    shortDescription: "Proactive network analytics and end-user experience monitoring.",
+    detailedDescription: "Aggregates telemetry from endpoints, access points, switches, and routers into a centralized AIOps engine (e.g., Cisco DNA Center, Zscaler ZDX). Provides full-stack health visibility, automated baseline anomaly detection, and accelerated issue remediation through Machine Reasoning.",
+    constraints: "High fidelity data relies on the deployment of compatible modern infrastructure and, in some cases, endpoint agents to gather device-level telemetry.",
+    assumptions: "The customer network allows the necessary telemetry protocols (NetFlow, SNMP, API polling) to traverse security boundaries to reach the analytics engine.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Managed Webex Suite & Calling",
+    shortDescription: "Comprehensive cloud collaboration and enterprise voice solution.",
+    detailedDescription: "Fully managed cloud PBX (Webex Calling), meetings, and team messaging. Replaces legacy on-premises unified communications. Includes PSTN integration, management of endpoints (IP phones, video units), and deep analytics via Control Hub.",
+    constraints: "Local PSTN regulatory requirements might mandate Local Gateway (LGW) or survivability node deployments in specific countries.",
+    assumptions: "Customer network supports required Quality of Service (QoS) markings and has adequate internet bandwidth to prioritize real-time voice and video traffic.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Managed Microsoft Teams Voice",
+    shortDescription: "Enterprise-grade PSTN connectivity for Microsoft Teams environments.",
+    detailedDescription: "Integrates global PSTN calling into the Microsoft Teams client using Direct Routing or Operator Connect. Includes managed Session Border Controllers (SBCs) to ensure secure routing, high availability, and interoperability with legacy telephony endpoints and analog devices.",
+    constraints: "Requires specific Microsoft licensing (e.g., Microsoft 365 E5 or a separate Teams Phone System add-on license) for every voice-enabled user.",
+    assumptions: "The customer's primary identity and collaboration strategy is strictly standardized on the Microsoft 365 ecosystem.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Anti-DDoS Protection",
+    shortDescription: "Cloud-based mitigation of Distributed Denial of Service (DDoS) attacks.",
+    detailedDescription: "Always-on or on-demand scrubbing service that monitors incoming volumetric and state-exhaustion attacks. Reroutes malicious traffic to global scrubbing centers to ensure continuous availability of critical internet-facing applications, VPNs, and bandwidth.",
+    constraints: "Mitigation capacity and Time-to-Mitigate (TTM) SLAs are heavily dependent on the chosen tier (Always-On vs. On-Demand via BGP route injection).",
+    assumptions: "Customer utilizes Zippy Managed Internet Services (DIA) or has compatible BGP peering configured to allow rapid route redirection during an attack.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Secure Cloud Interconnect (SCI)",
+    shortDescription: "Private, secure, and reliable network connections to leading cloud service providers.",
+    detailedDescription: "Provides direct, software-defined private connections to cloud providers (AWS Direct Connect, Azure ExpressRoute, Google Cloud Interconnect) bypassing the public internet. Enables bandwidth-on-demand, load balancing, and multi-cloud architecture orchestration from a central management console.",
+    constraints: "Physical availability and maximum port speeds are strictly dictated by the proximity of customer edge sites to carrier-neutral cloud on-ramp facilities (e.g., Equinix).",
+    assumptions: "Customer requires strict SLA-backed performance and privacy for hybrid-cloud workloads that cannot be achieved via standard IPsec tunnels over the public internet.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Dedicated Internet Access (DIA)",
+    shortDescription: "Enterprise-grade, symmetric, and uncontended internet connectivity.",
+    detailedDescription: "High-performance, dedicated fiber internet access with guaranteed symmetrical upload and download speeds. Backed by an industry-leading Service Level Agreement (SLA) for uptime, latency, and packet delivery. Ideal as a primary transport for SD-WAN, cloud applications, and VPNs.",
+    constraints: "Subject to physical fiber availability and local loop build-out timelines at the customer premises.",
+    assumptions: "Customer premises has an established Minimum Point of Entry (MPOE) and appropriate conduit to extend the demarc to the customer's equipment room.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Business Broadband",
+    shortDescription: "Cost-effective, asymmetrical internet connectivity for branch and remote sites.",
+    detailedDescription: "Managed business-class cable or fiber broadband services. Offers high-speed download capacities suitable for secondary/failover SD-WAN links, guest Wi-Fi, or smaller retail and branch locations.",
+    constraints: "Connection speeds are asymmetrical and generally \"best-effort\" without the strict, latency-backed SLAs provided by DIA services.",
+    assumptions: "Deployed primarily as a cost-effective secondary circuit or for non-mission-critical site connectivity where strict SLAs are not mandatory.",
+    type: "SERVICE"
+  },
+  {
+    name: "Zippy Global MPLS",
+    shortDescription: "Secure, private, and deterministic wide area networking.",
+    detailedDescription: "Fully meshed, private IP-VPN routing over Zippy's global backbone. Delivers strict end-to-end Quality of Service (QoS) to guarantee performance for highly sensitive, real-time traffic like voice and video, bypassing the public internet completely.",
+    constraints: "Provisioning timelines are typically longer than internet-based circuits due to the private nature of the provisioning and local loop delivery.",
+    assumptions: "Utilized for sites requiring strict regulatory compliance, extreme privacy, or legacy data center backhaul that cannot traverse public connections.",
+    type: "SERVICE"
+  }

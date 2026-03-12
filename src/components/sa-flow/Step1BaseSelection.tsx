@@ -17,14 +17,16 @@ export function Step1BaseSelection({ onSelect, selectedId }: Step1BaseSelectionP
         async function fetchBases() {
             setLoading(true);
             try {
-                // Fetch packages and service families
-                const res = await fetch('/api/admin/catalog?type=PACKAGE');
-                const packages = await res.json();
-                
-                const res2 = await fetch('/api/admin/catalog?type=SERVICE_FAMILY');
-                const families = await res2.json();
-                
-                setItems([...packages, ...families]);
+                // Fetch packages and service families from SA-safe APIs
+                const [pkgRes, familyRes] = await Promise.all([
+                    fetch('/api/catalog/packages'),
+                    fetch('/api/catalog/families'),
+                ]);
+
+                const packages = await pkgRes.json();
+                const families = await familyRes.json();
+
+                setItems([...(Array.isArray(packages) ? packages : []), ...(Array.isArray(families) ? families : [])]);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -74,6 +76,11 @@ export function Step1BaseSelection({ onSelect, selectedId }: Step1BaseSelectionP
                                 <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
                                     {item.type}
                                 </span>
+                                {item.type === 'PACKAGE' && (
+                                    <span className="text-[10px] text-slate-500">
+                                        {(item.packageCompositions || []).filter((row: any) => row.role === 'REQUIRED' || row.role === 'AUTO_INCLUDED').length} required / {(item.packageCompositions || []).filter((row: any) => row.role === 'OPTIONAL').length} optional
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -136,7 +136,7 @@ export async function calculateBOM(
             where: { id },
             include: {
                 pricing: { include: { tiers: true } },
-                parentDependencies: {
+                childDependencies: {
                     where: {
                         // IS_A is not auto-expanded — it's used for family classification only
                         type: { in: [DependencyType.INCLUDES, DependencyType.MANDATORY_ATTACHMENT] },
@@ -202,7 +202,7 @@ export async function calculateBOM(
         }
 
         // Enqueue child dependencies (INCLUDES + MANDATORY_ATTACHMENT only)
-        for (const dep of item.parentDependencies) {
+        for (const dep of item.childDependencies) {
             queue.push({
                 id: dep.childId,
                 parentSku: item.sku,

@@ -11,7 +11,6 @@ import {
     Plus,
     Trash2,
     FileText,
-    Link as LinkIcon,
     AlertCircle,
     CheckCircle2,
     Loader2
@@ -39,6 +38,78 @@ interface CatalogItem {
     }[];
 }
 
+interface DesignOptionDefinition {
+    id: string;
+    key: string;
+    label: string;
+    valueType?: string;
+    values: Array<{ id: string; value: string; label: string }>;
+}
+
+interface CompositionRow {
+    catalogItemId: string;
+    role: 'REQUIRED' | 'OPTIONAL' | 'AUTO_INCLUDED';
+    minQty: number;
+    maxQty: number | null;
+    defaultQty: number;
+    isSelectable: boolean;
+    displayOrder: number;
+}
+
+interface PolicyRow {
+    targetCatalogItemId: string;
+    designOptionId: string;
+    operator: 'FORCE' | 'FORBID' | 'ALLOW_ONLY' | 'REQUIRE_ONE_OF';
+    scope: 'PROJECT' | 'SITE';
+    active: boolean;
+    valueIds: string[];
+}
+
+interface ItemDesignOptionRow {
+    designOptionId: string;
+    isRequired: boolean;
+    allowMulti: boolean;
+    defaultValueId: string | null;
+    allowedValueIds: string[];
+}
+
+type FeatureStatus = 'REQUIRED' | 'STANDARD' | 'OPTIONAL';
+
+interface FeatureAssignmentRow {
+    termId: string;
+    status: FeatureStatus;
+}
+
+type PackageDesignOptionMode = 'NONE' | 'FIXED' | 'CONFIGURABLE';
+
+interface PackageDesignOptionSelection {
+    catalogItemId: string;
+    designOptionId: string;
+    mode: PackageDesignOptionMode;
+    valueIds: string[];
+}
+
+interface ServiceDesignOptionWorkspace {
+    designOptionId: string;
+    key: string;
+    label: string;
+    valueChoices: Array<{ id: string; value: string; label: string }>;
+}
+
+interface ServiceFeatureWorkspace {
+    id: string;
+    label: string;
+    value: string | null;
+}
+
+interface PackageServiceWorkspace {
+    catalogItemId: string;
+    designOptions: ServiceDesignOptionWorkspace[];
+    supportedFeatures: ServiceFeatureWorkspace[];
+    loading: boolean;
+    error?: string;
+}
+
 export default function CatalogItemDetail() {
     const { id } = useParams();
     const router = useRouter();
@@ -51,7 +122,21 @@ export default function CatalogItemDetail() {
     const [isSearching, setIsSearching] = useState(false);
 
     const [taxonomyTerms, setTaxonomyTerms] = useState<{id: string, label: string, category: string, value: string | null}[]>([]);
-    const [isTaxonomyLoading, setIsTaxonomyLoading] = useState(false);
+    const [compositionRows, setCompositionRows] = useState<CompositionRow[]>([]);
+    const [policyRows, setPolicyRows] = useState<PolicyRow[]>([]);
+    const [itemDesignOptionRows, setItemDesignOptionRows] = useState<ItemDesignOptionRow[]>([]);
+    const [designOptionDefinitions, setDesignOptionDefinitions] = useState<DesignOptionDefinition[]>([]);
+    const [catalogLookup, setCatalogLookup] = useState<Array<{ id: string; sku: string; name: string; type: string }>>([]);
+    const [advancedSaving, setAdvancedSaving] = useState(false);
+    const [advancedStatus, setAdvancedStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [supportedFeatureTermIds, setSupportedFeatureTermIds] = useState<string[]>([]);
+    const [, setAvailableFeatureTermIds] = useState<string[]>([]);
+    const [featureAssignments, setFeatureAssignments] = useState<FeatureAssignmentRow[]>([]);
+    const [featureSaving, setFeatureSaving] = useState(false);
+    const [featureStatus, setFeatureStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [featureSearch, setFeatureSearch] = useState('');
+    const [packageServiceWorkspaces, setPackageServiceWorkspaces] = useState<Record<string, PackageServiceWorkspace>>({});
+    const [packageDesignSelections, setPackageDesignSelections] = useState<PackageDesignOptionSelection[]>([]);
 
     useEffect(() => {
         if (id !== 'new') {
@@ -76,16 +161,303 @@ export default function CatalogItemDetail() {
         fetchTaxonomy();
     }, [id]);
 
+    useEffect(() => {
+        if (!item || id === 'new') return;
+        const currentItem = item;
+
+        async function loadAdvancedEditors() {
+            try {
+                const [defRes, catalogRes] = await Promise.all([
+                    fetch('/api/admin/design-options'),
+                    fetch('/api/admin/catalog?limit=200'),
+                ]);
+                if (!defRes.ok) {
+                    const err = await defRes.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to load design option definitions');
+                }
+                if (!catalogRes.ok) {
+                    const err = await catalogRes.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to load catalog for advanced controls');
+                }
+                const defData = await defRes.json();
+                const catalogData = await catalogRes.json();
+                setDesignOptionDefinitions(defData.options || []);
+                setCatalogLookup((catalogData.items || []).map((row: any) => ({
+                    id: row.id,
+                    sku: row.sku,
+                    name: row.name,
+                    type: row.type,
+                })));
+
+                if (currentItem.type === 'PACKAGE') {
+                    setItemDesignOptionRows([]);
+                    const [compRes, polRes, featureRes] = await Promise.all([
+                        fetch(`/api/admin/packages/${currentItem.id}/composition`),
+                        fetch(`/api/admin/packages/${currentItem.id}/policies`),
+                        fetch(`/api/admin/catalog/${currentItem.id}/features`),
+                    ]);
+                    if (!compRes.ok || !polRes.ok || !featureRes.ok) {
+                        const compErr = !compRes.ok ? await compRes.json().catch(() => ({})) : null;
+                        const polErr = !polRes.ok ? await polRes.json().catch(() => ({})) : null;
+                        const featureErr = !featureRes.ok ? await featureRes.json().catch(() => ({})) : null;
+                        throw new Error(compErr?.error || polErr?.error || featureErr?.error || 'Failed to load package controls');
+                    }
+
+                    const compData = await compRes.json();
+                    const polData = await polRes.json();
+                    const featureData = await featureRes.json();
+
+                    const nextCompositionRows: CompositionRow[] = (compData.items || []).map((row: any) => ({
+                        catalogItemId: row.catalogItemId,
+                        role: row.role,
+                        minQty: row.minQty,
+                        maxQty: row.maxQty,
+                        defaultQty: row.defaultQty,
+                        isSelectable: row.isSelectable,
+                        displayOrder: row.displayOrder,
+                    }));
+                    setCompositionRows(nextCompositionRows);
+
+                    setPolicyRows((polData.policies || []).map((row: any) => ({
+                        targetCatalogItemId: row.targetCatalogItemId,
+                        designOptionId: row.designOptionId,
+                        operator: row.operator,
+                        scope: row.scope,
+                        active: row.active,
+                        valueIds: row.values?.map((v: any) => v.designOptionValueId) || [],
+                    })));
+
+                    setAvailableFeatureTermIds((featureData.availableFeatureTermIds || []).filter(Boolean));
+                    setSupportedFeatureTermIds((featureData.supportedFeatureTermIds || []).filter(Boolean));
+                    const assignments: FeatureAssignmentRow[] = (featureData.assignments || []).map((row: any) => ({
+                        termId: row.termId,
+                        status: row.status,
+                    }));
+                    setFeatureAssignments(assignments);
+
+                    const compositionMemberIds = Array.from(new Set(nextCompositionRows.map((row) => row.catalogItemId)));
+                    if (compositionMemberIds.length === 0) {
+                        setPackageServiceWorkspaces({});
+                    } else {
+                        const workspaces = await Promise.all(
+                            compositionMemberIds.map((catalogItemId) => fetchPackageServiceWorkspace(catalogItemId))
+                        );
+                        setPackageServiceWorkspaces(
+                            Object.fromEntries(workspaces.map((workspace) => [workspace.catalogItemId, workspace]))
+                        );
+                    }
+                } else if (currentItem.type === 'MANAGED_SERVICE' || currentItem.type === 'SERVICE_OPTION' || currentItem.type === 'CONNECTIVITY') {
+                    const [designRes, featureRes] = await Promise.all([
+                        fetch(`/api/admin/catalog/${currentItem.id}/design-options`),
+                        fetch(`/api/admin/catalog/${currentItem.id}/features`),
+                    ]);
+                    if (!designRes.ok) {
+                        const err = await designRes.json().catch(() => ({}));
+                        throw new Error(err.error || 'Failed to load item design options');
+                    }
+                    if (!featureRes.ok) {
+                        const err = await featureRes.json().catch(() => ({}));
+                        throw new Error(err.error || 'Failed to load item features');
+                    }
+                    const designData = await designRes.json();
+                    const featureData = await featureRes.json();
+
+                    setItemDesignOptionRows((designData.options || []).map((row: any) => ({
+                        designOptionId: row.designOptionId,
+                        isRequired: row.isRequired,
+                        allowMulti: row.allowMulti,
+                        defaultValueId: row.defaultValueId,
+                        allowedValueIds: row.allowedValues?.map((av: any) => av.designOptionValueId) || [],
+                    })));
+
+                    setAvailableFeatureTermIds((featureData.availableFeatureTermIds || []).filter(Boolean));
+                    setSupportedFeatureTermIds((featureData.supportedFeatureTermIds || []).filter(Boolean));
+                    const assignments: FeatureAssignmentRow[] = (featureData.assignments || []).map((row: any) => ({
+                        termId: row.termId,
+                        status: row.status,
+                    }));
+                    setFeatureAssignments(assignments);
+                    setPackageServiceWorkspaces({});
+                    setPackageDesignSelections([]);
+                } else {
+                    setSupportedFeatureTermIds([]);
+                    setAvailableFeatureTermIds([]);
+                    setFeatureAssignments([]);
+                    setPackageServiceWorkspaces({});
+                    setPackageDesignSelections([]);
+                }
+            } catch (error) {
+                console.error('Failed to load advanced editor data', error);
+                const message = error instanceof Error ? error.message : 'Failed to load advanced editor data';
+                setAdvancedStatus({ type: 'error', message });
+            }
+        }
+
+        loadAdvancedEditors();
+    }, [item?.id, item?.type, id]);
+
+    useEffect(() => {
+        if (!item || item.type !== 'PACKAGE') return;
+
+        const memberIds = new Set(compositionRows.map((row) => row.catalogItemId));
+        setPackageServiceWorkspaces((prev) => {
+            const filtered = Object.fromEntries(
+                Object.entries(prev).filter(([catalogItemId]) => memberIds.has(catalogItemId))
+            );
+            if (Object.keys(filtered).length === Object.keys(prev).length) return prev;
+            return filtered;
+        });
+    }, [compositionRows, item?.type]);
+
+    useEffect(() => {
+        if (!item || item.type !== 'PACKAGE') return;
+
+        const memberIds = Array.from(new Set(compositionRows.map((row) => row.catalogItemId)));
+        const missingIds = memberIds.filter((catalogItemId) => !packageServiceWorkspaces[catalogItemId]);
+        if (missingIds.length === 0) return;
+
+        let cancelled = false;
+        (async () => {
+            const loaded = await Promise.all(missingIds.map((catalogItemId) => fetchPackageServiceWorkspace(catalogItemId)));
+            if (cancelled) return;
+            setPackageServiceWorkspaces((prev) => ({
+                ...prev,
+                ...Object.fromEntries(loaded.map((workspace) => [workspace.catalogItemId, workspace])),
+            }));
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [compositionRows, item?.type, item?.id, packageServiceWorkspaces]);
+
+    useEffect(() => {
+        if (!item || item.type !== 'PACKAGE') return;
+
+        const policyMap = new Map<string, PolicyRow[]>();
+        for (const policy of policyRows) {
+            const key = `${policy.targetCatalogItemId}:${policy.designOptionId}`;
+            const rows = policyMap.get(key) || [];
+            rows.push(policy);
+            policyMap.set(key, rows);
+        }
+
+        setPackageDesignSelections((previous) => {
+            const previousMap = new Map<string, PackageDesignOptionSelection>(
+                previous.map((selection) => [`${selection.catalogItemId}:${selection.designOptionId}`, selection])
+            );
+            const next: PackageDesignOptionSelection[] = [];
+
+            const activeMemberIds = new Set(compositionRows.map((row) => row.catalogItemId));
+            for (const catalogItemId of activeMemberIds) {
+                const workspace = packageServiceWorkspaces[catalogItemId];
+                if (!workspace) continue;
+                for (const option of workspace.designOptions) {
+                    const key = `${workspace.catalogItemId}:${option.designOptionId}`;
+                    const existing = previousMap.get(key);
+                    if (existing) {
+                        next.push(existing);
+                        continue;
+                    }
+
+                    const rules = policyMap.get(key) || [];
+                    const forcePolicy = rules.find((row) => row.operator === 'FORCE' && row.active);
+                    const allowPolicy = rules.find((row) => row.operator === 'ALLOW_ONLY' && row.active);
+                    const requirePolicy = rules.find((row) => row.operator === 'REQUIRE_ONE_OF' && row.active);
+
+                    if (forcePolicy) {
+                        next.push({
+                            catalogItemId: workspace.catalogItemId,
+                            designOptionId: option.designOptionId,
+                            mode: 'FIXED',
+                            valueIds: forcePolicy.valueIds.slice(0, 1),
+                        });
+                        continue;
+                    }
+
+                    if (allowPolicy || requirePolicy) {
+                        next.push({
+                            catalogItemId: workspace.catalogItemId,
+                            designOptionId: option.designOptionId,
+                            mode: 'CONFIGURABLE',
+                            valueIds: (allowPolicy?.valueIds || requirePolicy?.valueIds || []).slice(),
+                        });
+                        continue;
+                    }
+
+                    next.push({
+                        catalogItemId: workspace.catalogItemId,
+                        designOptionId: option.designOptionId,
+                        mode: 'NONE',
+                        valueIds: [],
+                    });
+                }
+            }
+
+            return next;
+        });
+    }, [item?.type, policyRows, packageServiceWorkspaces, compositionRows]);
+
+    async function fetchPackageServiceWorkspace(catalogItemId: string): Promise<PackageServiceWorkspace> {
+        try {
+            const [designRes, featureRes] = await Promise.all([
+                fetch(`/api/admin/catalog/${catalogItemId}/design-options`),
+                fetch(`/api/admin/catalog/${catalogItemId}/features`),
+            ]);
+            if (!designRes.ok || !featureRes.ok) {
+                const designError = !designRes.ok ? await designRes.json().catch(() => ({})) : null;
+                const featureError = !featureRes.ok ? await featureRes.json().catch(() => ({})) : null;
+                throw new Error(designError?.error || featureError?.error || 'Failed to load service design workspace');
+            }
+
+            const designData = await designRes.json();
+            const featureData = await featureRes.json();
+            const supportedIds = new Set((featureData.supportedFeatureTermIds || []) as string[]);
+            const supportedFeatures: ServiceFeatureWorkspace[] = (featureData.featureTerms || [])
+                .filter((term: any) => supportedIds.has(term.id))
+                .map((term: any) => ({ id: term.id, label: term.label, value: term.value || null }));
+
+            const designOptions: ServiceDesignOptionWorkspace[] = (designData.options || []).map((row: any) => {
+                const fromAllowed = (row.allowedValues || []).map((av: any) => av.designOptionValue);
+                const fromDefinition = row.designOption?.values || [];
+                const candidates = fromAllowed.length > 0 ? fromAllowed : fromDefinition;
+                const dedupe = new Map<string, { id: string; value: string; label: string }>();
+                for (const candidate of candidates) {
+                    if (!candidate?.id) continue;
+                    dedupe.set(candidate.id, { id: candidate.id, value: candidate.value, label: candidate.label });
+                }
+                return {
+                    designOptionId: row.designOptionId,
+                    key: row.designOption?.key || row.designOptionId,
+                    label: row.designOption?.label || row.designOptionId,
+                    valueChoices: Array.from(dedupe.values()),
+                };
+            });
+
+            return {
+                catalogItemId,
+                designOptions,
+                supportedFeatures,
+                loading: false,
+            };
+        } catch (error) {
+            return {
+                catalogItemId,
+                designOptions: [],
+                supportedFeatures: [],
+                loading: false,
+                error: error instanceof Error ? error.message : 'Failed to load workspace',
+            };
+        }
+    }
+
     const fetchTaxonomy = async () => {
-        setIsTaxonomyLoading(true);
         try {
             const res = await fetch('/api/admin/taxonomy');
             const data = await res.json();
             setTaxonomyTerms(data);
         } catch (error) {
             console.error('Failed to fetch taxonomy:', error);
-        } finally {
-            setIsTaxonomyLoading(false);
         }
     };
 
@@ -109,11 +481,12 @@ export default function CatalogItemDetail() {
             setStatus(null);
             const method = id === 'new' ? 'POST' : 'PATCH';
             const url = id === 'new' ? '/api/admin/catalog' : `/api/admin/catalog/${id}`;
+            const savePayload = (({ attributes, ...rest }) => rest)(item);
             
             const res = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(item)
+                body: JSON.stringify(savePayload)
             });
 
             if (!res.ok) {
@@ -130,6 +503,152 @@ export default function CatalogItemDetail() {
             setStatus({ type: 'error', message: err.message || 'Error saving item' });
         } finally {
             setSaving(false);
+        }
+    }
+
+    async function savePackageControls() {
+        if (!item || item.type !== 'PACKAGE') return;
+        try {
+            setAdvancedSaving(true);
+            setAdvancedStatus(null);
+            const packagePolicyPayload: PolicyRow[] = packageDesignSelections.flatMap((selection): PolicyRow[] => {
+                if (selection.mode === 'FIXED' && selection.valueIds.length > 0) {
+                    return [{
+                        targetCatalogItemId: selection.catalogItemId,
+                        designOptionId: selection.designOptionId,
+                        operator: 'FORCE' as const,
+                        scope: 'PROJECT' as const,
+                        active: true,
+                        valueIds: selection.valueIds.slice(0, 1),
+                    }];
+                }
+                if (selection.mode === 'CONFIGURABLE' && selection.valueIds.length > 0) {
+                    return [{
+                        targetCatalogItemId: selection.catalogItemId,
+                        designOptionId: selection.designOptionId,
+                        operator: 'ALLOW_ONLY' as const,
+                        scope: 'PROJECT' as const,
+                        active: true,
+                        valueIds: Array.from(new Set(selection.valueIds)),
+                    }];
+                }
+                return [];
+            });
+
+            const [compRes, policyRes] = await Promise.all([
+                fetch(`/api/admin/packages/${item.id}/composition`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items: compositionRows }),
+                }),
+                fetch(`/api/admin/packages/${item.id}/policies`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ policies: packagePolicyPayload }),
+                }),
+            ]);
+
+            if (!compRes.ok || !policyRes.ok) {
+                const compError = !compRes.ok ? await compRes.json().catch(() => ({})) : null;
+                const policyError = !policyRes.ok ? await policyRes.json().catch(() => ({})) : null;
+                throw new Error(compError?.error || policyError?.error || 'Failed to save package controls');
+            }
+
+            const [compData, policyData, featureRes] = await Promise.all([
+                compRes.json().catch(() => ({})),
+                policyRes.json().catch(() => ({})),
+                fetch(`/api/admin/catalog/${item.id}/features`),
+            ]);
+
+            if (!featureRes.ok) {
+                const featureError = await featureRes.json().catch(() => ({}));
+                throw new Error(featureError.error || 'Package controls saved, but failed to refresh package features');
+            }
+
+            const featureData = await featureRes.json();
+            const availableIds = new Set((featureData.availableFeatureTermIds || []) as string[]);
+            const normalizedAssignments = featureAssignments.filter((row) => availableIds.has(row.termId));
+            const featureWriteRes = await fetch(`/api/admin/catalog/${item.id}/features`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assignments: normalizedAssignments }),
+            });
+            const featureWriteData = await featureWriteRes.json().catch(() => ({}));
+            if (!featureWriteRes.ok) {
+                throw new Error(featureWriteData.error || 'Failed to save package feature statuses');
+            }
+            setCompositionRows((compData.items || []).map((row: any) => ({
+                catalogItemId: row.catalogItemId,
+                role: row.role,
+                minQty: row.minQty,
+                maxQty: row.maxQty,
+                defaultQty: row.defaultQty,
+                isSelectable: row.isSelectable,
+                displayOrder: row.displayOrder,
+            })));
+            setPolicyRows((policyData.policies || []).map((row: any) => ({
+                targetCatalogItemId: row.targetCatalogItemId,
+                designOptionId: row.designOptionId,
+                operator: row.operator,
+                scope: row.scope,
+                active: row.active,
+                valueIds: row.values?.map((v: any) => v.designOptionValueId) || [],
+            })));
+            setAvailableFeatureTermIds((featureWriteData.availableFeatureTermIds || featureData.availableFeatureTermIds || []).filter(Boolean));
+            setSupportedFeatureTermIds((featureWriteData.supportedFeatureTermIds || featureData.supportedFeatureTermIds || []).filter(Boolean));
+            setFeatureAssignments((featureWriteData.assignments || []).map((row: any) => ({
+                termId: row.termId,
+                status: row.status,
+            })));
+            const compositionMemberIds: string[] = Array.from(
+                new Set(
+                    ((compData.items || []) as Array<{ catalogItemId?: string }>)
+                        .map((row) => row.catalogItemId)
+                        .filter((catalogItemId): catalogItemId is string => Boolean(catalogItemId))
+                )
+            );
+            const workspaces = await Promise.all(
+                compositionMemberIds.map((catalogItemId) => fetchPackageServiceWorkspace(catalogItemId))
+            );
+            setPackageServiceWorkspaces(Object.fromEntries(workspaces.map((workspace) => [workspace.catalogItemId, workspace])));
+
+            setAdvancedStatus({ type: 'success', message: 'Package controls saved' });
+        } catch (err: any) {
+            setAdvancedStatus({ type: 'error', message: err.message || 'Failed to save package controls' });
+        } finally {
+            setAdvancedSaving(false);
+        }
+    }
+
+    async function saveItemDesignOptions() {
+        if (!item || (item.type !== 'MANAGED_SERVICE' && item.type !== 'SERVICE_OPTION' && item.type !== 'CONNECTIVITY')) return;
+        try {
+            setAdvancedSaving(true);
+            setAdvancedStatus(null);
+            const normalizedOptions = itemDesignOptionRows.map((row) => ({
+                designOptionId: row.designOptionId,
+                isRequired: false,
+                allowMulti: false,
+                defaultValueId: null,
+                allowedValueIds: row.allowedValueIds,
+            }));
+
+            const res = await fetch(`/api/admin/catalog/${item.id}/design-options`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ options: normalizedOptions }),
+            });
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || 'Failed to save design options');
+            }
+
+            setAdvancedStatus({ type: 'success', message: 'Design options saved' });
+        } catch (err: any) {
+            setAdvancedStatus({ type: 'error', message: err.message || 'Failed to save design options' });
+        } finally {
+            setAdvancedSaving(false);
         }
     }
 
@@ -219,30 +738,177 @@ export default function CatalogItemDetail() {
         setItem({ ...item, childDependencies: newList });
     };
 
-    const toggleAttribute = (termId: string) => {
-        if (!item) return;
-        const index = item.attributes.findIndex(a => a.taxonomyTermId === termId);
-        if (index > -1) {
-            const newList = item.attributes.filter((_, i) => i !== index);
-            setItem({ ...item, attributes: newList });
-        } else {
-            const term = taxonomyTerms.find(t => t.id === termId);
-            if (!term) return;
-            setItem({
-                ...item,
-                attributes: [
-                    ...item.attributes,
-                    {
-                        id: `temp-${Date.now()}`,
-                        taxonomyTermId: termId,
-                        term: { id: term.id, name: term.label, category: term.category }
-                    }
-                ]
-            });
-        }
+    const addCompositionRow = () => {
+        const defaultTarget = serviceCompositionOptions[0];
+        if (!defaultTarget) return;
+        setCompositionRows((prev) => [
+            ...prev,
+            {
+                catalogItemId: defaultTarget.id,
+                role: 'OPTIONAL',
+                minQty: 1,
+                maxQty: null,
+                defaultQty: 1,
+                isSelectable: true,
+                displayOrder: prev.length,
+            },
+        ]);
     };
 
+    const updateCompositionRow = (index: number, patch: Partial<CompositionRow>) => {
+        setCompositionRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, ...patch } : row)));
+    };
 
+    const removeCompositionRow = (index: number) => {
+        setCompositionRows((prev) => prev.filter((_, idx) => idx !== index).map((row, idx) => ({ ...row, displayOrder: idx })));
+    };
+
+    const addDesignOptionRow = () => {
+        const firstOption = designOptionDefinitions[0];
+        if (!firstOption) return;
+        setItemDesignOptionRows((prev) => [
+            ...prev,
+            {
+                designOptionId: firstOption.id,
+                isRequired: false,
+                allowMulti: false,
+                defaultValueId: null,
+                allowedValueIds: [],
+            },
+        ]);
+    };
+
+    const updateDesignOptionRow = (index: number, patch: Partial<ItemDesignOptionRow>) => {
+        setItemDesignOptionRows((prev) => prev.map((row, idx) => (idx === index ? { ...row, ...patch } : row)));
+    };
+
+    const removeDesignOptionRow = (index: number) => {
+        setItemDesignOptionRows((prev) => prev.filter((_, idx) => idx !== index));
+    };
+
+    const getDefinitionValues = (designOptionId: string) => {
+        return designOptionDefinitions.find((opt) => opt.id === designOptionId)?.values || [];
+    };
+
+    const getPackageDesignSelection = (catalogItemId: string, designOptionId: string): PackageDesignOptionSelection | null => {
+        return packageDesignSelections.find(
+            (selection) => selection.catalogItemId === catalogItemId && selection.designOptionId === designOptionId
+        ) || null;
+    };
+
+    const updatePackageDesignSelection = (
+        catalogItemId: string,
+        designOptionId: string,
+        patch: Partial<PackageDesignOptionSelection>
+    ) => {
+        setPackageDesignSelections((prev) => {
+            const keyMatch = (row: PackageDesignOptionSelection) =>
+                row.catalogItemId === catalogItemId && row.designOptionId === designOptionId;
+            const existing = prev.find(keyMatch);
+            if (!existing) {
+                return [
+                    ...prev,
+                    {
+                        catalogItemId,
+                        designOptionId,
+                        mode: (patch.mode as PackageDesignOptionMode) || 'NONE',
+                        valueIds: patch.valueIds || [],
+                    },
+                ];
+            }
+            return prev.map((row) => {
+                if (!keyMatch(row)) return row;
+                const nextMode = (patch.mode || row.mode) as PackageDesignOptionMode;
+                const nextValues = patch.valueIds
+                    ? Array.from(new Set(patch.valueIds))
+                    : row.valueIds;
+                return {
+                    ...row,
+                    ...patch,
+                    mode: nextMode,
+                    valueIds: nextMode === 'NONE' ? [] : nextValues,
+                };
+            });
+        });
+    };
+
+    const featureTerms = taxonomyTerms.filter((term) => term.category === 'FEATURE');
+    const supportSelectedSet = new Set(supportedFeatureTermIds);
+    const filteredSupportFeatureTerms = featureTerms
+        .filter((term) => {
+            const needle = featureSearch.trim().toLowerCase();
+            if (!needle) return true;
+            return term.label.toLowerCase().includes(needle) || (term.value || '').toLowerCase().includes(needle);
+        })
+        .sort((a, b) => a.label.localeCompare(b.label));
+
+    const updateFeatureStatus = (termId: string, status: FeatureStatus | '') => {
+        setFeatureAssignments((prev) => {
+            const filtered = prev.filter((row) => row.termId !== termId);
+            if (!status) return filtered;
+            return [...filtered, { termId, status }];
+        });
+    };
+
+    const toggleSupportedFeature = (termId: string, checked: boolean) => {
+        setSupportedFeatureTermIds((prev) => {
+            if (checked) return Array.from(new Set([...prev, termId]));
+            return prev.filter((id) => id !== termId);
+        });
+    };
+
+    async function saveFeatureAssignments() {
+        if (!item || (item.type !== 'MANAGED_SERVICE' && item.type !== 'SERVICE_OPTION' && item.type !== 'CONNECTIVITY')) return;
+        try {
+            setFeatureSaving(true);
+            setFeatureStatus(null);
+
+            const res = await fetch(`/api/admin/catalog/${item.id}/features`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ featureTermIds: supportedFeatureTermIds }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to save features');
+            }
+
+            const assignedIds = (data.featureTermIds || []) as string[];
+            const assignedTermIds = new Set(assignedIds);
+            setSupportedFeatureTermIds(assignedIds);
+            setFeatureAssignments([]);
+
+            setItem((current) => {
+                if (!current) return current;
+                const nonFeatureAttributes = current.attributes.filter((attribute) => attribute.term.category !== 'FEATURE');
+                const updatedFeatureAttributes = featureTerms
+                    .filter((term) => assignedTermIds.has(term.id))
+                    .map((term) => ({
+                        id: `feature-${term.id}`,
+                        taxonomyTermId: term.id,
+                        term: { id: term.id, name: term.label, category: term.category },
+                    }));
+                return {
+                    ...current,
+                    attributes: [...nonFeatureAttributes, ...updatedFeatureAttributes],
+                };
+            });
+
+            setFeatureStatus({ type: 'success', message: 'Features saved' });
+        } catch (error: any) {
+            setFeatureStatus({ type: 'error', message: error.message || 'Failed to save features' });
+        } finally {
+            setFeatureSaving(false);
+        }
+    }
+
+    const editableCatalogOptions = catalogLookup.filter((c) => c.id !== item?.id);
+    const serviceCompositionOptions = editableCatalogOptions.filter((c) =>
+        ['SERVICE_FAMILY', 'MANAGED_SERVICE', 'SERVICE_OPTION', 'CONNECTIVITY'].includes(c.type)
+    );
+    const compositionRowsByOrder = compositionRows
+        .map((row, index) => ({ row, index }))
+        .sort((a, b) => a.row.displayOrder - b.row.displayOrder);
 
     // --- Visibility Logic ---
     const getVisibilityRules = (panelName: string) => {
@@ -253,7 +919,8 @@ export default function CatalogItemDetail() {
     const isPanelVisible = (panelName: string) => {
         if (!item) return false;
         const allowedTypes = getVisibilityRules(panelName);
-        if (allowedTypes.length === 0) return true; // Default to visible if no rules are set
+        // If no rules are set in the database, the panel is hidden by default.
+        // This ensures visibility is solely determined by taxonomy entries.
         return allowedTypes.includes(item.type);
     };
 
@@ -417,6 +1084,337 @@ export default function CatalogItemDetail() {
                             </div>
                         </section>
                     </div>
+
+                    {item.type === 'PACKAGE' && (
+                        <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5 shadow-sm">
+                            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                                <div className="min-w-0">
+                                    <h2 className="font-bold text-slate-900">Design Options</h2>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        Define package pre-design by included service: select fixed options vs guided-phase configurable options, and set feature posture.
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={addCompositionRow}
+                                        className="gap-2 whitespace-nowrap shrink-0"
+                                        disabled={serviceCompositionOptions.length === 0}
+                                    >
+                                        <Plus size={12} /> Add Included Service
+                                    </Button>
+                                    <Button
+                                        onClick={savePackageControls}
+                                        disabled={advancedSaving}
+                                        className="gap-2 whitespace-nowrap shrink-0"
+                                    >
+                                        {advancedSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                                        Save Package Design
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {compositionRowsByOrder.length === 0 && (
+                                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                    <p className="text-xs text-slate-600">No included services yet. Add a service to start defining package design options and features.</p>
+                                </div>
+                            )}
+
+                            <div className="space-y-4">
+                                {compositionRowsByOrder.map(({ row, index }) => {
+                                    const itemMeta = catalogLookup.find((catalog) => catalog.id === row.catalogItemId);
+                                    const workspace = packageServiceWorkspaces[row.catalogItemId];
+                                    return (
+                                        <div key={`package-service-${index}-${row.catalogItemId}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
+                                                <div className="md:col-span-8">
+                                                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Included Service</label>
+                                                    <select
+                                                        value={row.catalogItemId}
+                                                        onChange={(e) => updateCompositionRow(index, { catalogItemId: e.target.value })}
+                                                        className="mt-1 h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+                                                    >
+                                                        {serviceCompositionOptions.map((opt) => (
+                                                            <option key={opt.id} value={opt.id}>
+                                                                {opt.sku} - {opt.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="md:col-span-3">
+                                                    <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Role</label>
+                                                    <select
+                                                        value={row.role}
+                                                        onChange={(e) => updateCompositionRow(index, { role: e.target.value as CompositionRow['role'] })}
+                                                        className="mt-1 h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+                                                    >
+                                                        <option value="REQUIRED">Required</option>
+                                                        <option value="OPTIONAL">Optional</option>
+                                                        <option value="AUTO_INCLUDED">Auto Included</option>
+                                                    </select>
+                                                </div>
+                                                <div className="md:col-span-1 flex items-end justify-end">
+                                                    <Button size="sm" variant="ghost" onClick={() => removeCompositionRow(index)} className="h-8 w-8 p-0 text-rose-500">
+                                                        <Trash2 size={12} />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-6">
+                                                <label className="text-xs text-slate-700 flex items-center gap-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={row.isSelectable}
+                                                        onChange={(e) => updateCompositionRow(index, { isSelectable: e.target.checked })}
+                                                    />
+                                                    Selectable in guided phase
+                                                </label>
+                                                <p className="text-[11px] text-slate-500">
+                                                    {itemMeta ? `${itemMeta.name} (${itemMeta.type})` : row.catalogItemId}
+                                                </p>
+                                            </div>
+
+                                            {workspace?.error && <p className="text-xs text-rose-600">{workspace.error}</p>}
+
+                                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                                <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">Design Options</h3>
+                                                    {workspace && workspace.designOptions.length > 0 ? workspace.designOptions.map((option) => {
+                                                        const selection = getPackageDesignSelection(row.catalogItemId, option.designOptionId) || {
+                                                            catalogItemId: row.catalogItemId,
+                                                            designOptionId: option.designOptionId,
+                                                            mode: 'NONE' as PackageDesignOptionMode,
+                                                            valueIds: [],
+                                                        };
+
+                                                        return (
+                                                            <div key={`pkg-opt-${row.catalogItemId}-${option.designOptionId}`} className="rounded-md border border-slate-200 bg-slate-50 p-2 space-y-2">
+                                                                <div className="flex items-center justify-between gap-2">
+                                                                    <p className="text-sm font-semibold text-slate-900">{option.label}</p>
+                                                                    <p className="text-[11px] text-slate-500 font-mono">{option.key}</p>
+                                                                </div>
+                                                                <select
+                                                                    value={selection.mode}
+                                                                    onChange={(e) => updatePackageDesignSelection(row.catalogItemId, option.designOptionId, { mode: e.target.value as PackageDesignOptionMode, valueIds: [] })}
+                                                                    className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+                                                                >
+                                                                    <option value="NONE">Not Defined</option>
+                                                                    <option value="FIXED">Fixed in Package</option>
+                                                                    <option value="CONFIGURABLE">Configurable in Guided Flow</option>
+                                                                </select>
+
+                                                                {selection.mode === 'FIXED' && (
+                                                                    <select
+                                                                        value={selection.valueIds[0] || ''}
+                                                                        onChange={(e) => updatePackageDesignSelection(row.catalogItemId, option.designOptionId, { valueIds: e.target.value ? [e.target.value] : [] })}
+                                                                        className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+                                                                    >
+                                                                        <option value="">Select fixed value</option>
+                                                                        {option.valueChoices.map((choice) => (
+                                                                            <option key={choice.id} value={choice.id}>
+                                                                                {choice.label} ({choice.value})
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                )}
+
+                                                                {selection.mode === 'CONFIGURABLE' && (
+                                                                    <div className="rounded-md border border-slate-200 bg-white p-2 grid grid-cols-1 gap-1">
+                                                                        {option.valueChoices.map((choice) => (
+                                                                            <label key={choice.id} className="text-xs text-slate-700 flex items-center gap-2">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={selection.valueIds.includes(choice.id)}
+                                                                                    onChange={(e) => {
+                                                                                        const next = e.target.checked
+                                                                                            ? [...selection.valueIds, choice.id]
+                                                                                            : selection.valueIds.filter((id) => id !== choice.id);
+                                                                                        updatePackageDesignSelection(row.catalogItemId, option.designOptionId, { valueIds: next });
+                                                                                    }}
+                                                                                />
+                                                                                {choice.label} ({choice.value})
+                                                                            </label>
+                                                                        ))}
+                                                                        {option.valueChoices.length === 0 && <p className="text-[11px] text-slate-500">No selectable values for this option.</p>}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    }) : (
+                                                        <p className="text-xs text-slate-500">No design options available from this service.</p>
+                                                    )}
+                                                </div>
+
+                                                <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">Features</h3>
+                                                    {workspace && workspace.supportedFeatures.length > 0 ? workspace.supportedFeatures.map((feature) => {
+                                                        const status = featureAssignments.find((row) => row.termId === feature.id)?.status || '';
+                                                        return (
+                                                            <div key={`pkg-feature-${row.catalogItemId}-${feature.id}`} className="rounded-md border border-slate-200 bg-slate-50 p-2 grid grid-cols-1 md:grid-cols-[1fr_220px] gap-2 items-center">
+                                                                <div>
+                                                                    <p className="text-sm font-semibold text-slate-900">{feature.label}</p>
+                                                                    {feature.value && <p className="text-[11px] text-slate-500 font-mono">{feature.value}</p>}
+                                                                </div>
+                                                                <select
+                                                                    value={status}
+                                                                    onChange={(e) => updateFeatureStatus(feature.id, e.target.value as FeatureStatus | '')}
+                                                                    className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
+                                                                >
+                                                                    <option value="">Not Included</option>
+                                                                    <option value="REQUIRED">Required</option>
+                                                                    <option value="STANDARD">Standard</option>
+                                                                    <option value="OPTIONAL">Optional</option>
+                                                                </select>
+                                                            </div>
+                                                        );
+                                                    }) : (
+                                                        <p className="text-xs text-slate-500">No supported features available from this service.</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {advancedStatus && (
+                                <p className={`text-xs ${advancedStatus.type === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {advancedStatus.message}
+                                </p>
+                            )}
+                        </section>
+                    )}
+
+                    {/* Design Options */}
+                    {(item.type === 'MANAGED_SERVICE' || item.type === 'SERVICE_OPTION' || item.type === 'CONNECTIVITY') && (
+                        <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <h2 className="font-bold text-slate-900">Design Options</h2>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={addDesignOptionRow}
+                                    className="gap-2"
+                                    disabled={designOptionDefinitions.length === 0}
+                                >
+                                    <Plus size={12} /> Add Design Option
+                                </Button>
+                            </div>
+                            {designOptionDefinitions.length === 0 && (
+                                <p className="text-xs text-amber-600">Create design option definitions in Taxonomy before assigning item design options.</p>
+                            )}
+                            <div className="space-y-3">
+                                {itemDesignOptionRows.map((row, index) => {
+                                    const values = getDefinitionValues(row.designOptionId);
+                                    return (
+                                        <div key={`design-option-main-${index}`} className="rounded-xl border border-slate-200 p-3 space-y-2 bg-slate-50">
+                                            <select
+                                                value={row.designOptionId}
+                                                onChange={(e) => updateDesignOptionRow(index, { designOptionId: e.target.value, allowedValueIds: [], defaultValueId: null })}
+                                                className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+                                            >
+                                                {designOptionDefinitions.map((opt) => (
+                                                    <option key={opt.id} value={opt.id}>
+                                                    {opt.label} ({opt.key})
+                                                </option>
+                                            ))}
+                                            </select>
+                                            <div className="rounded-lg border border-slate-200 bg-white p-2">
+                                                <p className="text-[10px] font-semibold text-slate-500 mb-1">Allowed Values</p>
+                                                <div className="grid grid-cols-2 gap-1">
+                                                    {values.map((value) => (
+                                                        <label key={value.id} className="text-xs text-slate-700 flex items-center gap-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={row.allowedValueIds.includes(value.id)}
+                                                                onChange={(e) => {
+                                                                    const next = e.target.checked
+                                                                        ? [...row.allowedValueIds, value.id]
+                                                                        : row.allowedValueIds.filter((id) => id !== value.id);
+                                                                    updateDesignOptionRow(index, { allowedValueIds: Array.from(new Set(next)) });
+                                                                }}
+                                                            />
+                                                            {value.label} ({value.value})
+                                                        </label>
+                                                    ))}
+                                                    {values.length === 0 && <p className="text-[11px] text-slate-500">No values configured for this design option.</p>}
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-end">
+                                                <Button size="sm" variant="ghost" onClick={() => removeDesignOptionRow(index)} className="h-7 w-7 p-0 text-rose-500">
+                                                    <Trash2 size={12} />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {itemDesignOptionRows.length === 0 && <p className="text-xs text-slate-500">No design option assignments yet.</p>}
+                            </div>
+                            <Button onClick={saveItemDesignOptions} disabled={advancedSaving} className="w-full gap-2">
+                                {advancedSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                                Save Design Options
+                            </Button>
+                            {advancedStatus && (
+                                <p className={`text-xs ${advancedStatus.type === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {advancedStatus.message}
+                                </p>
+                            )}
+                        </section>
+                    )}
+
+                    {/* Features */}
+                    {isPanelVisible('FEATURES') && (item.type === 'MANAGED_SERVICE' || item.type === 'SERVICE_OPTION' || item.type === 'CONNECTIVITY') && (
+                        <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <h2 className="font-bold text-slate-900">Supported Features</h2>
+                                <Button onClick={saveFeatureAssignments} disabled={featureSaving} className="gap-2">
+                                    {featureSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                                    Save Features
+                                </Button>
+                            </div>
+                            <p className="text-xs text-slate-500">
+                                Select which features this service/connectivity supports. Design Packages can only classify supported features from included services.
+                            </p>
+                            <Input
+                                value={featureSearch}
+                                onChange={(e) => setFeatureSearch(e.target.value)}
+                                placeholder="Search features..."
+                                className="h-8 text-xs bg-white"
+                            />
+                            <div className="max-h-80 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2 space-y-2">
+                                {filteredSupportFeatureTerms.map((term) => (
+                                    <label key={`support-${term.id}`} className="flex items-start gap-3 rounded-md border border-slate-200 bg-white p-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={supportSelectedSet.has(term.id)}
+                                            onChange={(e) => toggleSupportedFeature(term.id, e.target.checked)}
+                                            className="mt-0.5"
+                                        />
+                                        <span className="min-w-0">
+                                            <span className="block text-sm font-semibold text-slate-900">{term.label}</span>
+                                            {term.value && <span className="block text-[11px] text-slate-500 font-mono">{term.value}</span>}
+                                        </span>
+                                    </label>
+                                ))}
+                                {filteredSupportFeatureTerms.length === 0 && (
+                                    <p className="text-xs text-slate-500 px-2 py-3">No features found.</p>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-slate-500">
+                                Selected: {supportedFeatureTermIds.length}
+                            </p>
+
+                            {featureTerms.length === 0 && (
+                                <p className="text-xs text-slate-500">No feature terms found. Add FEATURE terms in Taxonomy first.</p>
+                            )}
+                            {featureStatus && (
+                                <p className={`text-xs ${featureStatus.type === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {featureStatus.message}
+                                </p>
+                            )}
+                        </section>
+                    )}
                 </div>
 
                 {/* Sidebar */}
@@ -430,18 +1428,63 @@ export default function CatalogItemDetail() {
                                 onChange={(e) => setItem({...item, type: e.target.value})}
                                 className="w-full h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 font-medium text-slate-900"
                             >
-                                <option value="SERVICE_FAMILY">Service Family</option>
-                                <option value="SERVICE_OPTION">Service Option</option>
-                                <option value="PACKAGE">Design Package</option>
-                                <option value="CONNECTIVITY">Connectivity</option>
-                                <option value="MANAGED_SERVICE">Managed Service</option>
-                                <option value="HARDWARE">Hardware</option>
+                                {taxonomyTerms
+                                    .filter(t => t.category === 'CLASSIFICATION')
+                                    .map(t => (
+                                        <option key={t.id} value={t.value || ''}>
+                                            {t.label}
+                                        </option>
+                                    ))
+                                }
+                                {taxonomyTerms.filter(t => t.category === 'CLASSIFICATION').length === 0 && (
+                                    <>
+                                        <option value="SERVICE_FAMILY">Service Family</option>
+                                        <option value="SERVICE_OPTION">Service Option</option>
+                                        <option value="PACKAGE">Design Package</option>
+                                        <option value="CONNECTIVITY">Connectivity</option>
+                                        <option value="MANAGED_SERVICE">Managed Service</option>
+                                        <option value="HARDWARE">Hardware</option>
+                                    </>
+                                )}
                             </select>
                         </div>
                     </section>
 
+                    {/* Pricing */}
+                    {isPanelVisible('PRICING') && (
+                        <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+                            <h2 className="font-bold text-slate-900 border-b border-slate-100 pb-2">Technical Cost Profile</h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cost (NRC)</label>
+                                    <Input 
+                                        type="number"
+                                        value={item.pricing[0]?.costNrc || 0}
+                                        onChange={(e) => setItem({
+                                            ...item,
+                                            pricing: [{...(item.pricing[0] || {}), costNrc: parseFloat(e.target.value) || 0}]
+                                        } as any)}
+                                        className="h-8 bg-slate-50"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cost (MRC)</label>
+                                    <Input 
+                                        type="number"
+                                        value={item.pricing[0]?.costMrc || 0}
+                                        onChange={(e) => setItem({
+                                            ...item,
+                                            pricing: [{...(item.pricing[0] || {}), costMrc: parseFloat(e.target.value) || 0}]
+                                        } as any)}
+                                        className="h-8 bg-slate-50"
+                                    />
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
                     {/* Service Options */}
-                    {isPanelVisible('SERVICE_OPTIONS') && (
+                    {isPanelVisible('SERVICE_OPTIONS') && item.type !== 'PACKAGE' && (
                         <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
                                 <h2 className="font-bold text-slate-900">
@@ -511,98 +1554,60 @@ export default function CatalogItemDetail() {
                         </section>
                     )}
 
-                    {/* Features & Capabilities */}
-                    {isPanelVisible('FEATURES') && (
+                    {/* Collateral */}
+                    {isPanelVisible('ATTACHMENTS') && (
                         <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                                <h2 className="font-bold text-slate-900">Features & Capabilities</h2>
-                                {isTaxonomyLoading && <Loader2 size={12} className="animate-spin text-blue-500" />}
+                                <h2 className="font-bold text-slate-900">Collateral</h2>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={addCollateral}>
+                                    <Plus size={16} />
+                                </Button>
                             </div>
-                            
-                            <div className="space-y-4">
-                                {/* Group terms by category */}
-                                {Array.from(new Set(taxonomyTerms.filter(t => !t.category.startsWith('PANEL_') && !['REGION', 'SLA', 'VENDOR'].includes(t.category)).map(t => t.category))).map(category => (
-                                    <div key={category} className="space-y-2">
-                                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{category}</h3>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {taxonomyTerms.filter(t => t.category === category).map(term => {
-                                                const isActive = item.attributes.some(a => a.taxonomyTermId === term.id);
-                                                return (
-                                                    <button
-                                                        key={term.id}
-                                                        type="button"
-                                                        onClick={() => toggleAttribute(term.id)}
-                                                        className={`text-[10px] px-2 py-1 rounded-full transition-all border ${
-                                                            isActive 
-                                                            ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-100' 
-                                                            : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300'
-                                                        }`}
-                                                    >
-                                                        {term.label}
-                                                    </button>
-                                                );
-                                            })}
+                            <div className="space-y-3">
+                                {item.collaterals.map((c, i) => (
+                                    <div key={c.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <Input 
+                                                value={c.title} 
+                                                onChange={(e) => updateCollateral(i, 'title', e.target.value)}
+                                                placeholder="Title (e.g. Datasheet)"
+                                                className="text-xs h-7 bg-white"
+                                            />
+                                            <Button 
+                                                size="sm" 
+                                                variant="ghost" 
+                                                className="text-slate-400 hover:text-rose-500 h-7 w-7 p-0"
+                                                onClick={() => removeCollateral(i)}
+                                            >
+                                                <Trash2 size={12} />
+                                            </Button>
                                         </div>
+                                        <Input 
+                                            value={c.documentUrl} 
+                                            onChange={(e) => updateCollateral(i, 'documentUrl', e.target.value)}
+                                            placeholder="URL (Drive, SharePoint, etc.)"
+                                            className="text-[10px] h-6 bg-white"
+                                        />
+                                        <select 
+                                            value={c.type}
+                                            onChange={(e) => updateCollateral(i, 'type', e.target.value)}
+                                            className="w-full text-[10px] h-6 rounded-md border border-slate-200 bg-white px-2"
+                                        >
+                                            <option value="PDF">PDF</option>
+                                            <option value="DOC">DOC</option>
+                                            <option value="SLIDES">SLIDES</option>
+                                            <option value="VIDEO">VIDEO</option>
+                                            <option value="LINK">LINK</option>
+                                        </select>
                                     </div>
                                 ))}
-                                {taxonomyTerms.length === 0 && !isTaxonomyLoading && (
-                                    <p className="text-xs text-slate-400 italic py-2 text-center">No taxonomy terms found.</p>
+                                {item.collaterals.length === 0 && (
+                                    <p className="text-xs text-slate-400 italic py-2 text-center">No documents linked.</p>
                                 )}
                             </div>
                         </section>
                     )}
 
-                    {/* Collateral */}
-                    <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <h2 className="font-bold text-slate-900">Collateral</h2>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={addCollateral}>
-                                <Plus size={16} />
-                            </Button>
-                        </div>
-                        <div className="space-y-3">
-                            {item.collaterals.map((c, i) => (
-                                <div key={c.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <Input 
-                                            value={c.title} 
-                                            onChange={(e) => updateCollateral(i, 'title', e.target.value)}
-                                            placeholder="Title (e.g. Datasheet)"
-                                            className="text-xs h-7 bg-white"
-                                        />
-                                        <Button 
-                                            size="sm" 
-                                            variant="ghost" 
-                                            className="text-slate-400 hover:text-rose-500 h-7 w-7 p-0"
-                                            onClick={() => removeCollateral(i)}
-                                        >
-                                            <Trash2 size={12} />
-                                        </Button>
-                                    </div>
-                                    <Input 
-                                        value={c.documentUrl} 
-                                        onChange={(e) => updateCollateral(i, 'documentUrl', e.target.value)}
-                                        placeholder="URL (Drive, SharePoint, etc.)"
-                                        className="text-[10px] h-6 bg-white"
-                                    />
-                                    <select 
-                                        value={c.type}
-                                        onChange={(e) => updateCollateral(i, 'type', e.target.value)}
-                                        className="w-full text-[10px] h-6 rounded-md border border-slate-200 bg-white px-2"
-                                    >
-                                        <option value="PDF">PDF</option>
-                                        <option value="DOC">DOC</option>
-                                        <option value="SLIDES">SLIDES</option>
-                                        <option value="VIDEO">VIDEO</option>
-                                        <option value="LINK">LINK</option>
-                                    </select>
-                                </div>
-                            ))}
-                            {item.collaterals.length === 0 && (
-                                <p className="text-xs text-slate-400 italic py-2 text-center">No documents linked.</p>
-                            )}
-                        </div>
-                    </section>
                 </div>
             </div>
         </div>

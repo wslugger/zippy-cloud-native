@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+import { evaluatePackageSelections } from "@/lib/package-policy-engine";
 
 async function verifyOwnership(projectId: string, userId: string) {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
@@ -36,7 +37,7 @@ export async function GET(
         });
 
         return NextResponse.json(selections);
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: "Failed to fetch selections" }, { status: 500 });
     }
 }
@@ -55,23 +56,118 @@ export async function POST(
     if (ownership === "forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     try {
-        const { catalogItemId, quantity, configValues, role } = await request.json();
+        const { catalogItemId, quantity, configValues, role, designOptionValues } = await request.json();
 
         if (!catalogItemId) {
             return NextResponse.json({ error: "'catalogItemId' is required" }, { status: 400 });
         }
 
-        const selection = await prisma.siteSelection.upsert({
-            where: { siteId_catalogItemId: { siteId, catalogItemId } },
-            update: { quantity: quantity ?? 1, configValues, role },
-            create: { siteId, catalogItemId, quantity: quantity ?? 1, configValues, role },
-            include: {
-                catalogItem: { include: { pricing: true } },
+        const existingSelections = await prisma.siteSelection.findMany({
+            where: { siteId },
+            select: {
+                catalogItemId: true,
+                quantity: true,
+                configValues: true,
             },
         });
 
-        return NextResponse.json(selection, { status: 201 });
-    } catch (error) {
+        const selectionMap = new Map<string, { quantity: number; configValues: Record<string, unknown>; designOptionValues?: Record<string, string | string[]> }>();
+        for (const existing of existingSelections) {
+            selectionMap.set(existing.catalogItemId, {
+                quantity: existing.quantity,
+                configValues: (existing.configValues as Record<string, unknown>) ?? {},
+            });
+        }
+
+        selectionMap.set(catalogItemId, {
+            quantity: quantity ?? 1,
+            configValues: configValues ?? {},
+            designOptionValues: designOptionValues ?? {},
+        });
+
+        const selectedCatalogItems = await prisma.catalogItem.findMany({
+            where: { id: { in: Array.from(selectionMap.keys()) } },
+            select: { id: true, type: true },
+        });
+
+        const packageIds = selectedCatalogItems.filter((item) => item.type === "PACKAGE").map((item) => item.id);
+
+        let effectiveSelections = Array.from(selectionMap.entries()).map(([itemId, value]) => ({
+            catalogItemId: itemId,
+            quantity: value.quantity,
+            configValues: value.configValues,
+            designOptionValues: value.designOptionValues ?? {},
+        }));
+
+        const mergedForcedConfig: Record<string, Record<string, string | string[]>> = {};
+
+        for (const packageId of packageIds) {
+            const policyResult = await evaluatePackageSelections({
+                packageId,
+                scope: "SITE",
+                selections: effectiveSelections,
+            });
+
+            if (policyResult.violations.some((v) => v.blocking)) {
+                return NextResponse.json(
+                    {
+                        error: "Package policy validation failed",
+                        packageId,
+                        violations: policyResult.violations,
+                        forcedConfig: policyResult.forcedConfig,
+                    },
+                    { status: 422 }
+                );
+            }
+
+            effectiveSelections = policyResult.effectiveSelections.map((selection) => ({
+                catalogItemId: selection.catalogItemId,
+                quantity: selection.quantity,
+                configValues: selection.configValues,
+                designOptionValues: selection.designOptionValues,
+            }));
+
+            for (const [itemId, forced] of Object.entries(policyResult.forcedConfig)) {
+                mergedForcedConfig[itemId] = { ...(mergedForcedConfig[itemId] ?? {}), ...forced };
+            }
+        }
+
+        const savedSelections = await prisma.$transaction(async (tx) => {
+            const rows = [];
+            for (const selection of effectiveSelections) {
+                const mergedConfig = { ...(selection.configValues ?? {}), ...(mergedForcedConfig[selection.catalogItemId] ?? {}) };
+                const row = await tx.siteSelection.upsert({
+                    where: { siteId_catalogItemId: { siteId, catalogItemId: selection.catalogItemId } },
+                    update: {
+                        quantity: selection.quantity ?? 1,
+                        configValues: mergedConfig,
+                        role: selection.catalogItemId === catalogItemId ? role : undefined,
+                    },
+                    create: {
+                        siteId,
+                        catalogItemId: selection.catalogItemId,
+                        quantity: selection.quantity ?? 1,
+                        configValues: mergedConfig,
+                        role: selection.catalogItemId === catalogItemId ? role : undefined,
+                    },
+                    include: {
+                        catalogItem: { include: { pricing: true } },
+                    },
+                });
+                rows.push(row);
+            }
+            return rows;
+        });
+
+        return NextResponse.json(
+            {
+                selection: savedSelections.find((row) => row.catalogItemId === catalogItemId),
+                effectiveSelections: savedSelections,
+                forcedConfig: mergedForcedConfig,
+            },
+            { status: 201 }
+        );
+    } catch {
         return NextResponse.json({ error: "Failed to add selection" }, { status: 500 });
     }
 }
@@ -102,7 +198,7 @@ export async function DELETE(
         });
 
         return new NextResponse(null, { status: 204 });
-    } catch (error) {
+    } catch {
         return NextResponse.json({ error: "Failed to remove selection" }, { status: 500 });
     }
 }

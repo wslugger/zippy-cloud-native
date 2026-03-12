@@ -194,6 +194,15 @@ async function main() {
         },
     });
 
+    const managedLan = await prisma.catalogItem.create({
+        data: {
+            sku: "SVC-MANAGED-LAN",
+            name: "Managed LAN",
+            shortDescription: "Optional managed LAN operations and lifecycle support",
+            type: ItemType.SERVICE_OPTION,
+        },
+    });
+
     // Old mgmt tiers retyped to SERVICE_OPTION
     const mgmtSmall = await prisma.catalogItem.create({
         data: {
@@ -210,6 +219,15 @@ async function main() {
             name: "Managed SD-WAN - Medium",
             shortDescription: "Managed service for medium branch appliances",
             type: ItemType.SERVICE_OPTION,
+        },
+    });
+
+    const packageBusinessCritical = await prisma.catalogItem.create({
+        data: {
+            sku: "PK-SDWAN-BIZCRIT",
+            name: "Business Critical SD-WAN Package",
+            shortDescription: "Enterprise package with broader topology options and stricter resilience",
+            type: ItemType.PACKAGE,
         },
     });
 
@@ -295,6 +313,15 @@ async function main() {
             itemId: hardwareItemMx64.id,
             pricingModel: PricingModel.FLAT,
             priceNrc: 1200,
+            priceMrc: 0,
+        },
+    });
+
+    await prisma.pricing.create({
+        data: {
+            itemId: packageBusinessCritical.id,
+            pricingModel: PricingModel.FLAT,
+            priceNrc: 900,
             priceMrc: 0,
         },
     });
@@ -415,6 +442,15 @@ async function main() {
         },
     });
 
+    await prisma.pricing.create({
+        data: {
+            itemId: managedLan.id,
+            pricingModel: PricingModel.FLAT,
+            priceNrc: 0,
+            priceMrc: 80,
+        },
+    });
+
     // Managed Service re-priced as billable tiers
     await prisma.pricing.create({
         data: {
@@ -492,6 +528,14 @@ async function main() {
         },
     });
 
+    await prisma.itemDependency.create({
+        data: {
+            parentId: packageBusinessCritical.id,
+            childId: sdwanFamily.id,
+            type: DependencyType.INCLUDES,
+        },
+    });
+
     // IS_A: SD-WAN family → managed services (vendor stacks)
     await prisma.itemDependency.create({
         data: {
@@ -540,6 +584,14 @@ async function main() {
         data: {
             parentId: merakiSdwan.id,
             childId: totalCare.id,
+            type: DependencyType.OPTIONAL_ATTACHMENT,
+        },
+    });
+
+    await prisma.itemDependency.create({
+        data: {
+            parentId: merakiSdwan.id,
+            childId: managedLan.id,
             type: DependencyType.OPTIONAL_ATTACHMENT,
         },
     });
@@ -601,6 +653,133 @@ async function main() {
             childId: mpls.id,
             type: DependencyType.OPTIONAL_ATTACHMENT,
         },
+    });
+
+    // 5b. Design Option Definitions and Package Controls
+    const topologyOption = await prisma.designOptionDefinition.create({
+        data: {
+            key: "topology",
+            label: "Topology",
+            valueType: "STRING",
+        },
+    });
+
+    const topologyFullMesh = await prisma.designOptionValue.create({
+        data: {
+            designOptionId: topologyOption.id,
+            value: "full_mesh",
+            label: "Full Mesh",
+            sortOrder: 1,
+        },
+    });
+
+    const topologyHubSpoke = await prisma.designOptionValue.create({
+        data: {
+            designOptionId: topologyOption.id,
+            value: "hub_spoke",
+            label: "Hub and Spoke",
+            sortOrder: 2,
+        },
+    });
+
+    const merakiTopology = await prisma.catalogItemDesignOption.create({
+        data: {
+            catalogItemId: merakiSdwan.id,
+            designOptionId: topologyOption.id,
+            isRequired: true,
+            allowMulti: false,
+            defaultValueId: topologyFullMesh.id,
+        },
+    });
+
+    await prisma.catalogItemDesignOptionValue.createMany({
+        data: [
+            { itemDesignOptionId: merakiTopology.id, designOptionValueId: topologyFullMesh.id },
+            { itemDesignOptionId: merakiTopology.id, designOptionValueId: topologyHubSpoke.id },
+        ],
+    });
+
+    const catalystTopology = await prisma.catalogItemDesignOption.create({
+        data: {
+            catalogItemId: catalystSdwan.id,
+            designOptionId: topologyOption.id,
+            isRequired: true,
+            allowMulti: false,
+            defaultValueId: topologyHubSpoke.id,
+        },
+    });
+
+    await prisma.catalogItemDesignOptionValue.createMany({
+        data: [
+            { itemDesignOptionId: catalystTopology.id, designOptionValueId: topologyFullMesh.id },
+            { itemDesignOptionId: catalystTopology.id, designOptionValueId: topologyHubSpoke.id },
+        ],
+    });
+
+    await prisma.packageCompositionItem.createMany({
+        data: [
+            {
+                packageId: packageItem.id,
+                catalogItemId: merakiSdwan.id,
+                role: "REQUIRED",
+                minQty: 1,
+                defaultQty: 1,
+                isSelectable: false,
+                displayOrder: 1,
+            },
+            {
+                packageId: packageItem.id,
+                catalogItemId: managedLan.id,
+                role: "OPTIONAL",
+                minQty: 0,
+                defaultQty: 1,
+                isSelectable: true,
+                displayOrder: 2,
+            },
+            {
+                packageId: packageBusinessCritical.id,
+                catalogItemId: catalystSdwan.id,
+                role: "REQUIRED",
+                minQty: 1,
+                defaultQty: 1,
+                isSelectable: false,
+                displayOrder: 1,
+            },
+        ],
+    });
+
+    const expressPolicy = await prisma.packageDesignOptionPolicy.create({
+        data: {
+            packageId: packageItem.id,
+            targetCatalogItemId: merakiSdwan.id,
+            designOptionId: topologyOption.id,
+            operator: "FORCE",
+            scope: "PROJECT",
+        },
+    });
+
+    await prisma.packageDesignOptionPolicyValue.create({
+        data: {
+            policyId: expressPolicy.id,
+            designOptionValueId: topologyFullMesh.id,
+        },
+    });
+
+    const businessPolicy = await prisma.packageDesignOptionPolicy.create({
+        data: {
+            packageId: packageBusinessCritical.id,
+            targetCatalogItemId: catalystSdwan.id,
+            designOptionId: topologyOption.id,
+            operator: "ALLOW_ONLY",
+            scope: "PROJECT",
+        },
+    });
+
+    await prisma.packageDesignOptionPolicyValue.createMany({
+        data: [
+            { policyId: businessPolicy.id, designOptionValueId: topologyFullMesh.id },
+            { policyId: businessPolicy.id, designOptionValueId: topologyHubSpoke.id },
+        ],
     });
 
     // 6. Create Item Attributes
@@ -712,6 +891,26 @@ async function main() {
             key: 'PROMPT_TRIAGE',
             value: 'Analyze the user input and determine which technical stack is required (SD-WAN, LAN, or WLAN)...',
             description: 'Prompt for initial project triage.'
+        }
+    });
+
+    await prisma.systemConfig.upsert({
+        where: { key: 'PROMPT_PACKAGE_MATCH' },
+        update: {},
+        create: {
+            key: 'PROMPT_PACKAGE_MATCH',
+            value: 'Match customer requirements to design packages. Prioritize package feasibility and explain why each recommendation fits.',
+            description: 'Prompt for package matching endpoint.'
+        }
+    });
+
+    await prisma.systemConfig.upsert({
+        where: { key: 'GEMINI_MODEL' },
+        update: {},
+        create: {
+            key: 'GEMINI_MODEL',
+            value: 'gemini-1.5-flash',
+            description: 'Gemini model id used by matching endpoints.'
         }
     });
 

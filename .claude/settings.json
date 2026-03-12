@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vitest:*)",
+      "Bash(/tmp/removal_references.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(npm test:*)"
+    ]
+  }
+}

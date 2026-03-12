@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { evaluatePackageSelections } from "@/lib/package-policy-engine";
 
 export async function POST(
     request: NextRequest,
@@ -22,22 +23,59 @@ export async function POST(
         }
 
         const body = await request.json();
-        const { baseId, optionId, attachmentIds, designOptionIds, configValues } = body;
+        const { baseId, optionId, attachmentIds = [], designOptionIds, configValues, designOptionValues } = body;
+
+        if (!baseId) {
+            return NextResponse.json({ error: "baseId is required" }, { status: 400 });
+        }
+
+        const initialSelections = [
+            { catalogItemId: baseId, quantity: 1, configValues: optionId ? {} : (configValues ?? {}), designOptionValues: optionId ? {} : (designOptionValues ?? {}) },
+            ...(optionId ? [{ catalogItemId: optionId, quantity: 1, configValues: configValues ?? {}, designOptionValues: designOptionValues ?? {} }] : []),
+            ...attachmentIds.map((id: string) => ({ catalogItemId: id, quantity: 1, configValues: {}, designOptionValues: {} })),
+        ];
+
+        const selectedCatalogItems = await prisma.catalogItem.findMany({
+            where: { id: { in: initialSelections.map((s) => s.catalogItemId) } },
+            select: { id: true, type: true },
+        });
+
+        const selectedPackageIds = selectedCatalogItems.filter((item) => item.type === "PACKAGE").map((item) => item.id);
+
+        let policyResult = null;
+        if (selectedPackageIds.length > 0) {
+            policyResult = await evaluatePackageSelections({
+                packageId: selectedPackageIds[0],
+                scope: "PROJECT",
+                selections: initialSelections,
+            });
+
+            if (policyResult.violations.some((v) => v.blocking)) {
+                return NextResponse.json(
+                    {
+                        error: "Package policy validation failed",
+                        violations: policyResult.violations,
+                        forcedConfig: policyResult.forcedConfig,
+                    },
+                    { status: 422 }
+                );
+            }
+        }
+
+        const effectiveSelections = policyResult?.effectiveSelections ?? initialSelections.map((selection) => ({
+            ...selection,
+            autoAdded: false,
+            designOptionValues: selection.designOptionValues ?? {},
+        }));
 
         // Use a transaction for atomic commit
         const result = await prisma.$transaction(async (tx) => {
             // 1. Identify items to create/update
-            const itemsToCreate = [
-                { catalogItemId: baseId, quantity: 1, config: null },
-                ...(optionId ? [{ catalogItemId: optionId, quantity: 1, config: configValues }] : []),
-                ...attachmentIds.map((id: string) => ({ catalogItemId: id, quantity: 1, config: null }))
-            ];
-
-            // If no optionId, apply config to baseId
-            if (!optionId) {
-                const baseItem = itemsToCreate.find(it => it.catalogItemId === baseId);
-                if (baseItem) baseItem.config = configValues;
-            }
+            const itemsToCreate = effectiveSelections.map((selection) => ({
+                catalogItemId: selection.catalogItemId,
+                quantity: selection.quantity ?? 1,
+                config: Object.keys(selection.configValues ?? {}).length > 0 ? selection.configValues : null,
+            }));
 
             const createdItems = [];
 
@@ -92,10 +130,18 @@ export async function POST(
                 });
             }
 
-            return createdItems;
+            return { createdItems, currentItemIds };
         });
 
-        return NextResponse.json({ success: true, items: result }, { status: 201 });
+        return NextResponse.json(
+            {
+                success: true,
+                items: result.createdItems,
+                effectiveSelections: policyResult?.effectiveSelections ?? result.currentItemIds,
+                forcedConfig: policyResult?.forcedConfig ?? {},
+            },
+            { status: 201 }
+        );
     } catch (error) {
         console.error("Error committing design:", error);
         return NextResponse.json({ error: "Failed to commit design" }, { status: 500 });

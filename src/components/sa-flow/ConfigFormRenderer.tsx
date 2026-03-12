@@ -2,13 +2,6 @@
 
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { 
-    Select, 
-    SelectContent, 
-    SelectItem, 
-    SelectTrigger, 
-    SelectValue 
-} from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Info } from 'lucide-react';
 import {
@@ -27,21 +20,29 @@ interface ConfigField {
     max?: number;
     step?: number;
     description?: string;
-    defaultValue?: any;
+    defaultValue?: unknown;
 }
 
 interface ConfigFormRendererProps {
     schema: {
         fields: ConfigField[];
     } | null;
-    values: Record<string, any>;
-    onChange: (values: Record<string, any>) => void;
+    values: Record<string, unknown>;
+    onChange: (values: Record<string, unknown>) => void;
+    optionConstraints?: Record<
+        string,
+        {
+            forcedValues?: string[];
+            forbiddenValues?: string[];
+            allowOnlyValues?: string[];
+        }
+    >;
 }
 
-export function ConfigFormRenderer({ schema, values, onChange }: ConfigFormRendererProps) {
+export function ConfigFormRenderer({ schema, values, onChange, optionConstraints = {} }: ConfigFormRendererProps) {
     if (!schema || !schema.fields) return null;
 
-    const handleChange = (name: string, value: any) => {
+    const handleChange = (name: string, value: unknown) => {
         onChange({ ...values, [name]: value });
     };
 
@@ -82,40 +83,95 @@ export function ConfigFormRenderer({ schema, values, onChange }: ConfigFormRende
                         </div>
                     )}
 
-                    {field.type === 'enum' && (
-                        <Select
-                            value={values[field.name] || field.defaultValue || ""}
-                            onValueChange={(val: string) => handleChange(field.name, val)}
-                        >
-                            <SelectTrigger id={field.name} className="w-full bg-white rounded-xl border-slate-200">
-                                <SelectValue placeholder="Select option..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {field.options?.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
+                    {field.type === 'enum' && (() => {
+                        const constraints = optionConstraints[field.name] || {};
+                        const forcedSet = new Set(constraints.forcedValues || []);
+                        const forbiddenSet = new Set(constraints.forbiddenValues || []);
+                        const allowOnlySet = new Set(constraints.allowOnlyValues || []);
+                        const hasAllowOnly = allowOnlySet.size > 0;
+                        const hasForced = forcedSet.size > 0;
+                        const selectedValue = String(values[field.name] || field.defaultValue || "");
+
+                        return (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {field.options?.map((opt) => {
+                                    const blockedByAllowOnly = hasAllowOnly && !allowOnlySet.has(opt.value);
+                                    const forbidden = forbiddenSet.has(opt.value) || blockedByAllowOnly;
+                                    const forcedMismatch = hasForced && !forcedSet.has(opt.value);
+                                    const disabled = forbidden || forcedMismatch;
+                                    const isSelected = selectedValue === opt.value;
+                                    const forced = forcedSet.has(opt.value);
+
+                                    let reason = '';
+                                    if (forbiddenSet.has(opt.value)) reason = 'Forbidden by package policy';
+                                    else if (blockedByAllowOnly) reason = 'Not allowed by package policy';
+                                    else if (forcedMismatch) reason = 'Locked to forced package value';
+
+                                    const button = (
+                                        <button
+                                            type="button"
+                                            onClick={() => !disabled && handleChange(field.name, opt.value)}
+                                            disabled={disabled}
+                                            className={`rounded-xl border px-3 py-2 text-left transition-colors ${
+                                                isSelected
+                                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                    : disabled
+                                                        ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                        : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300'
+                                            }`}
+                                        >
+                                            <p className="text-xs font-semibold">{opt.label}</p>
+                                            {forced && (
+                                                <p className="mt-1 text-[10px] text-blue-700">Forced by package</p>
+                                            )}
+                                        </button>
+                                    );
+
+                                    if (!disabled) return <div key={opt.value}>{button}</div>;
+
+                                    return (
+                                        <TooltipProvider key={opt.value}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>{button}</TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p className="text-xs">{reason}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })()}
 
                     {field.type === 'number' && (
                         <div className="space-y-4 pt-2">
+                            {(() => {
+                                const rawValue = values[field.name];
+                                const numericValue = typeof rawValue === 'number'
+                                    ? rawValue
+                                    : typeof field.defaultValue === 'number'
+                                        ? field.defaultValue
+                                        : 0;
+                                return (
+                                    <>
                             <div className="flex justify-between items-center px-1">
                                 <span className="text-xs text-slate-400 italic">Range: {field.min} - {field.max}</span>
                                 <span className="text-sm font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                                    {values[field.name] || field.defaultValue || 0}
+                                    {numericValue}
                                 </span>
                             </div>
                             <Slider
-                                defaultValue={[values[field.name] || field.defaultValue || 0]}
+                                defaultValue={[numericValue]}
                                 max={field.max}
                                 min={field.min}
                                 step={field.step || 1}
                                 onValueChange={(val: number[]) => handleChange(field.name, val[0])}
                                 className="py-2"
                             />
+                                    </>
+                                );
+                            })()}
                         </div>
                     )}
                 </div>

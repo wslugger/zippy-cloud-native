@@ -217,6 +217,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                             onToggleServiceOption={handleToggleServiceOption}
                             selectedTransports={selectedTransports}
                             onToggleTransport={handleToggleTransport}
+                            packagePolicies={selectedBase?.packagePolicies || []}
                         />
                     </div>
                 )}

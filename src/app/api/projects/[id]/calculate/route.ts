@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { calculateBOM } from "@/lib/bom-engine";
+import { getSession } from "@/lib/auth";
 
 // POST /api/projects/[id]/calculate
 // Calculates BOM for all sites in a project
@@ -10,8 +11,13 @@ export async function POST(
 ) {
     const { id } = await params;
     try {
+        const session = await getSession();
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const project = await prisma.project.findUnique({
-            where: { id },
+            where: { id, userId: session.userId },
             include: {
                 sites: {
                     include: {

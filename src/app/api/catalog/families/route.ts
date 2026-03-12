@@ -11,14 +11,14 @@ export async function GET() {
             include: {
                 attributes: { include: { term: true } },
                 pricing: true,
-                parentDependencies: {
+                childDependencies: {
                     where: { type: DependencyType.IS_A },
                     include: {
                         childItem: {
                             include: {
                                 attributes: { include: { term: true } },
                                 pricing: true,
-                                parentDependencies: {
+                                childDependencies: {
                                     where: {
                                         type: { 
                                             in: [
@@ -33,10 +33,10 @@ export async function GET() {
                                             include: {
                                                 pricing: true,
                                                 // Fetch incompatible dependencies for the attachment
-                                                parentDependencies: {
+                                                childDependencies: {
                                                     where: { type: DependencyType.INCOMPATIBLE }
                                                 },
-                                                childDependencies: {
+                                                parentDependencies: {
                                                     where: { type: DependencyType.INCOMPATIBLE }
                                                 }
                                             }
@@ -58,14 +58,14 @@ export async function GET() {
             description: family.shortDescription,
             type: family.type,
             attributes: family.attributes,
-            options: family.parentDependencies.map(dep => {
+            options: family.childDependencies.map(dep => {
                 const managedService = dep.childItem;
                 if (!managedService) return null;
 
                 return {
                     ...managedService,
                     description: managedService.shortDescription,
-                    attachments: managedService.parentDependencies.map(attDep => {
+                    attachments: managedService.childDependencies.map(attDep => {
                         const attachment = attDep.childItem;
                         if (!attachment) return null;
 
@@ -73,8 +73,8 @@ export async function GET() {
                             ...attachment,
                             dependencyType: attDep.type,
                             incompatibleWith: [
-                                ...attachment.parentDependencies.map(id => id.childId),
-                                ...attachment.childDependencies.map(id => id.parentId)
+                                ...attachment.childDependencies.map(id => id.childId),
+                                ...attachment.parentDependencies.map(id => id.parentId)
                             ]
                         };
                     }).filter(Boolean)

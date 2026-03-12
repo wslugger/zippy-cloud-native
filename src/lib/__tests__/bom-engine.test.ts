@@ -24,7 +24,7 @@ function makeItem(overrides: Record<string, any> = {}) {
         name: 'Test Item',
         type: 'MANAGED_SERVICE',
         pricing: [],
-        parentDependencies: [],
+        childDependencies: [],
         attributes: [],
         ...overrides,
     };
@@ -92,14 +92,14 @@ describe('calculateBOM', () => {
             id: 'child-1',
             sku: 'CHILD-001',
             pricing: [makePricing({ priceNrc: 50, priceMrc: 10 })],
-            parentDependencies: [],
+            childDependencies: [],
         });
 
         const parentItem = makeItem({
             id: 'parent-1',
             sku: 'PARENT-001',
             pricing: [makePricing({ priceNrc: 500, priceMrc: 100 })],
-            parentDependencies: [{ childId: 'child-1', quantityMultiplier: 3 }],
+            childDependencies: [{ childId: 'child-1', quantityMultiplier: 3 }],
         });
 
         mockFindUnique
@@ -143,13 +143,13 @@ describe('calculateBOM', () => {
             id: 'p1',
             sku: 'P1',
             pricing: [],
-            parentDependencies: [{ childId: 'item-1', quantityMultiplier: 1 }],
+            childDependencies: [{ childId: 'item-1', quantityMultiplier: 1 }],
         });
         const parent2 = makeItem({
             id: 'p2',
             sku: 'P2',
             pricing: [],
-            parentDependencies: [{ childId: 'item-1', quantityMultiplier: 1 }],
+            childDependencies: [{ childId: 'item-1', quantityMultiplier: 1 }],
         });
 
         mockFindUnique
@@ -185,7 +185,7 @@ describe('calculateBOM', () => {
             callCount++;
             return makeItem({
                 id: where.id,
-                parentDependencies: [{ childId: `deep-${callCount}`, quantityMultiplier: 1 }],
+                childDependencies: [{ childId: `deep-${callCount}`, quantityMultiplier: 1 }],
             });
         });
 

@@ -11,10 +11,18 @@ interface Step2ServiceOptionsProps {
 }
 
 export function Step2ServiceOptions({ parentItem, onSelect, selectedId }: Step2ServiceOptionsProps) {
-    // We already have parentItem from props, which should include childDependencies from the API
-    const options = parentItem.childDependencies?.filter((d: any) => 
-        d.childItem.type === 'SERVICE_OPTION' || d.type === 'IS_A'
-    ).map((d: any) => d.childItem) || [];
+    const options =
+        parentItem?.type === 'PACKAGE'
+            ? (parentItem.packageCompositions || [])
+                  .filter((row: any) =>
+                      ['MANAGED_SERVICE', 'SERVICE_OPTION', 'SERVICE_FAMILY'].includes(row.catalogItem?.type)
+                  )
+                  .map((row: any) => ({ ...row.catalogItem, _packageRole: row.role }))
+            : parentItem?.options
+                ? parentItem.options
+            : parentItem.childDependencies
+                  ?.filter((d: any) => d.childItem.type === 'SERVICE_OPTION' || d.type === 'IS_A')
+                  .map((d: any) => d.childItem) || [];
 
     if (options.length === 0) {
         return (
@@ -55,6 +63,13 @@ export function Step2ServiceOptions({ parentItem, onSelect, selectedId }: Step2S
                             <p className="text-xs text-slate-500 mt-1 line-clamp-2">
                                 {item.shortDescription || 'Specific technology or vendor option.'}
                             </p>
+                            {item._packageRole && (
+                                <p className="text-[10px] uppercase tracking-wide mt-2 text-slate-500">
+                                    {item._packageRole === 'REQUIRED' || item._packageRole === 'AUTO_INCLUDED'
+                                        ? 'Required (Locked by package)'
+                                        : 'Optional'}
+                                </p>
+                            )}
                         </div>
                     </div>
                 </button>
