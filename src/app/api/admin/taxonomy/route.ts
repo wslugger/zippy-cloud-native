@@ -16,32 +16,59 @@ export async function GET() {
 
 // Create or Update a taxonomy term
 export async function POST(request: Request) {
+    let body;
     try {
-        const body = await request.json();
-        const { id, category, value, label } = body;
+        body = await request.json();
+        const { id, category, value, label, description, constraints, assumptions } = body;
 
         if (!category || !value || !label) {
             return NextResponse.json({ error: "'category', 'value', and 'label' are required" }, { status: 400 });
         }
 
+        const data = {
+            category,
+            value,
+            label,
+            description: description ?? null,
+            constraints: constraints ?? [],
+            assumptions: assumptions ?? [],
+        };
+
         let term;
         if (id) {
-            // Update existing record
             term = await prisma.taxonomyTerm.update({
                 where: { id },
-                data: { category, value, label },
+                data,
             });
         } else {
-            // Create new record — never use a fake fallback ID
             term = await prisma.taxonomyTerm.create({
-                data: { category, value, label },
+                data,
             });
         }
 
         return NextResponse.json(term);
-    } catch (error) {
-        console.error("Taxonomy Error:", error);
-        return NextResponse.json({ error: "Failed to save taxonomy term" }, { status: 500 });
+    } catch (error: any) {
+        // Log details to server console for debugging
+        console.error("DEBUG: Taxonomy Save Error:", {
+            message: error.message,
+            code: error.code,
+            meta: error.meta,
+            stack: error.stack?.split('\n')[0] // Just first line for cleaner logs
+        });
+        
+        // Handle unique constraint violation specifically
+        if (error.code === 'P2002') {
+            const fields = error.meta?.target || ['category', 'value'];
+            return NextResponse.json({ 
+                error: `Duplicate Entry: A term with this ${fields.join(' and ')} already exists.` 
+            }, { status: 400 });
+        }
+        
+        return NextResponse.json({ 
+            error: error.message || "Failed to save taxonomy term",
+            code: error.code || 'UNKNOWN_DB_ERROR',
+            details: error.meta || {}
+        }, { status: 500 });
     }
 }
 
