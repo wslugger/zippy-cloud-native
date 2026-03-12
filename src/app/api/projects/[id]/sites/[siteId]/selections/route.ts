@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { evaluatePackageSelections } from "@/lib/package-policy-engine";
+import type { Prisma } from "@prisma/client";
 
 async function verifyOwnership(projectId: string, userId: string) {
     const project = await prisma.project.findUnique({ where: { id: projectId } });
@@ -135,7 +136,7 @@ export async function POST(
         const savedSelections = await prisma.$transaction(async (tx) => {
             const rows = [];
             for (const selection of effectiveSelections) {
-                const mergedConfig = { ...(selection.configValues ?? {}), ...(mergedForcedConfig[selection.catalogItemId] ?? {}) };
+                const mergedConfig = { ...(selection.configValues ?? {}), ...(mergedForcedConfig[selection.catalogItemId] ?? {}) } as Prisma.InputJsonValue;
                 const row = await tx.siteSelection.upsert({
                     where: { siteId_catalogItemId: { siteId, catalogItemId: selection.catalogItemId } },
                     update: {

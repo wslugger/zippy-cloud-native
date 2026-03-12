@@ -167,7 +167,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
             setProject(data);
             if (data.rawRequirements) {
-                setRequirements((prev) => prev || data.rawRequirements);
+                setRequirements((prev) => prev || data.rawRequirements || '');
             }
             if (Array.isArray(data.recommendations) && data.recommendations.length > 0) {
                 setSuggestions(data.recommendations.map(mapRecommendation));

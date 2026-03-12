@@ -50,7 +50,7 @@ export async function uploadRequirementToGcs(input: {
       Authorization: `Bearer ${token}`,
       "Content-Type": input.mimeType || "application/octet-stream",
     },
-    body: input.bytes,
+    body: input.bytes as unknown as BodyInit,
   });
 
   if (!uploadRes.ok) {

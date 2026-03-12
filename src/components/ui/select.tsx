@@ -26,9 +26,9 @@ function Select({ value, onValueChange, children }: SelectRootProps) {
   );
 
   const options: Array<{ value: string; label: string; disabled?: boolean }> = [];
-  if (React.isValidElement(content)) {
+  if (React.isValidElement<{ children?: React.ReactNode }>(content)) {
     React.Children.forEach(content.props.children, (child) => {
-      if (React.isValidElement(child) && child.type === SelectItem) {
+      if (React.isValidElement<{ value: string; children?: React.ReactNode; disabled?: boolean }>(child) && child.type === SelectItem) {
         options.push({
           value: child.props.value,
           label: typeof child.props.children === "string" ? child.props.children : String(child.props.value),
@@ -38,14 +38,15 @@ function Select({ value, onValueChange, children }: SelectRootProps) {
     });
   }
 
-  const placeholder =
-    React.isValidElement(trigger) &&
-    React.Children.toArray(trigger.props.children).find(
+  let placeholder: string | undefined;
+  if (React.isValidElement<{ children?: React.ReactNode }>(trigger)) {
+    const selectValue = React.Children.toArray(trigger.props.children).find(
       (child) => React.isValidElement(child) && child.type === SelectValue
-    ) &&
-    React.Children.toArray(trigger.props.children)
-      .filter((child) => React.isValidElement(child) && child.type === SelectValue)
-      .map((child) => (child as React.ReactElement<{ placeholder?: string }>).props.placeholder)[0];
+    );
+    if (selectValue) {
+      placeholder = (selectValue as React.ReactElement<{ placeholder?: string }>).props.placeholder;
+    }
+  }
 
   return (
     <SelectContext.Provider value={{ value, onValueChange, placeholder }}>

@@ -77,7 +77,7 @@ export function ConfigFormRenderer({ schema, values, onChange, optionConstraints
                             </span>
                             <Switch 
                                 id={field.name}
-                                checked={values[field.name] || false}
+                                checked={Boolean(values[field.name])}
                                 onCheckedChange={(checked: boolean) => handleChange(field.name, checked)}
                             />
                         </div>
