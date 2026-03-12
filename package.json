@@ -7,10 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:changed": "bash scripts/lint-changed.sh",
     "test": "vitest run",
     "test:watch": "vitest",
     "workflow:start": "bash scripts/workflow-start.sh",
-    "workflow:finish": "bash scripts/workflow-finish.sh"
+    "workflow:finish": "bash scripts/workflow-finish.sh",
+    "workflow:finish:strict": "bash scripts/workflow-finish.sh --run-lint --run-build",
+    "prepare": "husky"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
@@ -40,6 +43,7 @@
     "dotenv": "^17.3.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "husky": "^9.1.7",
     "prisma": "^7.4.2",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",

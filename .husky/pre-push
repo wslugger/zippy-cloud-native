@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+set -e
+
+echo "Running pre-push checks..."
+npm test
+
+if [ "$RUN_LINT_ON_PUSH" = "1" ]; then
+  echo "RUN_LINT_ON_PUSH=1 detected; linting changed files..."
+  npm run lint:changed
+fi

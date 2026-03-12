@@ -54,3 +54,16 @@ Slash workflows `/start` and `/finish` are wired to these commands in:
 - `.agents/workflows/finish.md`
 
 GitHub CI still validates `main` with lint, tests, and build in `.github/workflows/ci.yml`.
+
+## Local Automation
+
+- Husky pre-push hook runs `npm test` automatically.
+- Optional changed-file lint on push:
+  - `RUN_LINT_ON_PUSH=1 git push`
+
+Common task shortcuts are available via `Makefile`:
+
+- `make start TYPE=feature NAME=add-catalog-search [RUN_TESTS=1]`
+- `make finish MSG="add catalog search" [INCLUDE_UNTRACKED=1] [DELETE_BRANCH=1]`
+- `make finish-strict MSG="add catalog search" [INCLUDE_UNTRACKED=1] [DELETE_BRANCH=1]`
+- `make test`, `make lint`, `make lint-changed`, `make build`
