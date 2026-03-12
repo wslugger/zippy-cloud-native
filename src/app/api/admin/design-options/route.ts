@@ -327,7 +327,7 @@ export async function PATCH(request: NextRequest) {
             description: body.description,
             constraints: body.constraints !== undefined ? sanitizeStringList(body.constraints) : undefined,
             assumptions: body.assumptions !== undefined ? sanitizeStringList(body.assumptions) : undefined,
-            valueType: normalizedValueType,
+            valueType: normalizedValueType ?? undefined,
             isActive: body.isActive,
           },
         });
@@ -389,7 +389,7 @@ export async function PATCH(request: NextRequest) {
             key: body.key,
             label: body.label,
             description: body.description,
-            valueType: normalizedValueType,
+            valueType: normalizedValueType ?? undefined,
             isActive: body.isActive,
           },
         });
