@@ -22,8 +22,6 @@ interface TaxonomyTerm {
 }
 
 const PANEL_CATEGORIES = [
-    'PANEL_PRICING',
-    'PANEL_ATTACHMENTS',
     'PANEL_SERVICE_OPTIONS',
     'PANEL_FEATURES'
 ];

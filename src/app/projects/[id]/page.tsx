@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Building2, Plus, ArrowLeft, Loader2, ChevronRight,
-    MapPin, DollarSign, AlertTriangle, FileText, Sparkles, FolderKanban, ShieldCheck, Download, Trash2, Shield,
+    DollarSign, AlertTriangle, FileText, Sparkles, FolderKanban, ShieldCheck, Download, Trash2, Shield,
     Compass
 } from 'lucide-react';
 import { GuidedFlowWizard } from '@/components/sa-flow/GuidedFlowWizard';
@@ -16,7 +16,6 @@ interface SolutionSite {
     id: string;
     name: string;
     address: string | null;
-    region: string | null;
     primaryServiceId: string | null;
     siteSelections: any[];
 }
@@ -56,7 +55,6 @@ interface Project {
 interface BOMSite {
     siteId: string;
     siteName: string;
-    region: string | null;
     bom: {
         lineItems: any[];
         totals: { totalNrc: number; totalMrc: number; totalTcv?: number };
@@ -71,12 +69,6 @@ interface ProjectBOM {
     totals: { totalNrc: number; totalMrc: number; totalTcv: number };
 }
 
-const REGIONS = [
-    { value: 'northeast', label: 'Northeast US' },
-    { value: 'southeast', label: 'Southeast US' },
-    { value: 'midwest', label: 'Midwest US' },
-    { value: 'west', label: 'West US' },
-];
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -93,7 +85,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
     const [showAddSite, setShowAddSite] = useState(false);
     const [siteName, setSiteName] = useState('');
-    const [siteRegion, setSiteRegion] = useState('');
+
     const [siteAddress, setSiteAddress] = useState('');
 
     useEffect(() => { fetchProject(); }, [id]);
@@ -158,12 +150,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         await fetch(`/api/projects/${id}/sites`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: siteName, address: siteAddress, region: siteRegion }),
+            body: JSON.stringify({ name: siteName, address: siteAddress }),
         });
         setShowAddSite(false);
         setSiteName('');
         setSiteAddress('');
-        setSiteRegion('');
         fetchProject();
     }
 
@@ -416,17 +407,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Address</label>
                                 <Input value={siteAddress} onChange={e => setSiteAddress(e.target.value)} placeholder="Street address" className="bg-slate-50" />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Region</label>
-                                <select
-                                    value={siteRegion}
-                                    onChange={e => setSiteRegion(e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 outline-none"
-                                >
-                                    <option value="">Select region...</option>
-                                    {REGIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                                </select>
-                            </div>
                             <div className="flex gap-3">
                                 <Button type="submit" disabled={!siteName}>Add Site</Button>
                                 <Button type="button" variant="ghost" onClick={() => setShowAddSite(false)}>Cancel</Button>
@@ -450,12 +430,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                             <p className="font-bold text-slate-900 group-hover:text-blue-400 transition-colors">{site.name}</p>
                                             {site.address && <p className="text-xs text-slate-500">{site.address}</p>}
                                             <div className="flex items-center gap-3 mt-1">
-                                                {site.region && (
-                                                    <div className="flex items-center gap-1 text-[10px] text-slate-600">
-                                                        <MapPin size={10} />
-                                                        {REGIONS.find(r => r.value === site.region)?.label ?? site.region}
-                                                    </div>
-                                                )}
                                                 <p className="text-[10px] text-slate-600">{site.siteSelections.length} services</p>
                                             </div>
                                         </div>
@@ -503,7 +477,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                         <div className="flex items-center gap-2">
                                             <Building2 size={14} className="text-blue-400" />
                                             <span className="font-bold text-sm">{site.siteName}</span>
-                                            {site.region && <span className="text-[10px] text-slate-500">{site.region}</span>}
                                         </div>
                                         <div className="flex gap-4 text-xs text-slate-600">
                                             <span>NRC: <span className="text-slate-900 font-bold">${site.bom.totals.totalNrc.toFixed(2)}</span></span>

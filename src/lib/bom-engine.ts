@@ -4,7 +4,7 @@ import { ItemType, DependencyType, PricingModel, Prisma } from "@prisma/client";
 export interface BOMOptions {
     termMonths?: number;
     primaryServiceId?: string;
-    siteRegion?: string;
+
     configValues?: Record<string, Record<string, any>>;
 }
 
@@ -123,14 +123,6 @@ export async function calculateBOM(
         quantity: 1,
     }));
 
-    // Pre-fetch REGION attributes if geo-filtering requested
-    let siteRegionTermId: string | null = null;
-    if (options.siteRegion) {
-        const regionTerm = await prisma.taxonomyTerm.findUnique({
-            where: { category_value: { category: 'REGION', value: options.siteRegion } },
-        });
-        siteRegionTermId = regionTerm?.id ?? null;
-    }
 
     while (queue.length > 0) {
         const { id, parentSku, depth, quantity } = queue.shift()!;
@@ -169,20 +161,6 @@ export async function calculateBOM(
 
         // Context for pricing selection
         const pricingContext = role ?? null;
-
-        // Geo-region check
-        if (siteRegionTermId && options.siteRegion) {
-            const regionAttrs = item.attributes.filter(a => a.term.category === 'REGION');
-            if (regionAttrs.length > 0) {
-                const hasMatchingRegion = regionAttrs.some(a => a.term.value === options.siteRegion);
-                if (!hasMatchingRegion) {
-                    warnings.push(
-                        `Item "${item.name}" (${item.sku}) may not be serviceable in region "${options.siteRegion}". ` +
-                        `Available regions: ${regionAttrs.map(a => a.term.label).join(', ')}.`
-                    );
-                }
-            }
-        }
 
         // Select best pricing record
         const selectedPricing = selectPricingWithContext(item.pricing, quantity, termMonths, pricingContext);

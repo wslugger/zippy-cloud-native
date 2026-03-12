@@ -16,7 +16,6 @@ interface BOMResult {
 interface SiteData {
     id: string;
     name: string;
-    region: string | null;
     primaryServiceId: string | null;
     project: { id: string; name: string; termMonths: number };
     siteSelections: Array<{ catalogItemId: string; configValues: any; role: string | null }>;
@@ -93,7 +92,6 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                 sku_ids: itemIds,
                 termMonths: site.project.termMonths,
                 primaryServiceId: primaryServiceId || undefined,
-                siteRegion: site.region || undefined,
                 configValues,
             }),
         });
@@ -131,7 +129,6 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-slate-900">{site.name}</h1>
-                            {site.region && <p className="text-xs text-slate-500">Region: {site.region}</p>}
                         </div>
                     </div>
                     <Button onClick={saveSelections} disabled={saving || selections.length === 0} className="gap-2">

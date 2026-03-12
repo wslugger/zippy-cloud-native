@@ -33,7 +33,6 @@ export async function POST(
                     return {
                         siteId: site.id,
                         siteName: site.name,
-                        region: site.region,
                         bom: {
                             lineItems: [],
                             totals: { totalNrc: 0, totalMrc: 0, totalTcv: 0 },
@@ -54,14 +53,12 @@ export async function POST(
                 const bom = await calculateBOM(itemIds, {
                     termMonths: project.termMonths,
                     primaryServiceId: site.primaryServiceId ?? undefined,
-                    siteRegion: site.region ?? undefined,
                     configValues,
                 });
 
                 return {
                     siteId: site.id,
                     siteName: site.name,
-                    region: site.region,
                     bom,
                 };
             })

@@ -51,14 +51,14 @@ export async function POST(
     if (project.userId !== session.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     try {
-        const { name, address, region, primaryServiceId } = await request.json();
+        const { name, address, primaryServiceId } = await request.json();
 
         if (!name) {
             return NextResponse.json({ error: "'name' is required" }, { status: 400 });
         }
 
         const site = await prisma.solutionSite.create({
-            data: { projectId, name, address, region, primaryServiceId },
+            data: { projectId, name, address, primaryServiceId },
         });
 
         return NextResponse.json(site, { status: 201 });

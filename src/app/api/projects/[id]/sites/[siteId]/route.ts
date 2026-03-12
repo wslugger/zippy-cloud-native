@@ -64,11 +64,11 @@ export async function PUT(
     if (ownership === "forbidden") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     try {
-        const { name, address, region, primaryServiceId } = await request.json();
+        const { name, address, primaryServiceId } = await request.json();
 
         const site = await prisma.solutionSite.update({
             where: { id: siteId },
-            data: { name, address, region, primaryServiceId },
+            data: { name, address, primaryServiceId },
         });
 
         return NextResponse.json(site);

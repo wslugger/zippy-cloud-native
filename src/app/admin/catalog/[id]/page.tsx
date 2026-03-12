@@ -49,9 +49,7 @@ export default function CatalogItemDetail() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<{id: string, name: string, sku: string, type: string}[]>([]);
     const [isSearching, setIsSearching] = useState(false);
-    const [attachmentQuery, setAttachmentQuery] = useState('');
-    const [attachmentResults, setAttachmentResults] = useState<{id: string, name: string, sku: string, type: string}[]>([]);
-    const [isAttachmentSearching, setIsAttachmentSearching] = useState(false);
+
     const [taxonomyTerms, setTaxonomyTerms] = useState<{id: string, label: string, category: string, value: string | null}[]>([]);
     const [isTaxonomyLoading, setIsTaxonomyLoading] = useState(false);
 
@@ -193,21 +191,6 @@ export default function CatalogItemDetail() {
         }
     };
 
-    const searchAttachments = async (query: string) => {
-        setAttachmentQuery(query);
-        if (query.length < 2) { setAttachmentResults([]); return; }
-        setIsAttachmentSearching(true);
-        try {
-            const res = await fetch(`/api/admin/catalog?search=${encodeURIComponent(query)}&limit=20`);
-            const data = await res.json();
-            const results = (data.items ?? data) as any[];
-            setAttachmentResults(results.filter((d: any) => d.id !== item?.id && !item?.childDependencies.some((cd: any) => cd.childId === d.id)));
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsAttachmentSearching(false);
-        }
-    };
 
     const addDependency = (childItem: {id: string, name: string, sku: string}, type?: string) => {
         if (!item) return;
@@ -229,12 +212,6 @@ export default function CatalogItemDetail() {
         setSearchResults([]);
     };
 
-    const updateDependencyMultiplier = (index: number, value: number) => {
-        if (!item) return;
-        const newList = [...item.childDependencies];
-        newList[index] = { ...newList[index], quantityMultiplier: value };
-        setItem({ ...item, childDependencies: newList });
-    };
 
     const removeDependency = (index: number) => {
         if (!item) return;
@@ -265,12 +242,7 @@ export default function CatalogItemDetail() {
         }
     };
 
-    const updatePricing = (field: keyof CatalogItem['pricing'][0], value: any) => {
-        if (!item || !item.pricing[0]) return;
-        const newPricing = [...item.pricing];
-        newPricing[0] = { ...newPricing[0], [field]: value };
-        setItem({ ...item, pricing: newPricing });
-    };
+
 
     // --- Visibility Logic ---
     const getVisibilityRules = (panelName: string) => {
@@ -468,51 +440,6 @@ export default function CatalogItemDetail() {
                         </div>
                     </section>
 
-                    {/* Pricing Methodology */}
-                    {isPanelVisible('PRICING') && (
-                        <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                                <h2 className="font-bold text-slate-900">Pricing Configuration</h2>
-                            </div>
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Model</label>
-                                    <select 
-                                        value={item.pricing[0]?.pricingModel || 'FLAT'}
-                                        onChange={(e) => updatePricing('pricingModel', e.target.value)}
-                                        className="w-full h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs"
-                                    >
-                                        <option value="FLAT">Flat Rate</option>
-                                        <option value="TIERED">Tiered</option>
-                                        <option value="PER_UNIT">Per Unit</option>
-                                        <option value="USAGE_BASED">Usage Based</option>
-                                        <option value="PERCENTAGE">Percentage</option>
-                                    </select>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Default MRC</label>
-                                        <Input 
-                                            type="number"
-                                            value={item.pricing[0]?.costMrc || 0}
-                                            onChange={(e) => updatePricing('costMrc', parseFloat(e.target.value) || 0)}
-                                            className="h-8 text-xs bg-slate-50"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Default NRC</label>
-                                        <Input 
-                                            type="number"
-                                            value={item.pricing[0]?.costNrc || 0}
-                                            onChange={(e) => updatePricing('costNrc', parseFloat(e.target.value) || 0)}
-                                            className="h-8 text-xs bg-slate-50"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    )}
-
                     {/* Service Options */}
                     {isPanelVisible('SERVICE_OPTIONS') && (
                         <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
@@ -584,91 +511,6 @@ export default function CatalogItemDetail() {
                         </section>
                     )}
 
-                    {/* Attachments & Licensing */}
-                    {isPanelVisible('ATTACHMENTS') && (
-                        <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                                <h2 className="font-bold text-slate-900">Attachments & Licensing</h2>
-                            </div>
-                            
-                            <div className="relative">
-                                <Input
-                                    value={attachmentQuery}
-                                    onChange={(e) => searchAttachments(e.target.value)}
-                                    placeholder="Search to attach..."
-                                    className="text-xs h-8 bg-slate-50"
-                                />
-                                {isAttachmentSearching && <div className="absolute right-3 top-2"><Loader2 size={12} className="animate-spin text-blue-500" /></div>}
-                                {attachmentResults.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto p-1 divide-y divide-slate-100">
-                                        {attachmentResults.map(res => (
-                                            <div key={res.id} className="p-1">
-                                                <p className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Attach as:</p>
-                                                <div className="grid grid-cols-2 gap-1">
-                                                    <button
-                                                        onClick={() => { addDependency(res, 'MANDATORY_ATTACHMENT'); setAttachmentQuery(''); setAttachmentResults([]); }}
-                                                        className="text-[10px] font-bold py-1 px-2 bg-rose-50 text-rose-600 rounded hover:bg-rose-100 text-center"
-                                                    >
-                                                        Mandatory
-                                                    </button>
-                                                    <button
-                                                        onClick={() => { addDependency(res, 'RECOMMENDS'); setAttachmentQuery(''); setAttachmentResults([]); }}
-                                                        className="text-[10px] font-bold py-1 px-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 text-center"
-                                                    >
-                                                        Recommends
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                {item.childDependencies
-                                    .map((d, i) => {
-                                        if (d.type !== 'MANDATORY_ATTACHMENT' && d.type !== 'RECOMMENDS') return null;
-                                        return (
-                                            <div key={d.id} className="p-3 rounded-lg border border-slate-100 bg-slate-50 space-y-2">
-                                                <div className="flex items-start justify-between">
-                                                    <div className="min-w-0">
-                                                        <div className="flex items-center gap-1.5 mb-0.5">
-                                                            <span className={`text-[8px] font-bold px-1 rounded ${
-                                                                d.type === 'MANDATORY_ATTACHMENT' 
-                                                                ? 'bg-rose-100 text-rose-600' 
-                                                                : 'bg-blue-100 text-blue-600'
-                                                            }`}>
-                                                                {d.type === 'MANDATORY_ATTACHMENT' ? 'MANDATORY' : 'RECOMMENDED'}
-                                                            </span>
-                                                            <span className="text-[10px] font-mono text-slate-400">{d.childItem.sku}</span>
-                                                        </div>
-                                                        <p className="text-xs font-bold text-slate-700 truncate">{d.childItem.name}</p>
-                                                    </div>
-                                                    <Button 
-                                                        size="sm" 
-                                                        variant="ghost" 
-                                                        className="h-6 w-6 p-0 text-slate-300 hover:text-rose-500"
-                                                        onClick={() => removeDependency(i)}
-                                                    >
-                                                        <Trash2 size={12} />
-                                                    </Button>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <label className="text-[9px] font-bold text-slate-400 uppercase">Qty Multiplier</label>
-                                                    <Input 
-                                                        type="number"
-                                                        value={d.quantityMultiplier}
-                                                        onChange={(e) => updateDependencyMultiplier(i, parseInt(e.target.value) || 1)}
-                                                        className="h-6 w-16 text-[10px] px-1.5"
-                                                    />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                            </div>
-                        </section>
-                    )}
-                    
                     {/* Features & Capabilities */}
                     {isPanelVisible('FEATURES') && (
                         <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
@@ -679,7 +521,7 @@ export default function CatalogItemDetail() {
                             
                             <div className="space-y-4">
                                 {/* Group terms by category */}
-                                {Array.from(new Set(taxonomyTerms.filter(t => !t.category.startsWith('PANEL_')).map(t => t.category))).map(category => (
+                                {Array.from(new Set(taxonomyTerms.filter(t => !t.category.startsWith('PANEL_') && !['REGION', 'SLA', 'VENDOR'].includes(t.category)).map(t => t.category))).map(category => (
                                     <div key={category} className="space-y-2">
                                         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{category}</h3>
                                         <div className="flex flex-wrap gap-1.5">

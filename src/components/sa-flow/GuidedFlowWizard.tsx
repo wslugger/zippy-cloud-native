@@ -7,14 +7,12 @@ import { cn } from '@/lib/utils';
 import { Step1BaseSelection } from './Step1BaseSelection';
 import { Step2ServiceOptions } from './Step2ServiceOptions';
 import { Step3DesignOptions } from './Step3DesignOptions';
-import { Step4Attachments } from './Step4Attachments';
-
 interface GuidedFlowWizardProps {
     projectId: string;
     onComplete: () => void;
 }
 
-export type WizardStep = 1 | 2 | 3 | 4;
+export type WizardStep = 1 | 2 | 3;
 
 export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProps) {
     const [step, setStep] = useState<WizardStep>(1);
@@ -26,7 +24,6 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
     const [selectedBase, setSelectedBase] = useState<any>(null);
     const [selectedOption, setSelectedOption] = useState<any>(null);
     const [selectedDesignOptions, setSelectedDesignOptions] = useState<string[]>([]); // Term IDs
-    const [selectedAttachments, setSelectedAttachments] = useState<any[]>([]);
     
     // New restructuring state
     const [configValues, setConfigValues] = useState<Record<string, any>>({});
@@ -45,7 +42,6 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
         const items = [
             selectedBase,
             selectedOption,
-            ...selectedAttachments,
             ...selectedServiceOptions,
             ...selectedTransports
         ].filter(Boolean);
@@ -69,19 +65,11 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
         });
 
         return { mrc, nrc };
-    }, [selectedBase, selectedOption, selectedAttachments, selectedServiceOptions, selectedTransports]);
+    }, [selectedBase, selectedOption, selectedServiceOptions, selectedTransports]);
 
     const handleToggleDesignOption = (termId: string) => {
         setSelectedDesignOptions(prev => 
             prev.includes(termId) ? prev.filter(id => id !== termId) : [...prev, termId]
-        );
-    };
-
-    const handleToggleAttachment = (item: any) => {
-        setSelectedAttachments(prev => 
-            prev.some(a => a.id === item.id) 
-                ? prev.filter(a => a.id !== item.id) 
-                : [...prev, item]
         );
     };
 
@@ -110,7 +98,6 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
         try {
             // Combine all selected items
             const allAttachmentIds = [
-                ...selectedAttachments.map(a => a.id),
                 ...selectedServiceOptions.map(a => a.id),
                 ...selectedTransports.map(a => a.id),
                 // Auto-includes
@@ -154,7 +141,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
             {/* Header / Stepper */}
             <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50">
                 <div className="flex items-center justify-between max-w-2xl mx-auto">
-                    {[1, 2, 3, 4].map((i) => (
+                    {[1, 2, 3].map((i) => (
                         <div key={i} className="flex items-center gap-3">
                             <div className={cn(
                                 "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all relative",
@@ -168,7 +155,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                                     </div>
                                 )}
                             </div>
-                            {i < 4 && <div className={cn("h-1 w-12 md:w-20 rounded-full", step > i ? "bg-emerald-500" : "bg-slate-200")} />}
+                            {i < 3 && <div className={cn("h-1 w-12 md:w-20 rounded-full", step > i ? "bg-emerald-500" : "bg-slate-200")} />}
                         </div>
                     ))}
                 </div>
@@ -187,28 +174,26 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                             onSelect={(item) => {
                                 setSelectedBase(item);
                                 setSelectedOption(null); // Reset downstream
-                                setSelectedAttachments([]);
                                 setSelectedServiceOptions([]);
                                 setSelectedTransports([]);
                                 setConfigValues({});
                                 nextStep();
-                            }} 
+                            }}
                         />
                     </div>
                 )}
-                
+
                 {step === 2 && (
                     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <div className="space-y-2">
                             <h2 className="text-3xl font-bold text-slate-900">Technology Selection</h2>
                             <p className="text-slate-500 text-lg">Choose the vendor or specific service variant for <span className="text-blue-600 font-bold">{selectedBase?.name}</span>.</p>
                         </div>
-                        <Step2ServiceOptions 
+                        <Step2ServiceOptions
                             parentItem={selectedBase}
                             selectedId={selectedOption?.id}
                             onSelect={(item) => {
                                 setSelectedOption(item);
-                                setSelectedAttachments([]);
                                 setSelectedServiceOptions([]);
                                 setSelectedTransports([]);
                                 setConfigValues({});
@@ -236,23 +221,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                     </div>
                 )}
 
-                {step === 4 && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                        <div className="space-y-2">
-                            <h2 className="text-3xl font-bold text-slate-900">Attachments & Review</h2>
-                            <p className="text-slate-500 text-lg">Review required service attachments and managed overlays.</p>
-                        </div>
-                        <Step4Attachments 
-                            selectedBase={selectedBase}
-                            selectedOption={selectedOption}
-                            configValues={configValues}
-                            selectedServiceOptions={selectedServiceOptions}
-                            selectedTransports={selectedTransports}
-                            selectedAttachments={selectedAttachments.map(a => a.id)}
-                            onToggleAttachment={handleToggleAttachment}
-                        />
-                    </div>
-                )}
+
             </div>
 
             {/* Footer / Actions */}
@@ -290,24 +259,24 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                     </div>
 
                     <Button 
-                        onClick={step === 4 ? handleComplete : nextStep} 
+                        onClick={step === 3 ? handleComplete : nextStep}
                         disabled={
-                            isSaving || 
-                            (step === 1 && !selectedBase) || 
+                            isSaving ||
+                            (step === 1 && !selectedBase) ||
                             (step === 2 && !selectedOption) ||
                             (step === 3 && selectedTransports.length === 0)
                         }
                         className={cn(
                             "gap-2 h-12 px-8 rounded-xl shadow-md transition-all font-bold",
-                            step === 4 ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"
+                            step === 3 ? "bg-emerald-600 hover:bg-emerald-500" : "bg-blue-600 hover:bg-blue-500"
                         )}
                     >
                         {isSaving ? (
                             <Loader2 size={18} className="animate-spin" />
                         ) : (
                             <>
-                                {step === 4 ? 'Commit Design' : 'Continue'}
-                                {step !== 4 && <ChevronRight size={18} />}
+                                {step === 3 ? 'Commit Design' : 'Continue'}
+                                {step !== 3 && <ChevronRight size={18} />}
                             </>
                         )}
                     </Button>

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET /api/catalog/compare?ids=id1,id2,id3
-// Returns feature and SLA comparison matrix for selected catalog items
+// Returns feature comparison matrix for selected catalog items
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const idsParam = searchParams.get('ids');
@@ -23,14 +23,14 @@ export async function GET(request: NextRequest) {
                 attributes: {
                     include: { term: true },
                     where: {
-                        term: { category: { in: ['FEATURE', 'SLA'] } },
+                        term: { category: { in: ['FEATURE'] } },
                     },
                 },
                 pricing: true,
             },
         });
 
-        // Collect all unique feature/SLA attribute values across all items
+        // Collect all unique feature attribute values across all items
         const allTerms = new Map<string, { id: string; category: string; value: string; label: string }>();
         for (const item of items) {
             for (const attr of item.attributes) {
