@@ -11,6 +11,9 @@ model TaxonomyTerm {
   category          String
   value             String
   label             String
+  assumptions       String[]
+  constraints       String[]
+  description       String?
   itemAttributes    ItemAttribute[]
   itemDesignOptions ProjectItemDesignOption[]
 
@@ -32,8 +35,8 @@ model CatalogItem {
   attributes          ItemAttribute[]
   collaterals         ItemCollateral[]
   constraints         ItemConstraint[]
-  childDependencies   ItemDependency[] @relation("ParentItem")
   parentDependencies  ItemDependency[] @relation("ChildItem")
+  childDependencies   ItemDependency[] @relation("ParentItem")
   pricing             Pricing[]
   projectItems        ProjectItem[]
   siteSelections      SiteSelection[]
@@ -117,9 +120,9 @@ model Pricing {
   item           CatalogItem   @relation(fields: [itemId], references: [id], onDelete: Cascade)
   tiers          PricingTier[]
 
+  @@unique([itemId, effectiveDate], name: "itemId_effectiveDate")
   @@index([itemId])
   @@index([itemId, termMonths, context])
-  @@unique([itemId, effectiveDate], name: "itemId_effectiveDate")
 }
 
 model PricingTier {
