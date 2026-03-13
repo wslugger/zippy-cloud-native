@@ -1,0 +1,3609 @@
+{
+  "taxonomyTerm": [
+    {
+      "id": "11cf8af3-b9a2-44d1-ab87-50c32aed773b",
+      "category": "CLASSIFICATION",
+      "value": "CONNECTIVITY",
+      "label": "Connectivity",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "9ddedb95-62a7-4dab-b9e5-d27cac4440bc",
+      "category": "CLASSIFICATION",
+      "value": "HARDWARE",
+      "label": "Hardware",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "d669c621-25f8-4a92-b38d-e19946aa80db",
+      "category": "CLASSIFICATION",
+      "value": "MANAGED_SERVICE",
+      "label": "Managed Service",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "5a585e79-e503-4d38-b2db-ac1e860c78d6",
+      "category": "CLASSIFICATION",
+      "value": "PACKAGE",
+      "label": "Design Package",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "2b908038-d3a0-4656-86d7-8f22e872223d",
+      "category": "CLASSIFICATION",
+      "value": "SERVICE_FAMILY",
+      "label": "Service Family",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "9f937222-8675-49ae-b606-7507dcdac234",
+      "category": "CLASSIFICATION",
+      "value": "SERVICE_OPTION",
+      "label": "Service Option",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "59a8c8c2-a503-439a-b7ec-55dbe249c394",
+      "category": "FEATURE",
+      "value": "1:1_oversubscription_ratio_(dedicated)",
+      "label": "1:1 Oversubscription Ratio (Dedicated)",
+      "assumptions": [
+        "Business requires 100% of their purchased throughput at all times."
+      ],
+      "constraints": [
+        "High monthly cost per megabit compared to broadband."
+      ],
+      "description": "The contracted bandwidth is dedicated entirely to the customer, not shared with other subscribers."
+    },
+    {
+      "id": "052b4e66-b109-4b2e-abfe-98957100e4bc",
+      "category": "FEATURE",
+      "value": "5g_nr_/_lte_connectivity",
+      "label": "5G NR / LTE Connectivity",
+      "assumptions": [
+        "Site is within range of modern upgraded cellular towers."
+      ],
+      "constraints": [
+        "Speeds drop drastically if 5G is unavailable and device falls back to 4G/LTE or 3G."
+      ],
+      "description": "Utilizes modern cellular standards to deliver sub-100ms latency and high bandwidth."
+    },
+    {
+      "id": "1cfa090f-bf93-45db-9291-0032fa5605ff",
+      "category": "FEATURE",
+      "value": "802.11ax/wi-fi_6",
+      "label": "802.11ax/Wi-Fi 6",
+      "assumptions": [
+        "Deployed in moderate to high-density environments."
+      ],
+      "constraints": [
+        "Clients must have Wi-Fi 6 compatible NICs to realize full benefits."
+      ],
+      "description": "Support for OFDMA and MU-MIMO to handle higher client densities and deliver better throughput."
+    },
+    {
+      "id": "038f9f05-5f30-4665-981d-6efbfb257c47",
+      "category": "FEATURE",
+      "value": "802.11ax/wi-fi_6e",
+      "label": "802.11ax/Wi-Fi 6E",
+      "assumptions": [
+        "Customer requires bleeding-edge performance for AR/VR or extremely dense environments."
+      ],
+      "constraints": [
+        "Requires PoE+ or PoE++ power budgets; limited range compared to 2.4/5GHz; requires 6E compatible clients."
+      ],
+      "description": "Utilizes the new 6GHz spectrum for massive bandwidth increases and zero legacy interference."
+    },
+    {
+      "id": "2dfcac30-53a7-48d7-ad06-d3af24af4fa4",
+      "category": "FEATURE",
+      "value": "802.1x_authentication",
+      "label": "802.1x Authentication",
+      "assumptions": [
+        "Strict zero-trust or compliance-driven security posture."
+      ],
+      "constraints": [
+        "Requires a robust PKI and identity management infrastructure."
+      ],
+      "description": "Requires devices/users to authenticate against a RADIUS server (like Cisco ISE) before gaining network access."
+    },
+    {
+      "id": "6194d808-506b-4f1b-87c9-3fcfec84f133",
+      "category": "FEATURE",
+      "value": "active_sim_card_provisioning",
+      "label": "Active SIM Card Provisioning",
+      "assumptions": [
+        "Carrier has confirmed coverage at the physical site."
+      ],
+      "constraints": [
+        "Tied to specific carrier networks; roaming agreements vary."
+      ],
+      "description": "Physical or eSIM provisioning linking the hardware to a specific carrier data plan."
+    },
+    {
+      "id": "ad0d5b41-7d9f-412e-bc58-57b32dbac623",
+      "category": "FEATURE",
+      "value": "advanced_monitoring",
+      "label": "Advanced Monitoring",
+      "assumptions": [
+        "Customer requires proactive monitoring of critical SaaS applications."
+      ],
+      "constraints": [
+        "Requires an additional 'Meraki Insight' license tier."
+      ],
+      "description": "Provides granular performance tracking for specific web applications and WAN link performance."
+    },
+    {
+      "id": "868ce1be-7ad1-480d-92fc-3e79d4e1c538",
+      "category": "FEATURE",
+      "value": "advanced_qos",
+      "label": "Advanced QoS",
+      "assumptions": [
+        "Crucial for convergence of voice, video, and data on large campus networks."
+      ],
+      "constraints": [
+        "Complex syntax requires specialized engineering knowledge to deploy correctly."
+      ],
+      "description": "ASIC-driven Modular QoS CLI (MQC) supporting deep buffer allocation, strict priority queuing, and shaping."
+    },
+    {
+      "id": "c30305a0-5e41-49ac-9a1e-b854a3c4bca4",
+      "category": "FEATURE",
+      "value": "advanced_rf_resource_management",
+      "label": "Advanced RF Resource Management",
+      "assumptions": [
+        "Dynamic environments where RF interference changes regularly."
+      ],
+      "constraints": [
+        "Aggressive RRM tuning can cause instability if the physical site survey is poor."
+      ],
+      "description": "Cisco RRM dynamically adjusts AP transmit power and channels to mitigate interference and optimize coverage."
+    },
+    {
+      "id": "4970b4bc-d31e-40ef-b251-74b982e41d8f",
+      "category": "FEATURE",
+      "value": "advanced_security_(amp,_ips)",
+      "label": "Advanced Security (AMP, IPS)",
+      "assumptions": [
+        "Customer requires consolidated branch security rather than backhauling traffic to a DC firewall."
+      ],
+      "constraints": [
+        "Requires an Advanced Security or SD-WAN Plus license. Reduces overall device throughput."
+      ],
+      "description": "Provides intrusion prevention (Snort) and Advanced Malware Protection (AMP) at the network edge."
+    },
+    {
+      "id": "2b7924a9-28da-457e-ac8c-3aece7fa252c",
+      "category": "FEATURE",
+      "value": "ai-driven_wireless_analytics",
+      "label": "AI-Driven Wireless Analytics",
+      "assumptions": [
+        "Customer desires automated troubleshooting and predictive maintenance."
+      ],
+      "constraints": [
+        "Requires Catalyst Center and active telemetry streaming."
+      ],
+      "description": "Uses machine learning to baseline performance and identify anomalous client behavior or RF issues."
+    },
+    {
+      "id": "0abb25c4-099d-4ed0-bd51-c1b595aba114",
+      "category": "FEATURE",
+      "value": "ai_endpoint_analytics",
+      "label": "AI Endpoint Analytics",
+      "assumptions": [
+        "Network contains a large number of headless or IoT devices requiring classification."
+      ],
+      "constraints": [
+        "Requires active data telemetry and DNA Advantage licensing."
+      ],
+      "description": "Uses AI/ML via Catalyst Center to automatically identify and profile unknown endpoints (like IoT devices)."
+    },
+    {
+      "id": "5420102b-0045-48ba-b597-d0a8a86bbf26",
+      "category": "FEATURE",
+      "value": "api_integration",
+      "label": "API Integration",
+      "assumptions": [
+        "Customer has development resources or automation platforms (like Ansible/Terraform)."
+      ],
+      "constraints": [
+        "API rate limits apply; complex orchestrations require custom development."
+      ],
+      "description": "REST APIs for automating provisioning, configuration changes, and monitoring."
+    },
+    {
+      "id": "dbdc9ca1-891d-40e6-972f-2218c5840d94",
+      "category": "FEATURE",
+      "value": "app-_and_sla-based_routing_policy",
+      "label": "App- and SLA-based Routing Policy",
+      "assumptions": [
+        "Multiple active WAN links are available at the site."
+      ],
+      "constraints": [
+        "Policies are globally defined and less granular than traditional policy-based routing (PBR)."
+      ],
+      "description": "Routes specific traffic types across the best available WAN link based on latency, jitter, or loss thresholds."
+    },
+    {
+      "id": "b5151060-58fa-48ed-920d-6ac078792215",
+      "category": "FEATURE",
+      "value": "application_recognition",
+      "label": "Application Recognition",
+      "assumptions": [
+        "The majority of traffic consists of standard, recognizable enterprise and web applications."
+      ],
+      "constraints": [
+        "May not correctly identify custom, encrypted, or obscure proprietary applications."
+      ],
+      "description": "Identifies applications traversing the network using deep packet inspection (DPI)."
+    },
+    {
+      "id": "f554f642-c616-4beb-b5c4-e76fd23afe2e",
+      "category": "FEATURE",
+      "value": "application_visibility",
+      "label": "Application Visibility",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "4fd391ac-d226-44b3-9aaa-4d64c6b334d0",
+      "category": "FEATURE",
+      "value": "asymmetrical_speeds",
+      "label": "Asymmetrical Speeds",
+      "assumptions": [
+        "Traffic profile is heavily skewed towards downloading (typical user browsing)."
+      ],
+      "constraints": [
+        "Bottlenecks occur when uploading large files to the cloud or hosting on-premise servers."
+      ],
+      "description": "Provides high download speeds (e.g., 1Gbps) but significantly lower upload speeds (e.g., 35Mbps)."
+    },
+    {
+      "id": "fe58d15d-1551-4b0e-b7ac-c4daae8edf1a",
+      "category": "FEATURE",
+      "value": "basic_provider-managed_router/modem",
+      "label": "Basic Provider-Managed Router/Modem",
+      "assumptions": [
+        "Customer will place their own SD-WAN or Firewall appliance behind it."
+      ],
+      "constraints": [
+        "Lacks advanced enterprise routing features; often requires 'Bridge Mode' configuration to use an enterprise firewall."
+      ],
+      "description": "The ISP provides a basic combined modem/router/firewall gateway."
+    },
+    {
+      "id": "ff049032-39b2-44ea-a88e-4174e9b9b4e4",
+      "category": "FEATURE",
+      "value": "best-effort_delivery",
+      "label": "Best-Effort Delivery",
+      "assumptions": [
+        "Used primarily as an SD-WAN underlay or for general web browsing."
+      ],
+      "constraints": [
+        "Latency and jitter can spike, affecting real-time applications like VoIP."
+      ],
+      "description": "Traffic is routed without strict Quality of Service (QoS) SLAs across the provider network."
+    },
+    {
+      "id": "e514f03c-0e05-4b94-9c57-e8eed14560af",
+      "category": "FEATURE",
+      "value": "bgp/ospf_peering_with_ce_(customer_edge)",
+      "label": "BGP/OSPF Peering with CE (Customer Edge)",
+      "assumptions": [
+        "Customer networks are large and subnets change dynamically."
+      ],
+      "constraints": [
+        "Requires coordination with the carrier for routing changes or prefix list updates."
+      ],
+      "description": "Customer edge router peers dynamically with the Provider Edge (PE) router to advertise local subnets."
+    },
+    {
+      "id": "bd27b249-0070-43a2-8f12-dfab8cec1093",
+      "category": "FEATURE",
+      "value": "bgp/ospf_routing_integration",
+      "label": "BGP/OSPF Routing Integration",
+      "assumptions": [
+        "Customer has complex legacy networks or localized data centers requiring dynamic route exchange."
+      ],
+      "constraints": [
+        "Requires high networking expertise to prevent routing loops and suboptimal pathing."
+      ],
+      "description": "Full support for redistributing BGP and OSPF routes into the Overlay Management Protocol (OMP) for complex enterprise topologies."
+    },
+    {
+      "id": "1cd594b4-dba6-4da9-9f4e-52c5b7665fda",
+      "category": "FEATURE",
+      "value": "bgp_routing_support",
+      "label": "BGP Routing Support",
+      "assumptions": [
+        "Customer manages their own public IP space and dual-homes to multiple ISPs."
+      ],
+      "constraints": [
+        "Requires an enterprise-grade edge router and an assigned Autonomous System Number (ASN)."
+      ],
+      "description": "Allows the customer to peer via eBGP with the provider for dynamic IP failover and multi-homing."
+    },
+    {
+      "id": "71129072-9133-4e1d-8b98-a11042fac77c",
+      "category": "FEATURE",
+      "value": "capwap_tunneling",
+      "label": "CAPWAP Tunneling",
+      "assumptions": [
+        "Customer prefers centralized policy enforcement and IP addressing."
+      ],
+      "constraints": [
+        "Can create a bandwidth bottleneck at the controller and requires robust routing from the WLC to the core."
+      ],
+      "description": "Tunnels all wireless client traffic back to the WLC, enabling seamless roaming without VLAN changes at the edge."
+    },
+    {
+      "id": "3345d16a-abbb-4249-9aae-42696be3ca47",
+      "category": "FEATURE",
+      "value": "cellular_modem/router",
+      "label": "Cellular Modem/Router",
+      "assumptions": [
+        "Customer needs a standalone cellular bridge to connect to their SD-WAN router."
+      ],
+      "constraints": [
+        "Device placement must be optimized for cellular reception, often requiring PoE extension from network closets."
+      ],
+      "description": "Hardware that converts 5G/LTE RF signals into standard Ethernet/IP handoffs."
+    },
+    {
+      "id": "d052ac6a-9401-4ca0-9a55-6fa38cb5e1c5",
+      "category": "FEATURE",
+      "value": "centralized_software_upgrades",
+      "label": "Centralized Software Upgrades",
+      "assumptions": [
+        "Network administrators schedule maintenance windows via the dashboard."
+      ],
+      "constraints": [
+        "Lack of granular, localized rollback options; dependent on vendor firmware release schedules."
+      ],
+      "description": "Firmware upgrades are pushed globally or per-network from the Meraki cloud."
+    },
+    {
+      "id": "c044cda2-fb32-4d17-8c85-4eb80711e574",
+      "category": "FEATURE",
+      "value": "cisco_dna_center_integration",
+      "label": "Cisco DNA Center Integration",
+      "assumptions": [
+        "Customer is deploying a full Cisco SD-Access fabric."
+      ],
+      "constraints": [
+        "Requires DNA Advantage licensing and complex SD-Access underlay architecture."
+      ],
+      "description": "Connects the WLC to Catalyst Center to enable SD-Access wireless and centralized policy."
+    },
+    {
+      "id": "a56ae142-e004-4de3-b98a-af754470644a",
+      "category": "FEATURE",
+      "value": "clear_line_of_sight_to_sky",
+      "label": "Clear Line of Sight to Sky",
+      "assumptions": [
+        "Pre-installation surveys confirm sky visibility."
+      ],
+      "constraints": [
+        "Urban canyons or heavily wooded areas will cause frequent micro-outages."
+      ],
+      "description": "The terminal must maintain a wide cone of visibility to the sky to track satellites horizon-to-horizon."
+    },
+    {
+      "id": "f23604d9-fb26-4b7e-a59e-226449dff384",
+      "category": "FEATURE",
+      "value": "client_monitoring",
+      "label": "Client Monitoring",
+      "assumptions": [
+        "Administrators require user-centric troubleshooting."
+      ],
+      "constraints": [
+        "Relies on Layer 7 inspection which may be obscured by MAC randomization and encryption."
+      ],
+      "description": "Tracks individual wireless clients, their OS, application usage, and signal strength over time."
+    },
+    {
+      "id": "64266c55-4b65-447f-85d3-ee81bc11297e",
+      "category": "FEATURE",
+      "value": "cloud-based_management_-_cisco_meraki_dashboard",
+      "label": "Cloud-Based Management - Cisco Meraki Dashboard",
+      "assumptions": [
+        "Customer requires simple, scalable wireless management without physical controllers."
+      ],
+      "constraints": [
+        "Requires active internet connectivity; APs continue to serve data but cannot be reconfigured if offline."
+      ],
+      "description": "Manages SSIDs, RF profiles, and client tracking via the Meraki cloud portal."
+    },
+    {
+      "id": "e57f1803-f677-423b-ad3b-a85b5d5bcec3",
+      "category": "FEATURE",
+      "value": "cloud_management",
+      "label": "Cloud Management",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "742eef8f-d397-4001-ba17-0e52cb63be76",
+      "category": "FEATURE",
+      "value": "cloud_management_-_cisco_meraki_dashboard",
+      "label": "Cloud Management - Cisco Meraki Dashboard",
+      "assumptions": [
+        "Out-of-band management access is not strictly required if primary links are stable."
+      ],
+      "constraints": [
+        "Requires continuous internet connectivity; cannot be managed locally if the cloud link fails."
+      ],
+      "description": "A unified cloud dashboard providing configuration, monitoring, and troubleshooting tools across the entire Meraki stack."
+    },
+    {
+      "id": "70a2acdc-99b2-4047-8d86-ecdff8d05f1f",
+      "category": "FEATURE",
+      "value": "cloud_onramp",
+      "label": "Cloud OnRamp",
+      "assumptions": [
+        "Enterprise relies heavily on public cloud infrastructure."
+      ],
+      "constraints": [
+        "Requires specific licensing and integration with third-party cloud APIs."
+      ],
+      "description": "Automates connectivity and optimizes path selection to major public clouds (AWS, Azure, GCP) and SaaS providers (M365)."
+    },
+    {
+      "id": "88f1f53e-d999-4819-9c25-f5bae6488b04",
+      "category": "FEATURE",
+      "value": "cloud_provider_interconnect_(e.g.,_expressroute/directconnect)",
+      "label": "Cloud Provider Interconnect (e.g., ExpressRoute/DirectConnect)",
+      "assumptions": [
+        "Customer hosts mission-critical infrastructure in the public cloud requiring SLA-backed access."
+      ],
+      "constraints": [
+        "Requires additional port fees from both the carrier and the cloud provider."
+      ],
+      "description": "Direct, private integration from the MPLS backbone into public cloud providers (AWS, Azure) bypassing the internet."
+    },
+    {
+      "id": "ba5dcb97-1e9d-4c9a-839a-123f82f2a728",
+      "category": "FEATURE",
+      "value": "command_line_interface_(cli)_or_catalyst_center_management",
+      "label": "Command Line Interface (CLI) or Catalyst Center Management",
+      "assumptions": [
+        "Customer standardizes on a single management methodology."
+      ],
+      "constraints": [
+        "Mixing CLI and Catalyst Center management can cause configuration drift and out-of-sync errors."
+      ],
+      "description": "Can be managed traditionally via local CLI (IOS-XE) or centrally orchestrated via Cisco Catalyst Center."
+    },
+    {
+      "id": "919f2871-6b66-44fe-8eac-74ac9f56f9f4",
+      "category": "FEATURE",
+      "value": "content_filtering",
+      "label": "Content Filtering",
+      "assumptions": [
+        "DNS and web traffic traverse the SD-WAN appliance unencrypted or can be categorized via SNI."
+      ],
+      "constraints": [
+        "Requires Advanced Security licensing. Less granular than a dedicated Secure Web Gateway (SWG)."
+      ],
+      "description": "Blocks access to specific website categories to enforce corporate acceptable use policies."
+    },
+    {
+      "id": "2bba147c-42cf-4471-9274-c52c328b658f",
+      "category": "FEATURE",
+      "value": "ddos_protection_integration",
+      "label": "DDoS Protection Integration",
+      "assumptions": [
+        "Enterprise is a high-profile target for cyber attacks."
+      ],
+      "constraints": [
+        "Adds significant cost; may introduce slight latency during active scrubbing."
+      ],
+      "description": "In-line or on-demand scrubbing of malicious Distributed Denial of Service traffic before it reaches the circuit."
+    },
+    {
+      "id": "bab8ff34-b665-480f-8215-93215112798c",
+      "category": "FEATURE",
+      "value": "dedicated_control/management_planes_(vsmart,_vmanage)",
+      "label": "Dedicated Control/Management Planes (vSmart, vManage)",
+      "assumptions": [
+        "Customer requires advanced architectural separation for scale and security."
+      ],
+      "constraints": [
+        "Requires significant infrastructure to host, or subscriptions to Cisco-hosted controllers."
+      ],
+      "description": "Separates the data forwarding plane from the management (vManage) and control (vSmart) planes for massive scalability."
+    },
+    {
+      "id": "8c5e34f0-9ea5-4cde-8f44-25cbf7e3a068",
+      "category": "FEATURE",
+      "value": "deep_analytics_(vanalytics)",
+      "label": "Deep Analytics (vAnalytics)",
+      "assumptions": [
+        "Customer requires proactive intelligence for capacity planning and issue resolution."
+      ],
+      "constraints": [
+        "Requires specific DNA Advantage or Premier licensing tiers."
+      ],
+      "description": "SaaS service that ingests telemetry to provide predictive insights, anomaly detection, and long-term trending."
+    },
+    {
+      "id": "f48f6ee1-8b77-461d-bf99-d5373d3c67b8",
+      "category": "FEATURE",
+      "value": "dhcp_server",
+      "label": "DHCP Server",
+      "assumptions": [
+        "Branch networks are small enough that localized, basic DHCP is sufficient."
+      ],
+      "constraints": [
+        "Lacks the advanced scope options and redundancy of a dedicated enterprise IPAM/DHCP server."
+      ],
+      "description": "Provides dynamic IP addressing to local clients directly from the branch appliance."
+    },
+    {
+      "id": "858ea881-db91-462c-a494-ab53074098ad",
+      "category": "FEATURE",
+      "value": "diverse_local_access_loops",
+      "label": "Diverse Local Access Loops",
+      "assumptions": [
+        "Site is a mission-critical data center or headquarters."
+      ],
+      "constraints": [
+        "Extremely expensive and often requires major construction to achieve true physical diversity."
+      ],
+      "description": "Providing two physical circuits from different central offices to the customer site to prevent local outages."
+    },
+    {
+      "id": "de94c4be-b87e-4198-ade5-faa53b1d29b3",
+      "category": "FEATURE",
+      "value": "diverse_routing/dual-homing",
+      "label": "Diverse Routing/Dual-Homing",
+      "assumptions": [
+        "Facility is a critical hub or data center."
+      ],
+      "constraints": [
+        "Requires expensive construction and specific building geography."
+      ],
+      "description": "Constructing diverse physical fiber entrances into the building to prevent backhoe-fade."
+    },
+    {
+      "id": "cf5c2711-ad22-412b-8bba-14b3a3df7cd5",
+      "category": "FEATURE",
+      "value": "dual-band_radios",
+      "label": "Dual-Band Radios",
+      "assumptions": [
+        "Standard enterprise deployment supporting mixed legacy and modern clients."
+      ],
+      "constraints": [
+        "2.4GHz band still requires careful RF planning due to limited non-overlapping channels."
+      ],
+      "description": "APs transmitting simultaneously on 2.4GHz and 5GHz frequencies for maximum compatibility."
+    },
+    {
+      "id": "28f4703d-7d78-4c45-9704-cf5316f00658",
+      "category": "FEATURE",
+      "value": "dynamic_ip_addressing",
+      "label": "Dynamic IP Addressing",
+      "assumptions": [
+        "Outbound-only internet access is required."
+      ],
+      "constraints": [
+        "Breaks static site-to-site VPNs or inbound server hosting unless DDNS is used."
+      ],
+      "description": "The provider assigns a public IP via DHCP that may change periodically."
+    },
+    {
+      "id": "7ba7c062-09d2-4b31-ab8e-054795e021d7",
+      "category": "FEATURE",
+      "value": "event_logging_/_syslog_-_export",
+      "label": "Event Logging / Syslog - Export",
+      "assumptions": [
+        "Customer utilizes a centralized logging strategy for security compliance."
+      ],
+      "constraints": [
+        "Must be configured globally; requires a reachable internal or cloud SIEM."
+      ],
+      "description": "Exports security, flow, and appliance logs to an external Syslog server or SIEM."
+    },
+    {
+      "id": "547295f9-0022-410e-833a-07477cebbff8",
+      "category": "FEATURE",
+      "value": "external_directional_antenna",
+      "label": "External Directional Antenna",
+      "assumptions": [
+        "Indoor signal is too weak due to concrete, metal, or low-E glass construction."
+      ],
+      "constraints": [
+        "Requires specialized cabling (LMR-400), grounding, and professional installation."
+      ],
+      "description": "Roof or wall-mounted antennas aimed directly at the carrier tower to bypass building attenuation."
+    },
+    {
+      "id": "9f960bc9-867a-47c1-9f5e-a38e196c286d",
+      "category": "FEATURE",
+      "value": "fhrp_(vrrp/hsrp)",
+      "label": "FHRP (VRRP/HSRP)",
+      "assumptions": [
+        "Network relies on dual distribution/core switches."
+      ],
+      "constraints": [
+        "Supported primarily on advanced MS300+ series switches."
+      ],
+      "description": "Provides high availability for Layer 3 default gateways using VRRP or equivalent."
+    },
+    {
+      "id": "405634a0-812f-4bf8-aa0e-f587db89f1c7",
+      "category": "FEATURE",
+      "value": "forward_error_correction_(fec)",
+      "label": "Forward Error Correction (FEC)",
+      "assumptions": [
+        "Customer utilizes lossy transport (like standard broadband or LTE) for critical voice/video traffic."
+      ],
+      "constraints": [
+        "Consumes additional bandwidth (overhead) on the WAN link."
+      ],
+      "description": "Injects parity packets into the data stream to reconstruct dropped packets on the receiving end without retransmission."
+    },
+    {
+      "id": "2cb2d485-5fc7-4ca8-aa9e-c38de6f1f6db",
+      "category": "FEATURE",
+      "value": "guest_access/portals",
+      "label": "Guest Access/Portals",
+      "assumptions": [
+        "Corporate security mandates total isolation of guest traffic."
+      ],
+      "constraints": [
+        "Complex workflows require Cisco ISE policies and licensing."
+      ],
+      "description": "Integration with Cisco ISE or native WLC portals to provide segmented internet access for guests."
+    },
+    {
+      "id": "6875e6a2-97c6-4c2f-8d12-c8b6ee49119a",
+      "category": "FEATURE",
+      "value": "guest_access/portals_-_external_portal_integration",
+      "label": "Guest Access/Portals - External Portal Integration",
+      "assumptions": [
+        "Customer requires advanced marketing analytics or complex guest workflows."
+      ],
+      "constraints": [
+        "Requires ongoing subscriptions to third-party services."
+      ],
+      "description": "Integration with external RADIUS/Captive Portal providers (like Purple or Cloud4Wi) via API."
+    },
+    {
+      "id": "389ad1c4-e357-406f-8b63-4d838c7fcf5d",
+      "category": "FEATURE",
+      "value": "guest_access/portals_-_internal_portal",
+      "label": "Guest Access/Portals - Internal Portal",
+      "assumptions": [
+        "Customer requires simple, compliant guest access without external servers."
+      ],
+      "constraints": [
+        "Customization options are limited to basic HTML/CSS and logo uploads."
+      ],
+      "description": "Meraki-hosted captive portals for guest click-through agreements, SMS auth, or basic billing."
+    },
+    {
+      "id": "cfa758b0-0ad0-4d3c-8960-7653ae2b5c2c",
+      "category": "FEATURE",
+      "value": "high-performance_enterprise_terminal",
+      "label": "High-Performance Enterprise Terminal",
+      "assumptions": [
+        "Customer requires maximum reliability in a remote location."
+      ],
+      "constraints": [
+        "Significantly higher hardware cost compared to consumer models."
+      ],
+      "description": "Larger phased array antennas designed for better performance in extreme weather and higher throughput."
+    },
+    {
+      "id": "df572ba1-1d30-48f2-9d25-bb30444d4528",
+      "category": "FEATURE",
+      "value": "high_availability",
+      "label": "High Availability",
+      "assumptions": [],
+      "constraints": [],
+      "description": "testing from script"
+    },
+    {
+      "id": "57ef458f-ddfe-4448-9626-d69a7ae29c6a",
+      "category": "FEATURE",
+      "value": "high_availability_(n+1)",
+      "label": "High Availability (N+1)",
+      "assumptions": [
+        "Wireless access is mission-critical to the business."
+      ],
+      "constraints": [
+        "Increases hardware and licensing costs."
+      ],
+      "description": "Stateful Switchover (SSO) or N+1 controller designs to ensure wireless networks stay online during hardware failures."
+    },
+    {
+      "id": "1ad4cb7d-5f94-4cf7-beb6-93aaaeb14448",
+      "category": "FEATURE",
+      "value": "high_availability_(stackwise/vss)",
+      "label": "High Availability (StackWise/VSS)",
+      "assumptions": [
+        "High availability is mandated at the access or distribution layer."
+      ],
+      "constraints": [
+        "Requires specific stacking cables or 10G/40G links; firmware upgrades affect the whole stack."
+      ],
+      "description": "Technologies that allow multiple physical switches to operate as a single logical switch with redundant control planes."
+    },
+    {
+      "id": "b4e4f27c-c749-440b-9a35-38933bf36f21",
+      "category": "FEATURE",
+      "value": "historical_reporting",
+      "label": "Historical Reporting",
+      "assumptions": [
+        "Compliance requirements do not mandate multi-year raw data retention within the dashboard."
+      ],
+      "constraints": [
+        "Typically capped at 30 to 90 days depending on the specific metric and licensing."
+      ],
+      "description": "Access to past network performance metrics, client usage, and security events."
+    },
+    {
+      "id": "c5f1ee45-dac3-444c-9962-320ca9deb557",
+      "category": "FEATURE",
+      "value": "l2/l3_routing_(ospf,_eigrp,_bgp)",
+      "label": "L2/L3 Routing (OSPF, EIGRP, BGP)",
+      "assumptions": [
+        "Required for a routed-access campus design."
+      ],
+      "constraints": [
+        "Advanced routing features require Network Advantage licensing."
+      ],
+      "description": "Full enterprise routing protocol support for complex campus core and distribution layers."
+    },
+    {
+      "id": "6751d84e-ae21-41e2-bcfd-b79baad0b550",
+      "category": "FEATURE",
+      "value": "label-switched_path_(lsp)",
+      "label": "Label-Switched Path (LSP)",
+      "assumptions": [
+        "Predictability and stability are prioritized over dynamic pathing."
+      ],
+      "constraints": [
+        "Paths are controlled by the carrier, removing granular traffic engineering control from the customer."
+      ],
+      "description": "Traffic is forwarded based on short path labels rather than complex IP routing lookups, ensuring highly predictable paths."
+    },
+    {
+      "id": "89c64422-1a14-4bd9-9a03-4a226da22173",
+      "category": "FEATURE",
+      "value": "local_syslog_&_snmp",
+      "label": "Local Syslog & SNMP",
+      "assumptions": [
+        "Integration with legacy IT monitoring tools is required."
+      ],
+      "constraints": [
+        "SNMP polling is resource-intensive and not real-time."
+      ],
+      "description": "Standard logging and polling mechanisms for network management systems."
+    },
+    {
+      "id": "de74719b-405f-49fd-9b97-b818db819879",
+      "category": "FEATURE",
+      "value": "low_latency_orbit_connectivity",
+      "label": "Low Latency Orbit Connectivity",
+      "assumptions": [
+        "Allows for functional VoIP and interactive application usage, unlike legacy satellite."
+      ],
+      "constraints": [
+        "Latency still spikes during satellite handoffs or heavy network load."
+      ],
+      "description": "Satellites orbit much closer to Earth (approx 550km) than GEO satellites, reducing latency to 40-60ms."
+    },
+    {
+      "id": "72a4ed5b-022c-4ad6-9e0c-de2c59881424",
+      "category": "FEATURE",
+      "value": "managed_ce_router",
+      "label": "Managed CE Router",
+      "assumptions": [
+        "Enterprise prefers a hands-off, fully outsourced WAN routing model."
+      ],
+      "constraints": [
+        "Customer has zero access to configure LAN/WAN interfaces or local routing."
+      ],
+      "description": "Carrier owns, monitors, and configures the router residing at the customer premises."
+    },
+    {
+      "id": "dc222abb-8a4e-4d66-aa6b-707cd31f2fc0",
+      "category": "FEATURE",
+      "value": "managed_provider_edge_router",
+      "label": "Managed Provider Edge Router",
+      "assumptions": [
+        "Customer prefers a managed service model to reduce local IT overhead."
+      ],
+      "constraints": [
+        "Customer lacks administrative access to the edge router."
+      ],
+      "description": "The ISP provides, manages, and monitors the edge router delivering the handoff to the customer."
+    },
+    {
+      "id": "da2aea07-002b-4918-bc33-23f2eabc4af8",
+      "category": "FEATURE",
+      "value": "multi-tenant_controllers",
+      "label": "Multi-Tenant Controllers",
+      "assumptions": [
+        "Customer accepts a SaaS-based management model."
+      ],
+      "constraints": [
+        "Customers cannot dictate controller maintenance windows or host controllers on-premise."
+      ],
+      "description": "Management infrastructure hosted by the vendor and logically partitioned for multiple customers."
+    },
+    {
+      "id": "8ca703b0-37dc-4c68-a5c1-e48809d5e575",
+      "category": "FEATURE",
+      "value": "multicast_support",
+      "label": "Multicast Support",
+      "assumptions": [
+        "Customer runs specialized applications that rely on multicast."
+      ],
+      "constraints": [
+        "Requires complex configuration (PIM/IGMP) between customer and provider."
+      ],
+      "description": "Carrier backbone supports native multicast routing for applications like live video streaming or financial trading data."
+    },
+    {
+      "id": "8b5f5adb-5614-4335-94a9-44f0f5fd3091",
+      "category": "FEATURE",
+      "value": "ospf_v2/v3",
+      "label": "OSPF v2/v3",
+      "assumptions": [
+        "Campus requires dynamic route learning."
+      ],
+      "constraints": [
+        "Requires Advanced licensing and specific hardware models; does not support BGP."
+      ],
+      "description": "Support for Open Shortest Path First dynamic routing for complex campus environments."
+    },
+    {
+      "id": "34f3a2a1-0ed8-4dc7-9dfc-5fa1e929c5c3",
+      "category": "FEATURE",
+      "value": "out-of-the-box_location_analytics",
+      "label": "Out-of-the-box Location Analytics",
+      "assumptions": [
+        "Retail or hospitality environments seeking basic visitor trends."
+      ],
+      "constraints": [
+        "Accuracy is limited (often 5-10 meters) and impacted by modern smartphone MAC randomization."
+      ],
+      "description": "Provides presence analytics, capture rates, and dwell times based on wireless probe requests."
+    },
+    {
+      "id": "a1907469-17ab-4dc0-a66a-fbad171b3e41",
+      "category": "FEATURE",
+      "value": "pooled_data_plans",
+      "label": "Pooled Data Plans",
+      "assumptions": [
+        "Enterprise deploys dozens or hundreds of cellular backup connections."
+      ],
+      "constraints": [
+        "Requires managing data usage globally to avoid massive fleet-wide overage penalties."
+      ],
+      "description": "Data allowances are shared across all 5G devices in the enterprise fleet to prevent overage charges on single high-use sites."
+    },
+    {
+      "id": "635a8fe9-6959-4e86-9fb3-75488a2841db",
+      "category": "FEATURE",
+      "value": "priority_routing/data_tiers",
+      "label": "Priority Routing/Data Tiers",
+      "assumptions": [
+        "Customer requires consistent performance during peak regional usage hours."
+      ],
+      "constraints": [
+        "Throughput is still subject to the physical capacity of the satellite currently overhead."
+      ],
+      "description": "Enterprise plans provide higher priority on the shared satellite network over residential users."
+    },
+    {
+      "id": "1eb292f2-4578-479b-b3e5-a0d326e4e376",
+      "category": "FEATURE",
+      "value": "private_carrier_backbone_routing",
+      "label": "Private Carrier Backbone Routing",
+      "assumptions": [
+        "Customer mandates total isolation for security or compliance reasons."
+      ],
+      "constraints": [
+        "Sites can only communicate with other sites on the same provider's MPLS network unless complex NNI (Network-to-Network Interfaces) are built."
+      ],
+      "description": "Traffic is routed over a service provider's private infrastructure, completely separated from the public internet."
+    },
+    {
+      "id": "f13be40b-1ac3-46cd-bc9f-f4677e89d4a0",
+      "category": "FEATURE",
+      "value": "qos_-_shaping",
+      "label": "QOS - Shaping",
+      "assumptions": [
+        "Standard enterprise traffic classes (Voice, Video, Data) fit within predefined capabilities."
+      ],
+      "constraints": [
+        "Shaping capabilities are limited compared to complex modular QoS (MQC) on traditional routers."
+      ],
+      "description": "Allocates bandwidth and prioritizes critical application traffic over bulk traffic."
+    },
+    {
+      "id": "8401c46c-7ddc-4a95-b93d-74f4cafc3179",
+      "category": "FEATURE",
+      "value": "qos_-_shaping_&_granular_traffic_engineering",
+      "label": "QOS - Shaping & Granular Traffic Engineering",
+      "assumptions": [
+        "Customer runs multiple latency-sensitive applications demanding strict prioritization."
+      ],
+      "constraints": [
+        "Complex to design and deploy effectively across a diverse WAN fabric."
+      ],
+      "description": "Highly granular QoS capabilities using Modular QoS CLI (MQC) logic, applying advanced queuing and shaping algorithms."
+    },
+    {
+      "id": "fab18b16-0ed1-4416-88ea-5b6c14e3be09",
+      "category": "FEATURE",
+      "value": "real-time_performance_monitoring",
+      "label": "Real-time Performance Monitoring",
+      "assumptions": [
+        "Sufficient for daily helpdesk troubleshooting."
+      ],
+      "constraints": [
+        "Historical data retention is limited compared to dedicated analytics platforms."
+      ],
+      "description": "Dashboard visibility into channel utilization, interference, and client connection latency."
+    },
+    {
+      "id": "34d4dbd2-cf76-4757-a7bb-36fd9b728d89",
+      "category": "FEATURE",
+      "value": "rstp_(rapid_spanning_tree_protocol_-_802.1w)",
+      "label": "RSTP (Rapid Spanning Tree Protocol - 802.1w)",
+      "assumptions": [
+        "Topologies include redundant Layer 2 links."
+      ],
+      "constraints": [
+        "Inferior to modern routed access designs in massive enterprise campuses."
+      ],
+      "description": "Provides fast convergence and loop prevention in redundant Layer 2 topologies."
+    },
+    {
+      "id": "57cd2573-8c62-474c-8aa0-1e2c6f8b60f3",
+      "category": "FEATURE",
+      "value": "satellite_dish/terminal",
+      "label": "Satellite Dish/Terminal",
+      "assumptions": [
+        "Site location allows for roof or open-ground installation."
+      ],
+      "constraints": [
+        "Requires secure mounting, power, and absolute line of sight without tree/building obstruction."
+      ],
+      "description": "Motorized or fixed flat-panel antenna that electronically tracks fast-moving LEO satellites."
+    },
+    {
+      "id": "372b69cd-6d32-438a-8821-742934c695e2",
+      "category": "FEATURE",
+      "value": "scheduled_software_upgrade",
+      "label": "Scheduled Software Upgrade",
+      "assumptions": [
+        "Maintenance windows align with organizational downtime policies."
+      ],
+      "constraints": [
+        "Requires devices to be online during the scheduled window to receive the update."
+      ],
+      "description": "Allows administrators to define specific dates and times for automated firmware application."
+    },
+    {
+      "id": "0323d901-5fe7-4b53-ae40-7c0d14cef58e",
+      "category": "FEATURE",
+      "value": "sd-access_fabric_(lisp/vxlan)",
+      "label": "SD-Access Fabric (LISP/VXLAN)",
+      "assumptions": [
+        "Enterprise requires macro-segmentation independent of physical topologies."
+      ],
+      "constraints": [
+        "Requires Cisco Catalyst Center, ISE, and DNA Advantage licensing; complex underlying architecture."
+      ],
+      "description": "Creates a logical overlay network utilizing LISP for the control plane and VXLAN for the data plane, enabling seamless mobility and segmentation."
+    },
+    {
+      "id": "6a85fb07-6343-416a-b4e7-d6d65ea37692",
+      "category": "FEATURE",
+      "value": "seamless_roaming",
+      "label": "Seamless Roaming",
+      "assumptions": [
+        "Users frequently move throughout the facility while on active calls."
+      ],
+      "constraints": [
+        "Requires proper physical overlap between APs (typically 15-20%)."
+      ],
+      "description": "Supports 802.11r/k/v for fast transition between access points without dropping voice or video calls."
+    },
+    {
+      "id": "f9c30016-32e2-4832-ba5e-5ff7b411c016",
+      "category": "FEATURE",
+      "value": "service-side_nat",
+      "label": "Service-Side NAT",
+      "assumptions": [
+        "Site has overlapping IP space that cannot be easily re-IP'd."
+      ],
+      "constraints": [
+        "Can complicate troubleshooting and end-to-end visibility."
+      ],
+      "description": "Translates overlapping internal subnets to unique IP addresses before traversing the VPN."
+    },
+    {
+      "id": "823f8285-8a34-4f67-8f97-454340d4e6fa",
+      "category": "FEATURE",
+      "value": "shared_network_infrastructure",
+      "label": "Shared Network Infrastructure",
+      "assumptions": [
+        "Cost savings are prioritized over guaranteed, dedicated bandwidth."
+      ],
+      "constraints": [
+        "Throughput drops during peak regional usage times."
+      ],
+      "description": "Bandwidth is shared among multiple local businesses or residential nodes on the same provider equipment."
+    },
+    {
+      "id": "af49fb47-61d5-433b-85f9-189b0bc6be11",
+      "category": "FEATURE",
+      "value": "single-band_radio",
+      "label": "Single-Band Radio",
+      "assumptions": [
+        "Extremely cost-sensitive deployment for low-bandwidth IoT only."
+      ],
+      "constraints": [
+        "Severely limits throughput and client capacity; prone to 2.4GHz interference."
+      ],
+      "description": "Entry-level APs providing 2.4GHz or 5GHz connectivity (rare in modern enterprise deployments)."
+    },
+    {
+      "id": "9515830f-01cc-46cd-8ec3-2f81c28e053c",
+      "category": "FEATURE",
+      "value": "sla-backed_latency/delivery",
+      "label": "SLA-Backed Latency/Delivery",
+      "assumptions": [
+        "Application architecture cannot tolerate variable internet-style performance."
+      ],
+      "constraints": [
+        "SLAs are heavily dependent on geographic distance (e.g., transatlantic links inherently have higher latency)."
+      ],
+      "description": "Carrier provides strict contractual guarantees for latency, jitter, and packet delivery across the backbone."
+    },
+    {
+      "id": "500e39b5-ba45-4623-a42a-2ea00609e23f",
+      "category": "FEATURE",
+      "value": "snmp",
+      "label": "SNMP",
+      "assumptions": [
+        "Customer relies on legacy monitoring platforms like SolarWinds or PRTG."
+      ],
+      "constraints": [
+        "Less efficient than modern streaming telemetry."
+      ],
+      "description": "Support for SNMPv2/v3 for polling interface statistics and receiving traps by legacy NMS tools."
+    },
+    {
+      "id": "d0a46ca8-c70e-4769-86c4-02f00b8f93ca",
+      "category": "FEATURE",
+      "value": "static_ip",
+      "label": "Static IP",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "2be3f0b9-c917-4014-ab39-43b74bbb214d",
+      "category": "FEATURE",
+      "value": "static_ip_address",
+      "label": "Static IP Address",
+      "assumptions": [
+        "Required for building consistent SD-WAN tunnels or hosting local services."
+      ],
+      "constraints": [
+        "Usually limits to a single IP or a small /29 block; incurs extra monthly costs."
+      ],
+      "description": "An optional add-on providing a permanent, non-changing public IP address."
+    },
+    {
+      "id": "5fb4aee0-7a1f-4ce5-ba3a-227c5d7d6588",
+      "category": "FEATURE",
+      "value": "static_ip_block_(/29_or_similar)",
+      "label": "Static IP Block (/29 or similar)",
+      "assumptions": [
+        "Required for hosting multiple inbound services, DMZs, or SD-WAN edge nodes."
+      ],
+      "constraints": [
+        "Customer must justify larger IP blocks to regional internet registries (ARIN/RIPE)."
+      ],
+      "description": "Provides a contiguous block of static public IP addresses for enterprise edge routing."
+    },
+    {
+      "id": "ce145598-a9b6-4ba1-9051-3b1eec355fd8",
+      "category": "FEATURE",
+      "value": "static_routes",
+      "label": "Static Routes",
+      "assumptions": [
+        "Routing topology is simple and rarely changes."
+      ],
+      "constraints": [
+        "Does not scale dynamically with network topology changes."
+      ],
+      "description": "Ability to define static routes for Layer 3 switching to local subnets or routers."
+    },
+    {
+      "id": "dd42b4bd-6b2f-4662-8e83-b6f4010168fd",
+      "category": "FEATURE",
+      "value": "streaming_telemetry",
+      "label": "Streaming Telemetry",
+      "assumptions": [
+        "Customer requires instantaneous visibility and proactive assurance."
+      ],
+      "constraints": [
+        "Generates massive amounts of data requiring robust collector infrastructure."
+      ],
+      "description": "Pushes continuous, real-time metrics to Catalyst Center or third-party collectors using gRPC/Netconf."
+    },
+    {
+      "id": "0071ad79-b170-44ce-8868-1e43bba1e652",
+      "category": "FEATURE",
+      "value": "strict_qos_queues_(class_of_service)",
+      "label": "Strict QoS Queues (Class of Service)",
+      "assumptions": [
+        "Voice and video applications require absolute protection against jitter and drops."
+      ],
+      "constraints": [
+        "Customer must carefully map internal QoS to the carrier's specific Class of Service tiers (usually 3 to 5 classes)."
+      ],
+      "description": "Carrier honors QoS tags (DSCP/CoS) across their core, guaranteeing bandwidth for voice and critical data."
+    },
+    {
+      "id": "57181a6c-f917-4f73-bc01-1c0dcbaa3631",
+      "category": "FEATURE",
+      "value": "strict_slas_(uptime,_latency,_packet_delivery)",
+      "label": "Strict SLAs (Uptime, Latency, Packet Delivery)",
+      "assumptions": [
+        "Downtime results in immediate financial loss for the business."
+      ],
+      "constraints": [
+        "Provider must have extensive infrastructure to offer and honor these SLAs."
+      ],
+      "description": "Service Level Agreements guaranteeing 99.99%+ uptime, specific latency maximums, and financial penalties for failure."
+    },
+    {
+      "id": "ff56bce2-8d57-48be-8bb7-baef68cfb62c",
+      "category": "FEATURE",
+      "value": "strong_ike_and_ipsec_encryption",
+      "label": "Strong IKE and IPSEC Encryption",
+      "assumptions": [
+        "Data traverses untrusted public networks (like the internet)."
+      ],
+      "constraints": [
+        "High encryption overhead requires appropriate hardware sizing for edge routers."
+      ],
+      "description": "Utilizes standard IPsec with robust cipher suites (AES-256) to secure data in transit across all transports."
+    },
+    {
+      "id": "2b1e8b06-187e-4b90-b5a6-5db8bda518e0",
+      "category": "FEATURE",
+      "value": "strong_ike_and_ipsec_encryption_(autovpn)",
+      "label": "Strong IKE and IPSEC Encryption (AutoVPN)",
+      "assumptions": [
+        "Devices have unrestricted outbound internet access to the Meraki cloud registry."
+      ],
+      "constraints": [
+        "Proprietary to Meraki; does not natively support dynamic multipoint VPN (DMVPN) to non-Meraki peers."
+      ],
+      "description": "Proprietary technology that dynamically builds IPsec tunnels between Meraki sites without manual crypto configuration."
+    },
+    {
+      "id": "71bda010-0ffa-4c9e-8517-38b48db145d0",
+      "category": "FEATURE",
+      "value": "symmetrical_speeds",
+      "label": "Symmetrical Speeds",
+      "assumptions": [
+        "Customer relies heavily on cloud applications, video conferencing, or off-site backups."
+      ],
+      "constraints": [
+        "None; highly beneficial for enterprise use."
+      ],
+      "description": "Upload bandwidth matches download bandwidth (e.g., 500Mbps up / 500Mbps down)."
+    },
+    {
+      "id": "9f62f4e5-aa02-4861-af68-4bbed909d51d",
+      "category": "FEATURE",
+      "value": "tag-based_vlans_(ieee_802.1q)",
+      "label": "Tag-based VLANs (IEEE 802.1Q)",
+      "assumptions": [
+        "Endpoints require broadcast domain separation."
+      ],
+      "constraints": [
+        "VLAN scaling limits depend on specific MS switch models."
+      ],
+      "description": "Support for standard 802.1Q trunking and access ports for Layer 2 isolation."
+    },
+    {
+      "id": "67e7de21-0db1-4092-b67b-9da174129fc4",
+      "category": "FEATURE",
+      "value": "trustsec_micro-segmentation",
+      "label": "TrustSec Micro-segmentation",
+      "assumptions": [
+        "Customer implements a Zero Trust Network Access (ZTNA) model."
+      ],
+      "constraints": [
+        "Requires comprehensive Cisco ISE deployment and DNA Advantage licensing."
+      ],
+      "description": "Integrates with Cisco ISE to propagate Scalable Group Tags (SGTs) across the SD-WAN fabric for consistent security policies."
+    },
+    {
+      "id": "cf8908d4-91b5-4e13-a654-617afd80c550",
+      "category": "FEATURE",
+      "value": "vendor_hosted_controllers",
+      "label": "Vendor Hosted Controllers",
+      "assumptions": [
+        "Customer prefers reduced on-premise infrastructure footprint."
+      ],
+      "constraints": [
+        "Removes direct back-end control from the customer; reliant on Cisco SLAs for controller uptime."
+      ],
+      "description": "Cisco hosts and maintains the vManage, vSmart, and vBond components in the cloud (AWS/Azure)."
+    },
+    {
+      "id": "cefb2fac-954c-4fcf-a923-c1193d09d9ae",
+      "category": "FEATURE",
+      "value": "vendor_provided_analytics",
+      "label": "Vendor Provided Analytics",
+      "assumptions": [
+        "Sufficient for standard operational visibility without requiring third-party tools."
+      ],
+      "constraints": [
+        "Data retention is limited based on the licensing tier; limited raw data export capabilities."
+      ],
+      "description": "Out-of-the-box telemetry providing visibility into client behavior, top applications, and link health."
+    },
+    {
+      "id": "bdcf84b4-9778-422b-a69e-1511b9634148",
+      "category": "FEATURE",
+      "value": "wi-fi_6e_/_wi-fi_7_support",
+      "label": "Wi-Fi 6E / Wi-Fi 7 Support",
+      "assumptions": [
+        "Deployment in high-capacity venues or for specialized high-bandwidth applications."
+      ],
+      "constraints": [
+        "Requires PoE++ (802.3bt) switching infrastructure; range is significantly shorter on 6GHz."
+      ],
+      "description": "Utilizes 6GHz spectrum (6E) and advanced Multi-Link Operation (Wi-Fi 7) for multi-gigabit wireless speeds."
+    },
+    {
+      "id": "fe4a5e3d-1f1c-403b-9fc6-7203a20967e2",
+      "category": "FEATURE",
+      "value": "wireless_lan_controller_(catalyst_9800_-_local_or_cloud)",
+      "label": "Wireless LAN Controller (Catalyst 9800 - Local or Cloud)",
+      "assumptions": [
+        "Customer requires highly deterministic wireless control and scale."
+      ],
+      "constraints": [
+        "Requires dedicated hardware or virtual appliances; single point of failure if not deployed in HA."
+      ],
+      "description": "IOS-XE based controller that manages AP configuration, RF policies, and client roaming."
+    },
+    {
+      "id": "b9119a78-0c4c-4bdb-8485-dfaded0e25a4",
+      "category": "FEATURE",
+      "value": "zero-touch_provisioning_(via_catalyst_center)",
+      "label": "Zero-Touch Provisioning (via Catalyst Center)",
+      "assumptions": [
+        "Large-scale campus refresh or expansion."
+      ],
+      "constraints": [
+        "Requires pre-configuration in Catalyst Center and DHCP/DNS prerequisites."
+      ],
+      "description": "Plug and Play (PnP) integration allows Catalyst Center to discover and fully provision new switches automatically."
+    },
+    {
+      "id": "38fcdc6a-1fa2-46dd-b1ac-e78487911fad",
+      "category": "FEATURE",
+      "value": "zero-touch_provisioning_(ztp)",
+      "label": "Zero-Touch Provisioning (ZTP)",
+      "assumptions": [
+        "Underlying WAN circuit is active and provides basic DHCP."
+      ],
+      "constraints": [
+        "Requires a DHCP-assigned IP and unfettered outbound internet access on first boot."
+      ],
+      "description": "Devices automatically download configuration templates upon connecting to the internet."
+    },
+    {
+      "id": "b0096a5e-034b-434b-b12a-c83a44a52be3",
+      "category": "FEATURE",
+      "value": "zero_touch_provisioning",
+      "label": "Zero-Touch Provisioning",
+      "assumptions": [],
+      "constraints": [],
+      "description": "test"
+    },
+    {
+      "id": "33173075-867e-4cdb-b6af-e708ea1020e7",
+      "category": "PANEL_ATTACHMENTS",
+      "value": "CONNECTIVITY",
+      "label": "Connectivity",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "da72920e-1c0b-4c19-8310-67f0f9e79594",
+      "category": "PANEL_ATTACHMENTS",
+      "value": "HARDWARE",
+      "label": "Hardware",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "0baa6e0d-05db-4535-a39d-983f68b7d0c3",
+      "category": "PANEL_ATTACHMENTS",
+      "value": "MANAGED_SERVICE",
+      "label": "Managed Service",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "ddd60944-968a-42dc-a8a5-9f5d86a9543e",
+      "category": "PANEL_ATTACHMENTS",
+      "value": "PACKAGE",
+      "label": "Design Package",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "319036fb-1c2a-49bc-95c4-489bb2fd9b1e",
+      "category": "PANEL_ATTACHMENTS",
+      "value": "SERVICE_OPTION",
+      "label": "Service Option",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "72a6b4be-fd5d-4a0c-aa12-065a1254bb59",
+      "category": "PANEL_FEATURES",
+      "value": "CONNECTIVITY",
+      "label": "Connectivity",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "865eca56-3ce0-4bf5-8f95-0a69d55615ad",
+      "category": "PANEL_FEATURES",
+      "value": "HARDWARE",
+      "label": "Hardware",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "c822eb40-3bfd-49b4-bdab-9281d44f044e",
+      "category": "PANEL_FEATURES",
+      "value": "MANAGED_SERVICE",
+      "label": "Managed Service",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "3ab2f9dd-5adb-4599-b1b0-043d51ec8f7d",
+      "category": "PANEL_FEATURES",
+      "value": "SERVICE_OPTION",
+      "label": "Service Option",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "743cb734-5d92-43f4-a554-b46e5d80cb22",
+      "category": "PANEL_PRICING",
+      "value": "CONNECTIVITY",
+      "label": "Connectivity",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "7fa46a50-abdc-46d9-a242-9cc3e00ddba4",
+      "category": "PANEL_PRICING",
+      "value": "HARDWARE",
+      "label": "Hardware",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "25ea18d8-a2a5-448a-831d-2faaf9e544fc",
+      "category": "PANEL_PRICING",
+      "value": "MANAGED_SERVICE",
+      "label": "Managed Service",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "525e7dd4-5ace-442c-946c-027e1975499d",
+      "category": "PANEL_PRICING",
+      "value": "SERVICE_OPTION",
+      "label": "Service Option",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "f00a692d-b38a-4514-8f3e-04adc6bea04a",
+      "category": "PANEL_SERVICE_OPTIONS",
+      "value": "SERVICE_FAMILY",
+      "label": "Service Family",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "3a975242-8846-4eec-99a3-ade1fc93c2b4",
+      "category": "REGION",
+      "value": "midwest",
+      "label": "Midwest US",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "41e4f911-c942-487d-b5bb-d9c933aef688",
+      "category": "REGION",
+      "value": "northeast",
+      "label": "Northeast US",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "9cfa1afd-8f3c-4e93-93b4-222650d455be",
+      "category": "REGION",
+      "value": "southeast",
+      "label": "Southeast US",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "ae279fb5-3db7-48e6-8e4b-33be739a5643",
+      "category": "REGION",
+      "value": "west",
+      "label": "West US",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "6d3392ac-ad13-482d-9cc3-c78ff81c0c11",
+      "category": "SLA",
+      "value": "99.9",
+      "label": "99.9% Uptime",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "63737a22-3ed6-4f0d-8d71-a5f9f69873f3",
+      "category": "SLA",
+      "value": "99.99",
+      "label": "99.99% Uptime",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "db1fe6bb-fdd3-4b7a-9a9c-866fd2406952",
+      "category": "SLA",
+      "value": "best_effort",
+      "label": "Best Effort",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "e4ecc7f2-0067-473e-baf9-eb85e268c6ad",
+      "category": "VENDOR",
+      "value": "cisco_catalyst",
+      "label": "Cisco Catalyst",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    },
+    {
+      "id": "4c5e7b5d-fdfc-415c-a4c5-7ae0969e95c5",
+      "category": "VENDOR",
+      "value": "meraki",
+      "label": "Cisco Meraki",
+      "assumptions": [],
+      "constraints": [],
+      "description": null
+    }
+  ],
+  "catalogItem": [
+    {
+      "id": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "sku": "CONN-BROADBAND",
+      "name": "Business Broadband (fiber)",
+      "type": "CONNECTIVITY",
+      "createdAt": "2026-03-11T23:30:05.346Z",
+      "updatedAt": "2026-03-13T14:19:39.340Z",
+      "configSchema": {},
+      "detailedDescription": "Business-class internet connectivity delivered via broadband fiber. Often provides asymmetrical speeds, suitable for non-business-critical primary internet and secondary internet.",
+      "shortDescription": "Value-conscious, shared infrastructure internet access."
+    },
+    {
+      "id": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "sku": "CONN-DIA",
+      "name": "Dedicated Internet Access (DIA)",
+      "type": "CONNECTIVITY",
+      "createdAt": "2026-03-11T23:30:05.245Z",
+      "updatedAt": "2026-03-13T14:19:41.856Z",
+      "configSchema": {},
+      "detailedDescription": "Internet connectivity delivered over a dedicated fiber circuit with a 1:1 oversubscription ratio. Provides uncontended, symmetrical bandwidth directly from the customer premises to the provider's IP backbone.",
+      "shortDescription": "Dedicated, uncontended internet access."
+    },
+    {
+      "id": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "sku": "CONN-FWA",
+      "name": "Fixed Wireless Access (5G)",
+      "type": "CONNECTIVITY",
+      "createdAt": "2026-03-11T23:30:05.558Z",
+      "updatedAt": "2026-03-13T14:19:44.785Z",
+      "configSchema": null,
+      "detailedDescription": "Wireless internet connectivity utilizing 5G NR and LTE networks. Provides rapid deployment capabilities and physical path diversity from wired terrestrial circuits.",
+      "shortDescription": "Cellular broadband access (5G/LTE)."
+    },
+    {
+      "id": "a54e5217-8fe0-41df-ac37-75df357f54b4",
+      "sku": "CONN-LEO",
+      "name": "LEO Satellite",
+      "type": "CONNECTIVITY",
+      "createdAt": "2026-03-11T23:30:05.659Z",
+      "updatedAt": "2026-03-13T14:19:47.061Z",
+      "configSchema": null,
+      "detailedDescription": "Internet connectivity provided via constellations of Low Earth Orbit satellites. Offers lower latency (~40-60ms) compared to GEO satellites but operates over a shared RF medium and shared ground station backhaul.",
+      "shortDescription": "Low Earth Orbit satellite broadband."
+    },
+    {
+      "id": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "sku": "CONN-MPLS",
+      "name": "MPLS",
+      "type": "CONNECTIVITY",
+      "createdAt": "2026-03-11T23:30:05.448Z",
+      "updatedAt": "2026-03-13T14:19:49.353Z",
+      "configSchema": null,
+      "detailedDescription": "Layer 2.5/Layer 3 VPN technology routing traffic deterministically across a service provider's backbone. Enforces strict Quality of Service (QoS) queues and provides SLA-backed latency and packet delivery guarantees.",
+      "shortDescription": "Multi-Protocol Label Switching private WAN."
+    },
+    {
+      "id": "0cd348f7-ce3b-405e-b2c4-60275e4b1567",
+      "sku": "HW-MX64",
+      "name": "Meraki MX64 Router",
+      "type": "HARDWARE",
+      "createdAt": "2026-03-11T23:30:04.104Z",
+      "updatedAt": "2026-03-11T23:30:04.104Z",
+      "configSchema": null,
+      "detailedDescription": null,
+      "shortDescription": null
+    },
+    {
+      "id": "0c7daab4-e2a1-46bd-9b05-a3b0254547be",
+      "sku": "HW-MX68",
+      "name": "Meraki MX68",
+      "type": "HARDWARE",
+      "createdAt": "2026-03-11T23:30:05.044Z",
+      "updatedAt": "2026-03-11T23:30:05.044Z",
+      "configSchema": null,
+      "detailedDescription": null,
+      "shortDescription": "Small branch SD-WAN appliance"
+    },
+    {
+      "id": "f55fd04a-05f6-4f07-a0bc-886bb281e8f3",
+      "sku": "HW-MX85",
+      "name": "Meraki MX85",
+      "type": "HARDWARE",
+      "createdAt": "2026-03-11T23:30:05.145Z",
+      "updatedAt": "2026-03-11T23:30:05.145Z",
+      "configSchema": null,
+      "detailedDescription": null,
+      "shortDescription": "Medium branch SD-WAN appliance"
+    },
+    {
+      "id": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "sku": "NET-Meraki_wlan",
+      "name": "Meraki WLAN",
+      "type": "MANAGED_SERVICE",
+      "createdAt": "2026-03-13T13:48:47.188Z",
+      "updatedAt": "2026-03-13T14:19:32.857Z",
+      "configSchema": null,
+      "detailedDescription": "Wireless access utilizing Cisco Meraki MR series access points. Features cloud-based centralized management, integrated wireless intrusion prevention (WIPS), out-of-the-box location analytics, and seamless guest access portals.",
+      "shortDescription": "Cloud-managed enterprise wireless architecture."
+    },
+    {
+      "id": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "sku": "PKG-ExpressConnect",
+      "name": "Express connect",
+      "type": "PACKAGE",
+      "createdAt": "2026-03-12T10:42:19.663Z",
+      "updatedAt": "2026-03-13T19:14:31.942Z",
+      "configSchema": {
+        "packageFeatureAssignments": {
+          "2b1e8b06-187e-4b90-b5a6-5db8bda518e0": "REQUIRED",
+          "372b69cd-6d32-438a-8821-742934c695e2": "STANDARD",
+          "5420102b-0045-48ba-b597-d0a8a86bbf26": "OPTIONAL",
+          "742eef8f-d397-4001-ba17-0e52cb63be76": "STANDARD",
+          "7ba7c062-09d2-4b31-ab8e-054795e021d7": "OPTIONAL",
+          "ad0d5b41-7d9f-412e-bc58-57b32dbac623": "STANDARD",
+          "b4e4f27c-c749-440b-9a35-38933bf36f21": "STANDARD",
+          "b5151060-58fa-48ed-920d-6ac078792215": "STANDARD",
+          "bd27b249-0070-43a2-8f12-dfab8cec1093": "STANDARD",
+          "cefb2fac-954c-4fcf-a923-c1193d09d9ae": "REQUIRED",
+          "d052ac6a-9401-4ca0-9a55-6fa38cb5e1c5": "STANDARD",
+          "da2aea07-002b-4918-bc33-23f2eabc4af8": "REQUIRED",
+          "dbdc9ca1-891d-40e6-972f-2218c5840d94": "STANDARD",
+          "f13be40b-1ac3-46cd-bc9f-f4677e89d4a0": "STANDARD",
+          "f48f6ee1-8b77-461d-bf99-d5373d3c67b8": "OPTIONAL",
+          "f9c30016-32e2-4832-ba5e-5ff7b411c016": "OPTIONAL"
+        }
+      },
+      "detailedDescription": "The package support 20 site of less network, Meraki SDWAN ",
+      "shortDescription": "Build for simple 20 site or less network"
+    },
+    {
+      "id": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "sku": "SVC-CATALYST-SDWAN",
+      "name": "Cisco Catalyst SDWAN",
+      "type": "MANAGED_SERVICE",
+      "createdAt": "2026-03-11T23:30:04.418Z",
+      "updatedAt": "2026-03-13T14:19:23.872Z",
+      "configSchema": {
+        "type": "object",
+        "required": [
+          "topology",
+          "vmanageDeployment"
+        ],
+        "properties": {
+          "topology": {
+            "enum": [
+              "hub_spoke",
+              "mesh",
+              "hybrid"
+            ],
+            "type": "string",
+            "title": "Topology",
+            "default": "hub_spoke",
+            "enumLabels": [
+              "Hub & Spoke",
+              "Full Mesh",
+              "Hybrid"
+            ]
+          },
+          "vmanageDeployment": {
+            "enum": [
+              "cloud",
+              "on_prem"
+            ],
+            "type": "string",
+            "title": "vManage Deployment",
+            "default": "cloud",
+            "enumLabels": [
+              "Cloud-Hosted",
+              "On-Premises"
+            ]
+          }
+        }
+      },
+      "detailedDescription": "SD-WAN architecture decoupling control (vSmart), management (vManage), and data planes (Catalyst 8000/vEdge). Supports arbitrary topology creation, forward error correction (FEC), and granular traffic engineering.",
+      "shortDescription": "Enterprise-grade SD-WAN fabric."
+    },
+    {
+      "id": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "sku": "SVC-CISCO-CATALYST-LAN",
+      "name": "Cisco Catalyst LAN",
+      "type": "MANAGED_SERVICE",
+      "createdAt": "2026-03-13T13:33:01.663Z",
+      "updatedAt": "2026-03-13T14:19:29.520Z",
+      "configSchema": null,
+      "detailedDescription": "Campus switching utilizing the Cisco Catalyst 9000 series. Integrates with Cisco Catalyst Center (formerly DNA Center) to support SD-Access fabric overlays (VXLAN/LISP), TrustSec micro-segmentation, and streaming telemetry.",
+      "shortDescription": "ASIC-based enterprise switching infrastructure."
+    },
+    {
+      "id": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "sku": "SVC-CISCO-CATALYST-WLAN",
+      "name": "Cisco Catalyst WLAN",
+      "type": "MANAGED_SERVICE",
+      "createdAt": "2026-03-13T13:33:02.389Z",
+      "updatedAt": "2026-03-13T14:19:36.200Z",
+      "configSchema": null,
+      "detailedDescription": "Wireless access utilizing 802.11ax/be (Wi-Fi 6/6E/7) access points and Catalyst 9800 wireless LAN controllers. Implements CAPWAP tunneling, centralized encryption, and advanced RF resource management.",
+      "shortDescription": "Controller-based enterprise wireless architecture."
+    },
+    {
+      "id": "77fe33c5-529f-4897-b369-6e558edd6436",
+      "sku": "SVC-HW-PLUS",
+      "name": "Hardware Plus",
+      "type": "SERVICE_OPTION",
+      "createdAt": "2026-03-11T23:30:04.628Z",
+      "updatedAt": "2026-03-11T23:30:04.628Z",
+      "configSchema": null,
+      "detailedDescription": null,
+      "shortDescription": "Next-business-day hardware replacement"
+    },
+    {
+      "id": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "sku": "SVC-MERAKI-SDWAN",
+      "name": "Meraki SDWAN",
+      "type": "MANAGED_SERVICE",
+      "createdAt": "2026-03-11T23:30:04.315Z",
+      "updatedAt": "2026-03-13T14:39:41.567Z",
+      "configSchema": {
+        "type": "object",
+        "required": [
+          "topology",
+          "internetBreakout"
+        ],
+        "properties": {
+          "topology": {
+            "enum": [
+              "hub_spoke",
+              "mesh"
+            ],
+            "type": "string",
+            "title": "Topology",
+            "default": "hub_spoke",
+            "enumLabels": [
+              "Hub & Spoke",
+              "Full Mesh"
+            ]
+          },
+          "haEnabled": {
+            "type": "boolean",
+            "title": "High Availability",
+            "default": false,
+            "description": "Deploy redundant appliance at this site"
+          },
+          "internetBreakout": {
+            "enum": [
+              "local",
+              "backhaul",
+              "split_tunnel"
+            ],
+            "type": "string",
+            "title": "Internet Breakout",
+            "default": "local",
+            "enumLabels": [
+              "Local Breakout",
+              "Centralized Backhaul",
+              "Split Tunnel"
+            ]
+          }
+        }
+      },
+      "detailedDescription": "SD-WAN overlay utilizing Meraki MX appliances. Implements AutoVPN for IPsec tunneling, basic dynamic path selection based on latency/jitter/loss metrics, and unified threat management (UTM) via a single-pane-of-glass dashboard.",
+      "shortDescription": "Cloud-managed SD-WAN overlay."
+    },
+    {
+      "id": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "sku": "SVC-MGD-MERAKI-LANM",
+      "name": "Meraki LAN",
+      "type": "MANAGED_SERVICE",
+      "createdAt": "2026-03-12T10:45:59.902Z",
+      "updatedAt": "2026-03-13T14:19:27.231Z",
+      "configSchema": null,
+      "detailedDescription": "Layer 2 and basic Layer 3 Ethernet switching via the Cisco Meraki MS series. Features centralized management, topology mapping, and port configuration via a cloud-hosted controller.",
+      "shortDescription": "Cloud-managed L2/L3 access and aggregation switching."
+    },
+    {
+      "id": "c033f5ab-f051-4040-9ba5-0fd90ea44e78",
+      "sku": "SVC-TOTAL-CARE",
+      "name": "Total Care",
+      "type": "SERVICE_OPTION",
+      "createdAt": "2026-03-11T23:30:04.739Z",
+      "updatedAt": "2026-03-11T23:30:04.739Z",
+      "configSchema": null,
+      "detailedDescription": null,
+      "shortDescription": "Full proactive management and incident response"
+    },
+    {
+      "id": "cc244ec1-cb39-41fa-b54a-0e6dc7227a25",
+      "sku": "SVC-WATCH-ALERT",
+      "name": "Watch & Alert",
+      "type": "SERVICE_OPTION",
+      "createdAt": "2026-03-11T23:30:04.528Z",
+      "updatedAt": "2026-03-11T23:30:04.528Z",
+      "configSchema": null,
+      "detailedDescription": null,
+      "shortDescription": "24/7 Monitoring and basic alerting"
+    }
+  ],
+  "itemConstraint": [
+    {
+      "id": "1c775e45-43e2-4274-95c2-7d3339fae73f",
+      "itemId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "description": "Max 20 sites",
+      "createdAt": "2026-03-13T19:14:32.158Z",
+      "updatedAt": "2026-03-13T19:14:32.158Z"
+    },
+    {
+      "id": "067bd278-8f47-4c28-bb1b-c1d9eba284cd",
+      "itemId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "description": "Higher monthly recurring costs compared to broadband. Installation requires dedicated physical fiber build-outs, often resulting in long delivery lead times (30 to 90+ days).",
+      "createdAt": "2026-03-13T14:19:41.856Z",
+      "updatedAt": "2026-03-13T14:19:41.856Z"
+    },
+    {
+      "id": "23c14751-22b1-4264-93d6-3f4df842e45d",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "description": "Fabric provisioning and advanced telemetry require Cisco DNA Advantage licensing and a dedicated Catalyst Center appliance (on-premise or virtual).",
+      "createdAt": "2026-03-13T14:19:29.520Z",
+      "updatedAt": "2026-03-13T14:19:29.520Z"
+    },
+    {
+      "id": "f11a7b19-9f6c-453c-90a6-53a3e9d99259",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "description": "Performance is susceptible to RF interference, physical attenuation, and channel overlap. Requires stringent RF site surveys and precise AP placement.",
+      "createdAt": "2026-03-13T14:19:36.200Z",
+      "updatedAt": "2026-03-13T14:19:36.200Z"
+    },
+    {
+      "id": "b368044a-7726-46bf-9039-22e82fd48388",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "description": "Throughput and tunnel scale are hardware-bound. Advanced security features require specific licensing tiers. Lacks advanced routing protocol manipulation and granular traffic engineering compared to traditional enterprise routers.",
+      "createdAt": "2026-03-13T14:19:18.814Z",
+      "updatedAt": "2026-03-13T14:19:18.814Z"
+    },
+    {
+      "id": "9c84a91b-6c19-4127-986f-53c2503ba034",
+      "itemId": "a54e5217-8fe0-41df-ac37-75df357f54b4",
+      "description": "Requires a completely unobstructed line of sight to the sky. Susceptible to atmospheric attenuation (rain fade) and variable throughput depending on satellite passings and regional user density.",
+      "createdAt": "2026-03-13T14:19:47.061Z",
+      "updatedAt": "2026-03-13T14:19:47.061Z"
+    },
+    {
+      "id": "ef976b3c-4102-4244-a02a-39d0c6e363a2",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "description": "Architectural complexity requiring dedicated control plane infrastructure. Requires specialized training for policy creation, troubleshooting, and certificate management.",
+      "createdAt": "2026-03-13T14:19:23.872Z",
+      "updatedAt": "2026-03-13T14:19:23.872Z"
+    },
+    {
+      "id": "8dc6b72e-1575-4302-96d6-1ca863a90f95",
+      "itemId": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "description": "Delivered over shared infrastructure where performance fluctuates based on localized network congestion, leading to variable 'best-effort' throughput and latency (often lower upload speeds). Lacks stringent Service Level Agreements (SLAs) for uptime, jitter, or packet delivery.",
+      "createdAt": "2026-03-13T14:19:39.340Z",
+      "updatedAt": "2026-03-13T14:19:39.340Z"
+    },
+    {
+      "id": "e4262048-582f-41e2-b5fc-9033ec1a61c2",
+      "itemId": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "description": "Throughput and latency are variable, modulated by RF signal propagation, atmospheric attenuation, cell tower congestion, and distance to the gNodeB.",
+      "createdAt": "2026-03-13T14:19:44.785Z",
+      "updatedAt": "2026-03-13T14:19:44.785Z"
+    },
+    {
+      "id": "b1cd6598-65ee-4605-bfca-cca99369ab26",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "description": "Configuration pushes and monitoring require active internet connectivity to the Meraki dashboard. The control plane is cloud-dependent for dynamic updates.",
+      "createdAt": "2026-03-13T14:19:27.231Z",
+      "updatedAt": "2026-03-13T14:19:27.231Z"
+    },
+    {
+      "id": "84aefd86-9799-47ad-97c2-1886d0eadcd6",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "description": "Higher cost per Mbps relative to internet transport. Rigid, static architecture with long provisioning lead times and complex integration requirements for direct-to-cloud (SaaS) traffic flows.",
+      "createdAt": "2026-03-13T14:19:49.353Z",
+      "updatedAt": "2026-03-13T14:19:49.353Z"
+    },
+    {
+      "id": "2fdf8e6f-5903-4a0f-b271-e9f8ae0c5419",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "description": "Performance is susceptible to RF interference, physical attenuation, and channel overlap. Control plane, telemetry, and configuration updates require active internet connectivity to the Meraki dashboard.",
+      "createdAt": "2026-03-13T14:19:32.857Z",
+      "updatedAt": "2026-03-13T14:19:32.857Z"
+    }
+  ],
+  "itemAssumption": [
+    {
+      "id": "451c732a-d7eb-4952-b8dd-210d70b30fd1",
+      "itemId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "description": "Required for mission-critical sites, large SD-WAN hubs, and environments hosting inbound services where guaranteed throughput and strict SLAs are mandatory.",
+      "createdAt": "2026-03-13T14:19:41.856Z",
+      "updatedAt": "2026-03-13T14:19:41.856Z"
+    },
+    {
+      "id": "3e933963-1baf-40f3-b669-00ec29a548c9",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "description": "Deployed in environments requiring programmatic network fabrics, scalable segmentation, and high-availability hardware architectures.",
+      "createdAt": "2026-03-13T14:19:29.520Z",
+      "updatedAt": "2026-03-13T14:19:29.520Z"
+    },
+    {
+      "id": "8c512711-30a4-45b9-9b12-e43d2e59a538",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "description": "Underlying wired LAN provides adequate PoE/PoE+ power budgets and sufficient uplink bandwidth to support high-density wireless traffic.",
+      "createdAt": "2026-03-13T14:19:36.200Z",
+      "updatedAt": "2026-03-13T14:19:36.200Z"
+    },
+    {
+      "id": "5493363d-f9d1-4778-8b02-477eac0218e3",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "description": "Customer provides underlying IP transport. Out-of-band telemetry and control plane require continuous reachability to the Meraki cloud.",
+      "createdAt": "2026-03-13T14:19:18.814Z",
+      "updatedAt": "2026-03-13T14:19:18.814Z"
+    },
+    {
+      "id": "b5b7d894-7e25-499e-b22a-85a7e1a4b893",
+      "itemId": "a54e5217-8fe0-41df-ac37-75df357f54b4",
+      "description": "Utilized primarily as an out-of-band management link, diverse backup path, or primary connection in geographic areas lacking terrestrial infrastructure.",
+      "createdAt": "2026-03-13T14:19:47.061Z",
+      "updatedAt": "2026-03-13T14:19:47.061Z"
+    },
+    {
+      "id": "10d9fb23-9169-461a-995d-336622799b64",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "description": "Targeted at large-scale deployments requiring complex routing (BGP/OSPF redistribution), strict micro-segmentation, and multi-cloud integration.",
+      "createdAt": "2026-03-13T14:19:23.872Z",
+      "updatedAt": "2026-03-13T14:19:23.872Z"
+    },
+    {
+      "id": "deae92c0-76da-43e2-add4-6c87db1f270b",
+      "itemId": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "description": "Customer's physical location can be connected to provider fiber infrastructure.",
+      "createdAt": "2026-03-13T14:19:39.340Z",
+      "updatedAt": "2026-03-13T14:19:39.340Z"
+    },
+    {
+      "id": "63baa1f8-de50-4abf-8335-230248afe175",
+      "itemId": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "description": "Adequate cellular signal strength (RSRP/RSRQ) is available at the installation point. Often subject to carrier data caps or bandwidth throttling.",
+      "createdAt": "2026-03-13T14:19:44.785Z",
+      "updatedAt": "2026-03-13T14:19:44.785Z"
+    },
+    {
+      "id": "0e597cea-5b70-47c8-8ebd-bd7a65cda6f1",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "description": "Local network topology supports out-of-band management access to the internet. Connected endpoints conform to the switch's available PoE budget.",
+      "createdAt": "2026-03-13T14:19:27.231Z",
+      "updatedAt": "2026-03-13T14:19:27.231Z"
+    },
+    {
+      "id": "c0b68856-3df9-4dac-9b3f-21cd07c34f73",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "description": "Required for legacy latency-sensitive applications or core data center interconnects where deterministic routing is an absolute mandate.",
+      "createdAt": "2026-03-13T14:19:49.353Z",
+      "updatedAt": "2026-03-13T14:19:49.353Z"
+    },
+    {
+      "id": "e2758cd4-63eb-4c41-8cf3-6b6f4e17130c",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "description": "Underlying wired LAN provides sufficient PoE/PoE+ power budgets and uplink bandwidth to support high-density wireless traffic. Local topology allows APs to reach the cloud dashboard.",
+      "createdAt": "2026-03-13T14:19:32.857Z",
+      "updatedAt": "2026-03-13T14:19:32.857Z"
+    }
+  ],
+  "itemCollateral": [
+    {
+      "id": "ab1ce9d6-2315-45f4-85fc-14699541dce2",
+      "itemId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "title": "test ",
+      "documentUrl": "https://www.datacamp.com/fr/blog/codex-vs-claude-code",
+      "type": "LINK",
+      "createdAt": "2026-03-13T19:14:32.475Z",
+      "updatedAt": "2026-03-13T19:14:32.475Z"
+    }
+  ],
+  "itemAttribute": [
+    {
+      "id": "137f4090-9ce6-468e-a39f-839acf9b6d20",
+      "itemId": "0c7daab4-e2a1-46bd-9b05-a3b0254547be",
+      "taxonomyTermId": "4c5e7b5d-fdfc-415c-a4c5-7ae0969e95c5"
+    },
+    {
+      "id": "07c9a035-728e-411e-a539-5b283ca182e4",
+      "itemId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "taxonomyTermId": "1cd594b4-dba6-4da9-9f4e-52c5b7665fda"
+    },
+    {
+      "id": "d7368617-cadb-4be4-91f2-1d120511392d",
+      "itemId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "taxonomyTermId": "2bba147c-42cf-4471-9274-c52c328b658f"
+    },
+    {
+      "id": "0592807a-6a9a-4def-a878-ffa5729f5485",
+      "itemId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "taxonomyTermId": "57181a6c-f917-4f73-bc01-1c0dcbaa3631"
+    },
+    {
+      "id": "2904da48-8c21-42ee-aa5e-9276a164a694",
+      "itemId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "taxonomyTermId": "59a8c8c2-a503-439a-b7ec-55dbe249c394"
+    },
+    {
+      "id": "29db6168-095a-4446-8c89-b841cd7825b5",
+      "itemId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "taxonomyTermId": "5fb4aee0-7a1f-4ce5-ba3a-227c5d7d6588"
+    },
+    {
+      "id": "107f8e63-7145-402b-81e4-b915b9d8d252",
+      "itemId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "taxonomyTermId": "71bda010-0ffa-4c9e-8517-38b48db145d0"
+    },
+    {
+      "id": "cf353598-3646-4c56-b89e-8150036237be",
+      "itemId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "taxonomyTermId": "dc222abb-8a4e-4d66-aa6b-707cd31f2fc0"
+    },
+    {
+      "id": "97d28557-6f40-43b8-b8eb-c7190f171b2b",
+      "itemId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "taxonomyTermId": "de94c4be-b87e-4198-ade5-faa53b1d29b3"
+    },
+    {
+      "id": "aedcd3ad-56eb-433c-9b96-7fb80c9054d6",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "0323d901-5fe7-4b53-ae40-7c0d14cef58e"
+    },
+    {
+      "id": "4a0501f9-b6d5-43f5-8344-87a6edd2c688",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "0abb25c4-099d-4ed0-bd51-c1b595aba114"
+    },
+    {
+      "id": "a391b8fc-088e-4433-97c2-f523b5c68599",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "1ad4cb7d-5f94-4cf7-beb6-93aaaeb14448"
+    },
+    {
+      "id": "b1e59bf8-6815-41ff-b51d-8da4a8aeadf0",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "2dfcac30-53a7-48d7-ad06-d3af24af4fa4"
+    },
+    {
+      "id": "fe9813d2-6dcb-40a4-bdf5-fe583a1d0b9b",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "67e7de21-0db1-4092-b67b-9da174129fc4"
+    },
+    {
+      "id": "93a1b23c-5cf0-4473-a134-5764d455004e",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "868ce1be-7ad1-480d-92fc-3e79d4e1c538"
+    },
+    {
+      "id": "032479bc-dd3a-4e49-820e-97122eab2974",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "89c64422-1a14-4bd9-9a03-4a226da22173"
+    },
+    {
+      "id": "f3b8957c-28f1-4136-9412-be898aaeb171",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "9f62f4e5-aa02-4861-af68-4bbed909d51d"
+    },
+    {
+      "id": "201f85e9-6723-43a6-bf95-6d4f8d07ca9c",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "b9119a78-0c4c-4bdb-8485-dfaded0e25a4"
+    },
+    {
+      "id": "1caadcfa-bcce-481a-b009-7937bc7b6670",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "ba5dcb97-1e9d-4c9a-839a-123f82f2a728"
+    },
+    {
+      "id": "5b8b0306-9057-4331-a0e2-6f7edf7e7e27",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "c5f1ee45-dac3-444c-9962-320ca9deb557"
+    },
+    {
+      "id": "d1d38157-e9c4-4025-9912-bc292169d03b",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "taxonomyTermId": "dd42b4bd-6b2f-4662-8e83-b6f4010168fd"
+    },
+    {
+      "id": "81d71bb5-13a7-433b-9be6-c63821030628",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "taxonomyTermId": "1cfa090f-bf93-45db-9291-0032fa5605ff"
+    },
+    {
+      "id": "d11022fe-556b-4a02-8d48-b33f64023608",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "taxonomyTermId": "2b7924a9-28da-457e-ac8c-3aece7fa252c"
+    },
+    {
+      "id": "14d4228c-8aab-4128-b84a-fb2660a841af",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "taxonomyTermId": "2cb2d485-5fc7-4ca8-aa9e-c38de6f1f6db"
+    },
+    {
+      "id": "b3f2a386-accb-49c8-b6f0-910938cc1a00",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "taxonomyTermId": "57ef458f-ddfe-4448-9626-d69a7ae29c6a"
+    },
+    {
+      "id": "1877cfac-dd40-41b7-991c-fd7adb76e5c1",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "taxonomyTermId": "6a85fb07-6343-416a-b4e7-d6d65ea37692"
+    },
+    {
+      "id": "51ed26f3-a86b-41a3-ad7a-7a7b9eb63c6d",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "taxonomyTermId": "71129072-9133-4e1d-8b98-a11042fac77c"
+    },
+    {
+      "id": "dd53a3e1-3c93-4a20-a339-a9900abb6589",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "taxonomyTermId": "bdcf84b4-9778-422b-a69e-1511b9634148"
+    },
+    {
+      "id": "b07eb253-afd9-4198-a132-4420d79ec6a3",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "taxonomyTermId": "c044cda2-fb32-4d17-8c85-4eb80711e574"
+    },
+    {
+      "id": "3fcc61d8-abaa-49ca-b3f6-9b7f9d1b239b",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "taxonomyTermId": "c30305a0-5e41-49ac-9a1e-b854a3c4bca4"
+    },
+    {
+      "id": "7082beba-6868-44af-a74f-3ace984875f0",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "taxonomyTermId": "fab18b16-0ed1-4416-88ea-5b6c14e3be09"
+    },
+    {
+      "id": "237a8be5-c2c9-4794-a74a-60b8346663c5",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "taxonomyTermId": "fe4a5e3d-1f1c-403b-9fc6-7203a20967e2"
+    },
+    {
+      "id": "a10caf94-4fbd-4e10-bd80-3ff35b29afbf",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "2b1e8b06-187e-4b90-b5a6-5db8bda518e0"
+    },
+    {
+      "id": "d88b7e37-aeb7-4873-b00b-25797b923ef4",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "372b69cd-6d32-438a-8821-742934c695e2"
+    },
+    {
+      "id": "9bc37a88-1b6a-4d13-90d8-fcf93d4bc6a9",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "38fcdc6a-1fa2-46dd-b1ac-e78487911fad"
+    },
+    {
+      "id": "e7e99f76-1d6b-4cef-9e4f-5d0f4a7e1adb",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "3a975242-8846-4eec-99a3-ade1fc93c2b4"
+    },
+    {
+      "id": "0be0d3ab-139f-4c18-bf92-e9b841726e91",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "41e4f911-c942-487d-b5bb-d9c933aef688"
+    },
+    {
+      "id": "4b28e22b-8682-4dc6-b462-c004f9d623e7",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "4970b4bc-d31e-40ef-b251-74b982e41d8f"
+    },
+    {
+      "id": "ca3ea66e-35a9-4b2a-94eb-886c230f96c0",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "4c5e7b5d-fdfc-415c-a4c5-7ae0969e95c5"
+    },
+    {
+      "id": "f6b7f023-a8d4-4e9f-9661-6830bdf440c2",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "5420102b-0045-48ba-b597-d0a8a86bbf26"
+    },
+    {
+      "id": "c82eb7c2-f49c-4e04-872f-b3a864c2c172",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "63737a22-3ed6-4f0d-8d71-a5f9f69873f3"
+    },
+    {
+      "id": "92d0f088-8013-4120-b6d3-de022f6f169a",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "742eef8f-d397-4001-ba17-0e52cb63be76"
+    },
+    {
+      "id": "d5b2ad1b-b84b-40b0-9fce-59d20307e312",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "7ba7c062-09d2-4b31-ab8e-054795e021d7"
+    },
+    {
+      "id": "50cfa354-609a-49a6-98d4-418cf810425c",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "919f2871-6b66-44fe-8eac-74ac9f56f9f4"
+    },
+    {
+      "id": "4d06afc5-6a0e-405c-a5c5-b4887ccdac9f",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "9cfa1afd-8f3c-4e93-93b4-222650d455be"
+    },
+    {
+      "id": "9ccc4be2-c4d6-4973-96fc-4344ead73ff6",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "ad0d5b41-7d9f-412e-bc58-57b32dbac623"
+    },
+    {
+      "id": "80e56a62-00f3-4902-bb11-68ff7fceef21",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "ae279fb5-3db7-48e6-8e4b-33be739a5643"
+    },
+    {
+      "id": "6e039656-1f99-464c-aed7-d94dcfaf52b6",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "b4e4f27c-c749-440b-9a35-38933bf36f21"
+    },
+    {
+      "id": "cdcdf138-aac8-460b-829e-c4827a518eff",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "b5151060-58fa-48ed-920d-6ac078792215"
+    },
+    {
+      "id": "f2507140-da16-40bc-a4a7-40a6b74480ce",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "bd27b249-0070-43a2-8f12-dfab8cec1093"
+    },
+    {
+      "id": "04659728-f64e-45b8-8aee-db8343723b6c",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "cefb2fac-954c-4fcf-a923-c1193d09d9ae"
+    },
+    {
+      "id": "aff46701-94ba-4bcc-8951-647bffd82201",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "d052ac6a-9401-4ca0-9a55-6fa38cb5e1c5"
+    },
+    {
+      "id": "ecc2290e-46fb-4fa9-91c6-280dc1da6359",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "da2aea07-002b-4918-bc33-23f2eabc4af8"
+    },
+    {
+      "id": "363ae3a6-00f0-4043-973b-5c6c054ea2ee",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "dbdc9ca1-891d-40e6-972f-2218c5840d94"
+    },
+    {
+      "id": "7b8bc304-b490-4f97-bcc2-c3502308c876",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "f13be40b-1ac3-46cd-bc9f-f4677e89d4a0"
+    },
+    {
+      "id": "f3199a7b-242a-4cc9-9cfa-24cf924bfca5",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "f48f6ee1-8b77-461d-bf99-d5373d3c67b8"
+    },
+    {
+      "id": "1c641716-cf0d-4a1c-a9c5-1c4ffc3579b8",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "taxonomyTermId": "f9c30016-32e2-4832-ba5e-5ff7b411c016"
+    },
+    {
+      "id": "a4d8a002-e6e8-40c0-9716-a5017fade669",
+      "itemId": "a54e5217-8fe0-41df-ac37-75df357f54b4",
+      "taxonomyTermId": "28f4703d-7d78-4c45-9704-cf5316f00658"
+    },
+    {
+      "id": "c8b3856c-cbf5-4b7c-a7b5-2e7155e0d3dd",
+      "itemId": "a54e5217-8fe0-41df-ac37-75df357f54b4",
+      "taxonomyTermId": "2be3f0b9-c917-4014-ab39-43b74bbb214d"
+    },
+    {
+      "id": "10df2e05-603b-4f41-a146-d67e26f67938",
+      "itemId": "a54e5217-8fe0-41df-ac37-75df357f54b4",
+      "taxonomyTermId": "57cd2573-8c62-474c-8aa0-1e2c6f8b60f3"
+    },
+    {
+      "id": "d2eeb8db-d5d1-4da2-819c-b3cad8ffa5d6",
+      "itemId": "a54e5217-8fe0-41df-ac37-75df357f54b4",
+      "taxonomyTermId": "635a8fe9-6959-4e86-9fb3-75488a2841db"
+    },
+    {
+      "id": "1b776f64-6329-4ba4-bbb2-66e7919d4899",
+      "itemId": "a54e5217-8fe0-41df-ac37-75df357f54b4",
+      "taxonomyTermId": "a56ae142-e004-4de3-b98a-af754470644a"
+    },
+    {
+      "id": "e1108225-21c4-44ad-984f-4a347207c6bb",
+      "itemId": "a54e5217-8fe0-41df-ac37-75df357f54b4",
+      "taxonomyTermId": "cfa758b0-0ad0-4d3c-8960-7653ae2b5c2c"
+    },
+    {
+      "id": "eff29ad1-e5a5-4c2f-959f-f50c9cb51a4f",
+      "itemId": "a54e5217-8fe0-41df-ac37-75df357f54b4",
+      "taxonomyTermId": "de74719b-405f-49fd-9b97-b818db819879"
+    },
+    {
+      "id": "98f98aea-9bdb-46fd-ace1-eca54b0e773b",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "38fcdc6a-1fa2-46dd-b1ac-e78487911fad"
+    },
+    {
+      "id": "53adc8d2-4c27-447c-a2cf-fea779d926b9",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "3a975242-8846-4eec-99a3-ade1fc93c2b4"
+    },
+    {
+      "id": "7ed2ec6e-bea2-4437-8c6b-f5dfc795d686",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "405634a0-812f-4bf8-aa0e-f587db89f1c7"
+    },
+    {
+      "id": "329bd440-df8b-4cc6-bb32-d3465be9e0ee",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "41e4f911-c942-487d-b5bb-d9c933aef688"
+    },
+    {
+      "id": "bba5768e-ecc9-4f9f-9f00-9b40b2ca867a",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "500e39b5-ba45-4623-a42a-2ea00609e23f"
+    },
+    {
+      "id": "5e46df20-9660-4c3c-bafa-a584dfa5f04c",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "5420102b-0045-48ba-b597-d0a8a86bbf26"
+    },
+    {
+      "id": "08f50e5e-9ef5-47e8-9a9e-f8bcbeb3a21b",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "67e7de21-0db1-4092-b67b-9da174129fc4"
+    },
+    {
+      "id": "b3fcd0a3-b9d7-4754-aa23-3add0ec6ed4e",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "6d3392ac-ad13-482d-9cc3-c78ff81c0c11"
+    },
+    {
+      "id": "a1ffdff7-705a-4c51-9167-6c6a76e4d6fe",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "70a2acdc-99b2-4047-8d86-ecdff8d05f1f"
+    },
+    {
+      "id": "8c3a40ab-7d88-42eb-b86b-e671852d89e6",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "7ba7c062-09d2-4b31-ab8e-054795e021d7"
+    },
+    {
+      "id": "b3544e21-cc1c-409f-bc78-796d81b50129",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "8401c46c-7ddc-4a95-b93d-74f4cafc3179"
+    },
+    {
+      "id": "866601bc-8756-4b74-b07a-af4cbd671cf2",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "8c5e34f0-9ea5-4cde-8f44-25cbf7e3a068"
+    },
+    {
+      "id": "e789b3e6-d6df-4f8a-896b-32ac52d16c9d",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "ad0d5b41-7d9f-412e-bc58-57b32dbac623"
+    },
+    {
+      "id": "7418b2e3-8c5a-4fff-8ca9-d0b2ca71a8bc",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "b4e4f27c-c749-440b-9a35-38933bf36f21"
+    },
+    {
+      "id": "451d8cb5-d3e9-45ea-87f7-5126aa8a5a87",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "b5151060-58fa-48ed-920d-6ac078792215"
+    },
+    {
+      "id": "2cf7bc02-5aae-4687-933c-7cba7c52d972",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "bab8ff34-b665-480f-8215-93215112798c"
+    },
+    {
+      "id": "1715272e-2c3d-4167-b06d-cf4be1bb6a27",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "bd27b249-0070-43a2-8f12-dfab8cec1093"
+    },
+    {
+      "id": "0232b0fe-c995-4695-89d0-6f91a041dbb7",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "cf8908d4-91b5-4e13-a654-617afd80c550"
+    },
+    {
+      "id": "9065bf3a-b984-4d81-b4ef-0d903932c8ab",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "d052ac6a-9401-4ca0-9a55-6fa38cb5e1c5"
+    },
+    {
+      "id": "689e4232-e8ef-47a9-915e-ed60e81a8688",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "dbdc9ca1-891d-40e6-972f-2218c5840d94"
+    },
+    {
+      "id": "b94896c0-6ab7-4fbb-9bd4-4d1694c3c269",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "e4ecc7f2-0067-473e-baf9-eb85e268c6ad"
+    },
+    {
+      "id": "4c906cfa-1314-4a56-8619-14f8cd6af1f9",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "f48f6ee1-8b77-461d-bf99-d5373d3c67b8"
+    },
+    {
+      "id": "15c051de-833b-41f7-b4f1-0cbb3fb9ff33",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "f9c30016-32e2-4832-ba5e-5ff7b411c016"
+    },
+    {
+      "id": "a792452a-5134-47e5-8238-bcfc90fed319",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "taxonomyTermId": "ff56bce2-8d57-48be-8bb7-baef68cfb62c"
+    },
+    {
+      "id": "18d3f61a-0d9b-4bb0-bd91-f18c07149ffd",
+      "itemId": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "taxonomyTermId": "28f4703d-7d78-4c45-9704-cf5316f00658"
+    },
+    {
+      "id": "13b0b76e-30d6-4389-9192-9f25d8842883",
+      "itemId": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "taxonomyTermId": "2be3f0b9-c917-4014-ab39-43b74bbb214d"
+    },
+    {
+      "id": "7703d5ec-80ca-457a-a606-6b0958266fdd",
+      "itemId": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "taxonomyTermId": "4fd391ac-d226-44b3-9aaa-4d64c6b334d0"
+    },
+    {
+      "id": "d995fc74-8fe3-45d6-8179-f07af5b875c3",
+      "itemId": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "taxonomyTermId": "823f8285-8a34-4f67-8f97-454340d4e6fa"
+    },
+    {
+      "id": "525ff263-f2b0-4f1f-ac3d-b0060ba5487a",
+      "itemId": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "taxonomyTermId": "db1fe6bb-fdd3-4b7a-9a9c-866fd2406952"
+    },
+    {
+      "id": "e2ab52bd-09a3-443c-8113-8e4d071c54c8",
+      "itemId": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "taxonomyTermId": "fe58d15d-1551-4b0e-b7ac-c4daae8edf1a"
+    },
+    {
+      "id": "7a4d9ba2-31af-44f6-9035-d4a69b78b4e9",
+      "itemId": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "taxonomyTermId": "ff049032-39b2-44ea-a88e-4174e9b9b4e4"
+    },
+    {
+      "id": "55aaa7e9-1a9e-431b-a00a-8635d8ee56ff",
+      "itemId": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "taxonomyTermId": "052b4e66-b109-4b2e-abfe-98957100e4bc"
+    },
+    {
+      "id": "d33f2e2a-b830-435a-8587-7ab9d9df5c04",
+      "itemId": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "taxonomyTermId": "28f4703d-7d78-4c45-9704-cf5316f00658"
+    },
+    {
+      "id": "e2369c1f-11dd-4979-bc05-930b4955deaa",
+      "itemId": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "taxonomyTermId": "2be3f0b9-c917-4014-ab39-43b74bbb214d"
+    },
+    {
+      "id": "9e811354-db72-4377-8051-ed4b4c9ebc76",
+      "itemId": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "taxonomyTermId": "3345d16a-abbb-4249-9aae-42696be3ca47"
+    },
+    {
+      "id": "87d58a9c-dbaa-4ce1-bdbc-627bc1330bf9",
+      "itemId": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "taxonomyTermId": "547295f9-0022-410e-833a-07477cebbff8"
+    },
+    {
+      "id": "b0440995-47a8-41fb-a325-729a3124e841",
+      "itemId": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "taxonomyTermId": "6194d808-506b-4f1b-87c9-3fcfec84f133"
+    },
+    {
+      "id": "4d270928-bd6e-4613-97e1-a0897e3d0b02",
+      "itemId": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "taxonomyTermId": "a1907469-17ab-4dc0-a66a-fbad171b3e41"
+    },
+    {
+      "id": "991d76af-041f-453c-ab6e-cabab18fa3a2",
+      "itemId": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "taxonomyTermId": "ff049032-39b2-44ea-a88e-4174e9b9b4e4"
+    },
+    {
+      "id": "1b6b2acd-4491-46ea-902d-f0e7592dfb49",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "34d4dbd2-cf76-4757-a7bb-36fd9b728d89"
+    },
+    {
+      "id": "96fd2742-e520-4408-b469-cdf17b19553d",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "372b69cd-6d32-438a-8821-742934c695e2"
+    },
+    {
+      "id": "dd585db9-abf7-4281-bef7-9d2f3960c5a7",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "38fcdc6a-1fa2-46dd-b1ac-e78487911fad"
+    },
+    {
+      "id": "27f52f93-8302-4c81-b356-1988573ebbd4",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "5420102b-0045-48ba-b597-d0a8a86bbf26"
+    },
+    {
+      "id": "20f29ca4-e484-4461-b61d-8171b9983340",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "742eef8f-d397-4001-ba17-0e52cb63be76"
+    },
+    {
+      "id": "d6c48233-c730-4213-935d-a4232d7c0a10",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "7ba7c062-09d2-4b31-ab8e-054795e021d7"
+    },
+    {
+      "id": "8d23c825-6c8e-4ce3-aa9b-24d1188ee3e7",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "8b5f5adb-5614-4335-94a9-44f0f5fd3091"
+    },
+    {
+      "id": "d663dca8-567d-4133-a571-38e415c88a39",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "9f62f4e5-aa02-4861-af68-4bbed909d51d"
+    },
+    {
+      "id": "1f713158-7a6f-4fab-b2bf-db909daf74c9",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "9f960bc9-867a-47c1-9f5e-a38e196c286d"
+    },
+    {
+      "id": "80a5f299-8650-467b-83fa-f5d9bd817ef7",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "ce145598-a9b6-4ba1-9051-3b1eec355fd8"
+    },
+    {
+      "id": "3beefd26-4f87-4653-9692-9aebdb824c1f",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "cefb2fac-954c-4fcf-a923-c1193d09d9ae"
+    },
+    {
+      "id": "5178069c-1425-49fb-8099-dd9dc906c5b3",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "d052ac6a-9401-4ca0-9a55-6fa38cb5e1c5"
+    },
+    {
+      "id": "c4a25be1-ab6b-4eea-8e0a-4a4400f9a776",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "taxonomyTermId": "f48f6ee1-8b77-461d-bf99-d5373d3c67b8"
+    },
+    {
+      "id": "d0ebd07c-e04c-40e0-911f-e1f0d6641413",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "taxonomyTermId": "0071ad79-b170-44ce-8868-1e43bba1e652"
+    },
+    {
+      "id": "2420565a-0639-42f4-968e-8463da91b20c",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "taxonomyTermId": "1eb292f2-4578-479b-b3e5-a0d326e4e376"
+    },
+    {
+      "id": "46871578-919d-4bde-afe6-b6935f46af4f",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "taxonomyTermId": "6751d84e-ae21-41e2-bcfd-b79baad0b550"
+    },
+    {
+      "id": "ebc60772-b481-4496-8e71-c292f4935736",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "taxonomyTermId": "72a4ed5b-022c-4ad6-9e0c-de2c59881424"
+    },
+    {
+      "id": "d1b7a36d-d953-4951-9708-8ff36dfe181d",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "taxonomyTermId": "858ea881-db91-462c-a494-ab53074098ad"
+    },
+    {
+      "id": "f1340a14-887c-4813-8a39-bc56848646ce",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "taxonomyTermId": "88f1f53e-d999-4819-9c25-f5bae6488b04"
+    },
+    {
+      "id": "c9c61b7d-6191-4afb-94dc-a988a84a6024",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "taxonomyTermId": "8ca703b0-37dc-4c68-a5c1-e48809d5e575"
+    },
+    {
+      "id": "883c678f-5b90-453d-88ff-b9c89cb5549b",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "taxonomyTermId": "9515830f-01cc-46cd-8ec3-2f81c28e053c"
+    },
+    {
+      "id": "b8fc747f-2c20-429a-a786-d9692d486f0e",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "taxonomyTermId": "e514f03c-0e05-4b94-9c57-e8eed14560af"
+    },
+    {
+      "id": "6519d6bc-98d5-41e7-ae86-5ffc8be4123c",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "taxonomyTermId": "038f9f05-5f30-4665-981d-6efbfb257c47"
+    },
+    {
+      "id": "546ecda3-1b2d-4361-b1c5-74e73d46e8e0",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "taxonomyTermId": "1cfa090f-bf93-45db-9291-0032fa5605ff"
+    },
+    {
+      "id": "99871816-f892-42f5-b0c1-898b39f5d717",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "taxonomyTermId": "34f3a2a1-0ed8-4dc7-9dfc-5fa1e929c5c3"
+    },
+    {
+      "id": "0073377b-5a55-4424-889a-39e4ad96dc85",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "taxonomyTermId": "389ad1c4-e357-406f-8b63-4d838c7fcf5d"
+    },
+    {
+      "id": "eb791cd0-c12a-446e-9e9c-7e8c356d148f",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "taxonomyTermId": "38fcdc6a-1fa2-46dd-b1ac-e78487911fad"
+    },
+    {
+      "id": "eb586446-4de5-4626-8ee3-c3171e351fbf",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "taxonomyTermId": "64266c55-4b65-447f-85d3-ee81bc11297e"
+    },
+    {
+      "id": "1169eb1f-d06a-49f8-8abe-81a5694a704c",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "taxonomyTermId": "6875e6a2-97c6-4c2f-8d12-c8b6ee49119a"
+    },
+    {
+      "id": "a5950350-e0df-4b7f-ad40-6c51c91fa84b",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "taxonomyTermId": "af49fb47-61d5-433b-85f9-189b0bc6be11"
+    },
+    {
+      "id": "5acadb32-d748-44ef-ac74-4f1ea31baa84",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "taxonomyTermId": "cf5c2711-ad22-412b-8bba-14b3a3df7cd5"
+    },
+    {
+      "id": "4b0707c7-e82a-40d3-ae1e-9acb32524d8c",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "taxonomyTermId": "f23604d9-fb26-4b7e-a59e-226449dff384"
+    },
+    {
+      "id": "e0bf2d57-6a06-41b9-93ab-7517cc591563",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "taxonomyTermId": "fab18b16-0ed1-4416-88ea-5b6c14e3be09"
+    },
+    {
+      "id": "77a2531c-a8b3-459a-bce5-a6f27868d9c7",
+      "itemId": "f55fd04a-05f6-4f07-a0bc-886bb281e8f3",
+      "taxonomyTermId": "4c5e7b5d-fdfc-415c-a4c5-7ae0969e95c5"
+    }
+  ],
+  "itemDependency": [
+    {
+      "id": "a02331d3-658b-4df4-bfe2-dbb8539f56f8",
+      "parentId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "childId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "type": "INCLUDES",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "271be6fa-e758-4489-bde4-918854a460d7",
+      "parentId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "childId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "type": "INCLUDES",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "c5d1cc3a-c33d-4a6e-b459-82525287066e",
+      "parentId": "77fe33c5-529f-4897-b369-6e558edd6436",
+      "childId": "c033f5ab-f051-4040-9ba5-0fd90ea44e78",
+      "type": "INCOMPATIBLE",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "746d78ec-9851-4cbd-a001-249c462fdc35",
+      "parentId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "childId": "0c7daab4-e2a1-46bd-9b05-a3b0254547be",
+      "type": "INCLUDES",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "7c1b310a-2b23-4ff0-8bd2-2bd31c11f148",
+      "parentId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "childId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "type": "OPTIONAL_ATTACHMENT",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "4a367366-25f3-4bd1-b552-8dc8834c1cc8",
+      "parentId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "childId": "77fe33c5-529f-4897-b369-6e558edd6436",
+      "type": "OPTIONAL_ATTACHMENT",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "63d15fdf-2533-4ec9-bf1c-90b6c9d5e760",
+      "parentId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "childId": "c033f5ab-f051-4040-9ba5-0fd90ea44e78",
+      "type": "OPTIONAL_ATTACHMENT",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "f450c714-aa7b-4a3e-b7a0-2ffb7e3c7dff",
+      "parentId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "childId": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "type": "OPTIONAL_ATTACHMENT",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "935725ac-c07e-47e8-9fe3-02ad0c0dbc87",
+      "parentId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "childId": "cc244ec1-cb39-41fa-b54a-0e6dc7227a25",
+      "type": "OPTIONAL_ATTACHMENT",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "5463f5fc-5303-42f4-bf3a-d2fc66a651db",
+      "parentId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "childId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "type": "OPTIONAL_ATTACHMENT",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "514972c5-3e11-43ba-838c-b7935ad47ffb",
+      "parentId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "childId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "type": "OPTIONAL_ATTACHMENT",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "0aab2cb1-7241-45d0-809b-808da0f0d17f",
+      "parentId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "childId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "type": "OPTIONAL_ATTACHMENT",
+      "quantityMultiplier": 1
+    },
+    {
+      "id": "9320d88a-807a-488d-a6c8-90e8d5994d78",
+      "parentId": "cc244ec1-cb39-41fa-b54a-0e6dc7227a25",
+      "childId": "c033f5ab-f051-4040-9ba5-0fd90ea44e78",
+      "type": "INCOMPATIBLE",
+      "quantityMultiplier": 1
+    }
+  ],
+  "pricing": [
+    {
+      "id": "98ab8ae4-d242-4937-98a4-c84638eeb5f7",
+      "itemId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "0",
+      "priceMrc": "0",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-12T10:42:19.663Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "e442b3ba-b01e-4c3f-be33-6652e9cee1cf",
+      "itemId": "0c7daab4-e2a1-46bd-9b05-a3b0254547be",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "450",
+      "costMrc": "0",
+      "priceNrc": "800",
+      "priceMrc": "0",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:06.485Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "0e2d4aaa-28d6-4da7-8fba-d009964a1d3c",
+      "itemId": "0cd348f7-ce3b-405e-b2c4-60275e4b1567",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "1200",
+      "priceMrc": "0",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:05.867Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "dcc7a905-90ae-4a82-a477-632fa92d87a4",
+      "itemId": "2807e052-2406-4ef2-aeb9-3745761ffd0a",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "1000",
+      "priceMrc": "800",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:07.207Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "f767c034-d73b-472e-9ad2-6197a8aa9864",
+      "itemId": "4dbf91ff-88fa-4135-9a07-8bd75aabc433",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "0",
+      "priceMrc": "0",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-13T13:33:01.663Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "d6be58f6-3864-4997-b562-612f34591796",
+      "itemId": "6d03eb79-c904-4fd0-9fa5-23d5cd868a06",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "0",
+      "priceMrc": "0",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-13T13:33:02.389Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "ac950426-71c8-4360-80fa-67f84ca94518",
+      "itemId": "77fe33c5-529f-4897-b369-6e558edd6436",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "0",
+      "priceMrc": "100",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:06.792Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "d4e444ef-3cd6-4dee-9387-1551b0851e54",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "75",
+      "priceNrc": "0",
+      "priceMrc": "120",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:05.971Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "bc9bf0cf-70d8-4ad2-a7ca-ee08a069e346",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "55",
+      "priceNrc": "0",
+      "priceMrc": "85",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:06.073Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": 36,
+      "currency": "USD"
+    },
+    {
+      "id": "228058fc-e0c0-464b-b86e-e6426bdabc5d",
+      "itemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "42",
+      "priceNrc": "0",
+      "priceMrc": "65",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:06.174Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": 60,
+      "currency": "USD"
+    },
+    {
+      "id": "266a7449-5ffa-4514-815b-fcfe9a7bcca2",
+      "itemId": "a54e5217-8fe0-41df-ac37-75df357f54b4",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "500",
+      "priceMrc": "200",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:07.520Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "110094da-9ce9-4c12-8f49-6ab5a557de55",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "90",
+      "priceNrc": "0",
+      "priceMrc": "140",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:06.278Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "f2819bbc-6b3d-4f5c-a4f3-ccac8596372f",
+      "itemId": "b748388c-6f53-404c-b5c7-2617c50f32e6",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "65",
+      "priceNrc": "0",
+      "priceMrc": "100",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:06.382Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": 36,
+      "currency": "USD"
+    },
+    {
+      "id": "00c39a6d-d20e-41a2-a1e4-213c21cff573",
+      "itemId": "c033f5ab-f051-4040-9ba5-0fd90ea44e78",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "250",
+      "priceMrc": "300",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:06.895Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "9e935853-9bc5-4031-a9cf-3dee4fa363f9",
+      "itemId": "ca2f1901-f29f-454a-9d92-d803043bb9c7",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "200",
+      "priceMrc": "99",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:07.624Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "d229bcf1-6b03-4d89-8c69-727e799e9b05",
+      "itemId": "cb5b41d3-1174-4461-9365-1054da447e63",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "250",
+      "priceMrc": "150",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:07.414Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "218b8c89-5d4f-40e1-a18b-eff5dc9bf1b6",
+      "itemId": "cc244ec1-cb39-41fa-b54a-0e6dc7227a25",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "0",
+      "priceMrc": "50",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:06.691Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "a0f80ead-f066-4d05-b312-4733802fd9bf",
+      "itemId": "d3546f57-1538-48f1-a0bf-457be7b9d132",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "0",
+      "priceMrc": "0",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-12T10:45:59.902Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "0ffdfcf8-d306-4c7f-a79c-eac7b02952c6",
+      "itemId": "d86dc3fd-73c5-457a-8b2b-6de6e22a6efd",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "1500",
+      "priceMrc": "1200",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:07.310Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "b6f28b99-e638-4e17-a1d9-7064d86ee540",
+      "itemId": "e2e9af77-9d64-47bd-8ad8-0550442fcb4d",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "0",
+      "costMrc": "0",
+      "priceNrc": "0",
+      "priceMrc": "0",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-13T13:48:47.188Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    },
+    {
+      "id": "6e39532a-a380-44cd-9a72-48112190132f",
+      "itemId": "f55fd04a-05f6-4f07-a0bc-886bb281e8f3",
+      "pricingModel": "FLAT",
+      "unitOfMeasure": null,
+      "minQuantity": 1,
+      "maxQuantity": null,
+      "costNrc": "1000",
+      "costMrc": "0",
+      "priceNrc": "1800",
+      "priceMrc": "0",
+      "percentageRate": null,
+      "effectiveDate": "2026-03-11T23:30:06.588Z",
+      "expirationDate": null,
+      "context": null,
+      "termMonths": null,
+      "currency": "USD"
+    }
+  ],
+  "pricingTier": [],
+  "user": [
+    {
+      "id": "6fdb2a62-14d7-4856-86af-b407eebd5f79",
+      "email": "admin@zippy.com",
+      "name": "",
+      "role": "ADMIN",
+      "createdAt": "2026-03-11T22:47:27.214Z",
+      "updatedAt": "2026-03-11T22:47:27.214Z"
+    },
+    {
+      "id": "8592b09e-3ff0-4324-bd3d-a45c9b531ebc",
+      "email": "test2@test.com",
+      "name": "",
+      "role": "SA",
+      "createdAt": "2026-03-13T09:55:45.564Z",
+      "updatedAt": "2026-03-13T09:55:45.564Z"
+    },
+    {
+      "id": "340a1bb0-aed6-4784-9aeb-ea9b29e2ecc9",
+      "email": "test@test.com",
+      "name": "",
+      "role": "ADMIN",
+      "createdAt": "2026-03-11T21:04:59.216Z",
+      "updatedAt": "2026-03-13T17:48:35.052Z"
+    }
+  ],
+  "project": [
+    {
+      "id": "7ea18e7a-19cc-4691-b864-6491be0f1e19",
+      "name": "Acme Corp SD-WAN Rollout",
+      "customerName": "Acme Corporation",
+      "status": "DRAFT",
+      "termMonths": 36,
+      "createdAt": "2026-03-11T23:30:10.988Z",
+      "updatedAt": "2026-03-11T23:30:10.988Z",
+      "userId": null,
+      "rawRequirements": null
+    },
+    {
+      "id": "8d68b138-8ce7-4773-bf43-7b4410f5e34a",
+      "name": "test",
+      "customerName": "test",
+      "status": "DRAFT",
+      "termMonths": 36,
+      "createdAt": "2026-03-12T13:34:10.726Z",
+      "updatedAt": "2026-03-13T20:30:40.768Z",
+      "userId": "340a1bb0-aed6-4784-9aeb-ea9b29e2ecc9",
+      "rawRequirements": "Uploaded document: SD-WAN Internet-Only Low-Cost Network.pdf (application/pdf).\n\nThe customer need SDWAN, LAN and WLAN to be managed and what's hub and spoke"
+    },
+    {
+      "id": "978cf47c-c76a-4be8-8bc1-2ff5b64b89f8",
+      "name": "test",
+      "customerName": "",
+      "status": "DRAFT",
+      "termMonths": 36,
+      "createdAt": "2026-03-13T09:55:52.975Z",
+      "updatedAt": "2026-03-13T11:54:10.288Z",
+      "userId": "8592b09e-3ff0-4324-bd3d-a45c9b531ebc",
+      "rawRequirements": "Uploaded document: SD-WAN Internet-Only Low-Cost Network.pdf (application/pdf).\nUploaded document: SD-WAN Internet-Only Low-Cost Network.pdf (application/pdf).\n\nUploaded file: SD-WAN Internet-Only Low-Cost Network.pdf (application/pdf).\nBinary content uploaded for processing.\n\nUploaded file: SD-WAN Internet-Only Low-Cost Network.pdf (application/pdf).\nBinary content uploaded for processing.\n\nI need WLAN and LAN also with Meraki"
+    },
+    {
+      "id": "bc36b327-6259-4606-a75f-a5a2838aed62",
+      "name": "test2",
+      "customerName": "test2",
+      "status": "DRAFT",
+      "termMonths": 36,
+      "createdAt": "2026-03-12T13:40:48.094Z",
+      "updatedAt": "2026-03-12T13:40:48.094Z",
+      "userId": "340a1bb0-aed6-4784-9aeb-ea9b29e2ecc9",
+      "rawRequirements": null
+    },
+    {
+      "id": "d7c577af-df73-4507-bb41-61127ce68336",
+      "name": "test3",
+      "customerName": "test3",
+      "status": "DRAFT",
+      "termMonths": 36,
+      "createdAt": "2026-03-12T13:43:31.550Z",
+      "updatedAt": "2026-03-12T14:08:50.740Z",
+      "userId": "340a1bb0-aed6-4784-9aeb-ea9b29e2ecc9",
+      "rawRequirements": "my customer need a Meraki dnetowkr to connect his sites\n"
+    },
+    {
+      "id": "413b1621-b17a-492f-b0d0-f5e2a0b10039",
+      "name": "test4",
+      "customerName": "test4",
+      "status": "DRAFT",
+      "termMonths": 36,
+      "createdAt": "2026-03-12T13:45:48.431Z",
+      "updatedAt": "2026-03-12T13:45:48.431Z",
+      "userId": "340a1bb0-aed6-4784-9aeb-ea9b29e2ecc9",
+      "rawRequirements": null
+    }
+  ],
+  "projectItem": [
+    {
+      "id": "9db07309-fa32-457c-a3ea-cc507d8d8512",
+      "projectId": "8d68b138-8ce7-4773-bf43-7b4410f5e34a",
+      "catalogItemId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "quantity": 1,
+      "createdAt": "2026-03-12T14:34:29.900Z",
+      "updatedAt": "2026-03-12T14:34:29.900Z",
+      "configValues": null
+    },
+    {
+      "id": "fc476509-e85c-4d09-bd6a-4587a32b2b95",
+      "projectId": "978cf47c-c76a-4be8-8bc1-2ff5b64b89f8",
+      "catalogItemId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "quantity": 1,
+      "createdAt": "2026-03-13T11:54:38.113Z",
+      "updatedAt": "2026-03-13T11:54:38.113Z",
+      "configValues": null
+    },
+    {
+      "id": "53f0d659-d9d1-4c37-95db-84ffb0125f67",
+      "projectId": "978cf47c-c76a-4be8-8bc1-2ff5b64b89f8",
+      "catalogItemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "quantity": 1,
+      "createdAt": "2026-03-13T11:54:38.217Z",
+      "updatedAt": "2026-03-13T11:54:38.217Z",
+      "configValues": null
+    },
+    {
+      "id": "8e97d592-d240-4c75-9bd5-d27226e61558",
+      "projectId": "d7c577af-df73-4507-bb41-61127ce68336",
+      "catalogItemId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "quantity": 1,
+      "createdAt": "2026-03-12T14:14:50.552Z",
+      "updatedAt": "2026-03-12T14:14:50.552Z",
+      "configValues": null
+    }
+  ],
+  "projectItemDesignOption": [],
+  "solutionSite": [
+    {
+      "id": "9ff847bd-1160-43a2-8c66-fa4173a784f1",
+      "projectId": "7ea18e7a-19cc-4691-b864-6491be0f1e19",
+      "name": "Chicago Branch",
+      "address": "233 S Wacker Dr, Chicago, IL 60606",
+      "region": "midwest",
+      "primaryServiceId": null,
+      "createdAt": "2026-03-11T23:30:10.988Z",
+      "updatedAt": "2026-03-11T23:30:10.988Z"
+    },
+    {
+      "id": "3a6e3a20-a645-44cc-9921-9ee0577deffa",
+      "projectId": "7ea18e7a-19cc-4691-b864-6491be0f1e19",
+      "name": "New York HQ",
+      "address": "350 Fifth Avenue, New York, NY 10118",
+      "region": "northeast",
+      "primaryServiceId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "createdAt": "2026-03-11T23:30:10.988Z",
+      "updatedAt": "2026-03-11T23:30:10.988Z"
+    }
+  ],
+  "siteSelection": [],
+  "systemConfig": [
+    {
+      "id": "57546c54-4ada-4fb1-bb84-525195a9b06e",
+      "key": "GEMINI_MODEL",
+      "value": "gemini-3.1-flash-lite-preview",
+      "description": "Primary Gemini model id for AI matching endpoints.",
+      "updatedAt": "2026-03-13T11:55:42.931Z",
+      "updatedBy": null
+    },
+    {
+      "id": "141e5a67-69a3-4414-b612-42d108049cd6",
+      "key": "PROMPT_BOM_GEN",
+      "value": "You are a Network Solution Architect. Based on the site requirements, select the most appropriate SKUs from the catalog...",
+      "description": "Primary system prompt for BOM generation logic.",
+      "updatedAt": "2026-03-11T19:33:29.230Z",
+      "updatedBy": null
+    },
+    {
+      "id": "1c4a73f7-5626-48d4-9bfa-2bca49fd9eb5",
+      "key": "PROMPT_PACKAGE_MATCH",
+      "value": "You are a solution architect assistant. Analyze package candidates across name, short description, detailed description, features, constraints, assumptions, and included components. Prefer packages when they provide broader, lower-risk requirement coverage than individual services.",
+      "description": "Prompt for package matching endpoint.",
+      "updatedAt": "2026-03-13T11:55:42.931Z",
+      "updatedBy": null
+    },
+    {
+      "id": "a718fee9-7a65-4af0-b53c-876e9d5f3747",
+      "key": "PROMPT_SA_SUGGEST",
+      "value": "You are a solution architect assistant. Evaluate catalog candidates using detailed description, features, constraints, assumptions, and requirement fit. Prefer package recommendations over individual services when package coverage and risk are equal or better.",
+      "description": "Prompt for service/package suggestion endpoint.",
+      "updatedAt": "2026-03-13T11:55:42.931Z",
+      "updatedBy": null
+    },
+    {
+      "id": "ea78330a-6b49-4c7f-a60f-4f33b6dd4285",
+      "key": "PROMPT_TRIAGE",
+      "value": "Analyze the user input and determine which technical stack is required (SD-WAN, LAN, or WLAN)...",
+      "description": "Prompt for initial project triage.",
+      "updatedAt": "2026-03-11T19:33:29.739Z",
+      "updatedBy": null
+    }
+  ],
+  "designOptionDefinition": [
+    {
+      "id": "05b642ed-694f-4ffa-9ba3-7a943cc2fa22",
+      "key": "internet_breakout",
+      "label": "Internet Breakout",
+      "description": null,
+      "constraints": [],
+      "assumptions": [],
+      "valueType": "STRING",
+      "isActive": true,
+      "createdAt": "2026-03-12T17:47:11.610Z",
+      "updatedAt": "2026-03-12T17:47:11.610Z"
+    },
+    {
+      "id": "c44993c6-e18a-4736-b91f-6aca62ca402d",
+      "key": "topology",
+      "label": "Topology",
+      "description": null,
+      "constraints": [],
+      "assumptions": [],
+      "valueType": "STRING",
+      "isActive": true,
+      "createdAt": "2026-03-12T16:16:02.589Z",
+      "updatedAt": "2026-03-12T17:22:03.566Z"
+    }
+  ],
+  "designOptionValue": [
+    {
+      "id": "9370630e-9bbd-4de3-919c-fae9ac9f9fb9",
+      "designOptionId": "05b642ed-694f-4ffa-9ba3-7a943cc2fa22",
+      "value": "central",
+      "label": "Central",
+      "description": null,
+      "constraints": [],
+      "assumptions": [],
+      "sortOrder": 0,
+      "isActive": true,
+      "createdAt": "2026-03-12T17:47:11.758Z",
+      "updatedAt": "2026-03-12T17:47:11.758Z"
+    },
+    {
+      "id": "f42f8581-4f5c-41cf-b17b-d5f083158958",
+      "designOptionId": "05b642ed-694f-4ffa-9ba3-7a943cc2fa22",
+      "value": "local_via_sse",
+      "label": "Local via SSE",
+      "description": null,
+      "constraints": [],
+      "assumptions": [],
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-03-12T17:47:11.758Z",
+      "updatedAt": "2026-03-12T17:47:11.758Z"
+    },
+    {
+      "id": "91ec9ce4-4e66-4352-8ad7-e1a0c30e4fa1",
+      "designOptionId": "c44993c6-e18a-4736-b91f-6aca62ca402d",
+      "value": "hubandspoke",
+      "label": "Hub and Spoke",
+      "description": "test",
+      "constraints": [],
+      "assumptions": [],
+      "sortOrder": 0,
+      "isActive": true,
+      "createdAt": "2026-03-12T17:22:03.784Z",
+      "updatedAt": "2026-03-12T17:22:03.784Z"
+    },
+    {
+      "id": "1543c5a2-efee-46d1-b987-a6f87c61237c",
+      "designOptionId": "c44993c6-e18a-4736-b91f-6aca62ca402d",
+      "value": "fullmesh",
+      "label": "Full Mesh",
+      "description": "test",
+      "constraints": [
+        "test"
+      ],
+      "assumptions": [],
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-03-12T17:22:03.784Z",
+      "updatedAt": "2026-03-12T17:22:03.784Z"
+    }
+  ],
+  "catalogItemDesignOption": [
+    {
+      "id": "192e6cf3-db5e-4106-8d24-b9165ca560b9",
+      "catalogItemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "designOptionId": "05b642ed-694f-4ffa-9ba3-7a943cc2fa22",
+      "isRequired": false,
+      "allowMulti": false,
+      "defaultValueId": null,
+      "createdAt": "2026-03-12T20:18:09.752Z",
+      "updatedAt": "2026-03-12T20:18:09.752Z"
+    },
+    {
+      "id": "c7684003-e919-47ca-b4e1-acd859b46106",
+      "catalogItemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "designOptionId": "c44993c6-e18a-4736-b91f-6aca62ca402d",
+      "isRequired": false,
+      "allowMulti": false,
+      "defaultValueId": null,
+      "createdAt": "2026-03-12T20:18:10.029Z",
+      "updatedAt": "2026-03-12T20:18:10.029Z"
+    }
+  ],
+  "catalogItemDesignOptionValue": [
+    {
+      "id": "1f53cbba-19b6-430e-90a1-67532c93b4c4",
+      "itemDesignOptionId": "192e6cf3-db5e-4106-8d24-b9165ca560b9",
+      "designOptionValueId": "9370630e-9bbd-4de3-919c-fae9ac9f9fb9"
+    },
+    {
+      "id": "260397c8-832f-4a99-9dd4-d9ee35457f61",
+      "itemDesignOptionId": "192e6cf3-db5e-4106-8d24-b9165ca560b9",
+      "designOptionValueId": "f42f8581-4f5c-41cf-b17b-d5f083158958"
+    },
+    {
+      "id": "d5fe3193-59cd-445b-b92a-77f79ec1ac77",
+      "itemDesignOptionId": "c7684003-e919-47ca-b4e1-acd859b46106",
+      "designOptionValueId": "91ec9ce4-4e66-4352-8ad7-e1a0c30e4fa1"
+    }
+  ],
+  "packageCompositionItem": [
+    {
+      "id": "107593e7-03dc-4651-8d73-f061ce0008ee",
+      "packageId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "catalogItemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "role": "AUTO_INCLUDED",
+      "minQty": 1,
+      "maxQty": null,
+      "defaultQty": 1,
+      "isSelectable": true,
+      "displayOrder": 0,
+      "createdAt": "2026-03-13T19:14:21.569Z",
+      "updatedAt": "2026-03-13T19:14:21.569Z"
+    }
+  ],
+  "packageDesignOptionPolicy": [
+    {
+      "id": "eadad108-2abf-40f1-a859-63b045c1a343",
+      "packageId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "targetCatalogItemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "designOptionId": "05b642ed-694f-4ffa-9ba3-7a943cc2fa22",
+      "operator": "ALLOW_ONLY",
+      "scope": "PROJECT",
+      "active": true,
+      "createdAt": "2026-03-13T19:14:21.570Z",
+      "updatedAt": "2026-03-13T19:14:21.570Z"
+    },
+    {
+      "id": "035772d3-47ba-428e-9c7d-5972f0ad74f1",
+      "packageId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "targetCatalogItemId": "7a2efa0e-aca5-4b45-894c-7ae4e4e63a71",
+      "designOptionId": "c44993c6-e18a-4736-b91f-6aca62ca402d",
+      "operator": "FORCE",
+      "scope": "PROJECT",
+      "active": true,
+      "createdAt": "2026-03-13T19:14:21.780Z",
+      "updatedAt": "2026-03-13T19:14:21.780Z"
+    }
+  ],
+  "packageDesignOptionPolicyValue": [
+    {
+      "id": "10fe1709-dd10-4bbc-81a1-23c2457215e1",
+      "policyId": "035772d3-47ba-428e-9c7d-5972f0ad74f1",
+      "designOptionValueId": "91ec9ce4-4e66-4352-8ad7-e1a0c30e4fa1"
+    },
+    {
+      "id": "6af007f3-120d-4993-8cac-4808fbd9d0d3",
+      "policyId": "eadad108-2abf-40f1-a859-63b045c1a343",
+      "designOptionValueId": "9370630e-9bbd-4de3-919c-fae9ac9f9fb9"
+    },
+    {
+      "id": "8c02eebf-03e4-4e47-a10c-39609452c263",
+      "policyId": "eadad108-2abf-40f1-a859-63b045c1a343",
+      "designOptionValueId": "f42f8581-4f5c-41cf-b17b-d5f083158958"
+    }
+  ],
+  "projectRequirementDocument": [
+    {
+      "id": "33bf4e3f-b49a-409f-8fcc-3abef6767df6",
+      "projectId": "8d68b138-8ce7-4773-bf43-7b4410f5e34a",
+      "fileName": "SD-WAN Internet-Only Low-Cost Network.pdf",
+      "mimeType": "application/pdf",
+      "gcsUri": "local://requirements/8d68b138-8ce7-4773-bf43-7b4410f5e34a/1773431791412-SD-WAN_Internet-Only_Low-Cost_Network.pdf",
+      "extractedText": "",
+      "status": "UPLOADED",
+      "errorMessage": null,
+      "createdAt": "2026-03-13T19:56:31.421Z",
+      "updatedAt": "2026-03-13T19:56:31.421Z"
+    },
+    {
+      "id": "4eb8d2c4-fd1e-4fd7-94ad-01164ace9cb1",
+      "projectId": "978cf47c-c76a-4be8-8bc1-2ff5b64b89f8",
+      "fileName": "SD-WAN Internet-Only Low-Cost Network.pdf",
+      "mimeType": "application/pdf",
+      "gcsUri": "local://requirements/978cf47c-c76a-4be8-8bc1-2ff5b64b89f8/1773396811422-SD-WAN_Internet-Only_Low-Cost_Network.pdf",
+      "extractedText": "Uploaded file: SD-WAN Internet-Only Low-Cost Network.pdf (application/pdf).\nBinary content uploaded for processing.",
+      "status": "PARSED",
+      "errorMessage": null,
+      "createdAt": "2026-03-13T10:13:31.424Z",
+      "updatedAt": "2026-03-13T10:13:31.424Z"
+    },
+    {
+      "id": "0ef85778-c3c0-4fef-991e-1a7300d5a9c9",
+      "projectId": "978cf47c-c76a-4be8-8bc1-2ff5b64b89f8",
+      "fileName": "SD-WAN Internet-Only Low-Cost Network.pdf",
+      "mimeType": "application/pdf",
+      "gcsUri": "local://requirements/978cf47c-c76a-4be8-8bc1-2ff5b64b89f8/1773397321050-SD-WAN_Internet-Only_Low-Cost_Network.pdf",
+      "extractedText": "Uploaded file: SD-WAN Internet-Only Low-Cost Network.pdf (application/pdf).\nBinary content uploaded for processing.",
+      "status": "PARSED",
+      "errorMessage": null,
+      "createdAt": "2026-03-13T10:22:01.050Z",
+      "updatedAt": "2026-03-13T10:22:01.050Z"
+    }
+  ],
+  "projectRecommendation": [
+    {
+      "id": "f3a6e0e0-29fe-4ac1-bd9e-3350a3c3801f",
+      "projectId": "978cf47c-c76a-4be8-8bc1-2ff5b64b89f8",
+      "catalogItemId": "07687334-34ca-4e74-a41e-dad1d1e88ee8",
+      "reason": "Matches Meraki SD-WAN requirement and is designed for small-scale internet-only network deployments. Matched characteristics: name, long_description, constraints.",
+      "score": "0.85",
+      "sourceModel": "gemini-3.1-flash-lite-preview",
+      "state": "ADOPTED",
+      "requiredIncluded": [
+        "Meraki SD-WAN"
+      ],
+      "optionalRecommended": [],
+      "createdAt": "2026-03-13T11:54:09.697Z",
+      "updatedAt": "2026-03-13T11:54:38.530Z"
+    }
+  ]
+}
