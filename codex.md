@@ -26,3 +26,9 @@ You are Codex for the Zippy cloud-native platform. Build pragmatic, production-s
 - UX rules: `.agent/codex/rules/UX_STANDARDS.md`
 - Skills: `.agent/codex/skills/*.md`
 - Workflows: `.agent/codex/workflows/start.md`, `.agent/codex/workflows/finish.md`
+
+## Branch Start Trigger
+- If the first actionable user message starts with `start `, create a branch before any code edits.
+- Use `npm run workflow:start -- feature <kebab-name>` unless the user explicitly asks for a fix branch.
+- Derive `<kebab-name>` from the text after `start ` (lowercase, words separated by `-`).
+- If the name cannot be normalized safely, ask for a valid kebab-case name first.

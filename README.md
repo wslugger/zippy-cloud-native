@@ -42,6 +42,7 @@ Use these local commands from the terminal/code window:
 1. Start work on a new branch:
    - `npm run workflow:start -- feature add-catalog-search`
    - optional base validation: `npm run workflow:start -- feature add-catalog-search --run-tests`
+   - conversational trigger: first prompt starting with `start <name>` should create `feature/<name>` before edits
 2. Finish work (test, commit, merge to `main`, push):
    - `npm run workflow:finish -- --message "add catalog search"`
    - include new files: `npm run workflow:finish -- --message "add catalog search" --include-untracked`
