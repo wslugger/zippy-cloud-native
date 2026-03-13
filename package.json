@@ -10,6 +10,7 @@
     "lint:changed": "bash scripts/lint-changed.sh",
     "test": "vitest run",
     "test:watch": "vitest",
+    "seed:export": "npx tsx scripts/export-seed-data.ts",
     "workflow:start": "bash scripts/workflow-start.sh",
     "workflow:finish": "bash scripts/workflow-finish.sh",
     "workflow:finish:strict": "bash scripts/workflow-finish.sh --run-lint --run-build",
