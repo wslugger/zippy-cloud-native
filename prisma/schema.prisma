@@ -393,7 +393,6 @@ enum ItemType {
   MANAGED_SERVICE
   SERVICE_OPTION
   CONNECTIVITY
-  SERVICE_FAMILY
 }
 
 enum DependencyType {
@@ -403,7 +402,6 @@ enum DependencyType {
   OPTIONAL_ATTACHMENT
   INCOMPATIBLE
   RECOMMENDS
-  IS_A
 }
 
 enum PricingModel {

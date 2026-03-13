@@ -115,7 +115,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     baseId: selectedBase.id,
-                    optionId: selectedOption?.id,
+                    optionId: selectedOption && selectedOption.id !== selectedBase.id ? selectedOption.id : undefined,
                     attachmentIds: allAttachmentIds,
                     designOptionIds: selectedDesignOptions,
                     configValues: configValues
@@ -173,10 +173,14 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                             selectedId={selectedBase?.id} 
                             onSelect={(item) => {
                                 setSelectedBase(item);
-                                setSelectedOption(null); // Reset downstream
+                                setSelectedOption(item.type === 'MANAGED_SERVICE' ? item : null); // Reset downstream
                                 setSelectedServiceOptions([]);
                                 setSelectedTransports([]);
                                 setConfigValues({});
+                                if (item.type === 'MANAGED_SERVICE') {
+                                    setStep(3);
+                                    return;
+                                }
                                 nextStep();
                             }}
                         />

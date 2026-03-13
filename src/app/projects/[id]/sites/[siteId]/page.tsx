@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ServiceFamilySelector } from '@/components/service-family-selector';
+import { ServiceSelector } from '@/components/service-selector';
 import { ArrowLeft, DollarSign, AlertTriangle, Loader2, Building2, RefreshCw } from 'lucide-react';
 
 interface BOMResult {
@@ -145,7 +145,7 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                         <h2 className="text-sm font-bold text-slate-900 mb-1">Select Services</h2>
                         <p className="text-xs text-slate-500">Choose service options and configure design parameters for this site.</p>
                     </div>
-                    <ServiceFamilySelector
+                    <ServiceSelector
                         selectedIds={selections.map(s => s.itemId)}
                         onSelectionChange={setSelections}
                         primaryServiceId={primaryServiceId}

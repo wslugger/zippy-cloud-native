@@ -17,16 +17,16 @@ export function Step1BaseSelection({ onSelect, selectedId }: Step1BaseSelectionP
         async function fetchBases() {
             setLoading(true);
             try {
-                // Fetch packages and service families from SA-safe APIs
-                const [pkgRes, familyRes] = await Promise.all([
+                // Fetch packages and managed services from SA-safe APIs
+                const [pkgRes, svcRes] = await Promise.all([
                     fetch('/api/catalog/packages'),
-                    fetch('/api/catalog/families'),
+                    fetch('/api/catalog/services'),
                 ]);
 
                 const packages = await pkgRes.json();
-                const families = await familyRes.json();
+                const services = await svcRes.json();
 
-                setItems([...(Array.isArray(packages) ? packages : []), ...(Array.isArray(families) ? families : [])]);
+                setItems([...(Array.isArray(packages) ? packages : []), ...(Array.isArray(services) ? services : [])]);
             } catch (err) {
                 console.error(err);
             } finally {

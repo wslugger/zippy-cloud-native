@@ -148,7 +148,7 @@ export default function CatalogItemDetail() {
                 name: '',
                 shortDescription: '',
                 detailedDescription: '',
-                type: 'SERVICE_FAMILY',
+                type: 'MANAGED_SERVICE',
                 constraints: [],
                 assumptions: [],
                 collaterals: [],
@@ -713,7 +713,7 @@ export default function CatalogItemDetail() {
 
     const addDependency = (childItem: {id: string, name: string, sku: string}, type?: string) => {
         if (!item) return;
-        const depType = type || (item.type === 'SERVICE_FAMILY' ? 'IS_A' : 'INCLUDES');
+        const depType = type || 'INCLUDES';
         setItem({
             ...item,
             childDependencies: [
@@ -904,7 +904,7 @@ export default function CatalogItemDetail() {
 
     const editableCatalogOptions = catalogLookup.filter((c) => c.id !== item?.id);
     const serviceCompositionOptions = editableCatalogOptions.filter((c) =>
-        ['SERVICE_FAMILY', 'MANAGED_SERVICE', 'SERVICE_OPTION', 'CONNECTIVITY'].includes(c.type)
+        ['MANAGED_SERVICE', 'SERVICE_OPTION', 'CONNECTIVITY'].includes(c.type)
     );
     const compositionRowsByOrder = compositionRows
         .map((row, index) => ({ row, index }))
@@ -1251,21 +1251,26 @@ export default function CatalogItemDetail() {
                                                     {workspace && workspace.supportedFeatures.length > 0 ? workspace.supportedFeatures.map((feature) => {
                                                         const status = featureAssignments.find((row) => row.termId === feature.id)?.status || '';
                                                         return (
-                                                            <div key={`pkg-feature-${row.catalogItemId}-${feature.id}`} className="rounded-md border border-slate-200 bg-slate-50 p-2 grid grid-cols-1 md:grid-cols-[1fr_220px] gap-2 items-center">
-                                                                <div>
+                                                            <div
+                                                                key={`pkg-feature-${row.catalogItemId}-${feature.id}`}
+                                                                className="rounded-md border border-slate-200 bg-slate-50 p-2 flex flex-col gap-2"
+                                                            >
+                                                                <div className="min-w-0">
                                                                     <p className="text-sm font-semibold text-slate-900">{feature.label}</p>
                                                                     {feature.value && <p className="text-[11px] text-slate-500 font-mono">{feature.value}</p>}
                                                                 </div>
-                                                                <select
-                                                                    value={status}
-                                                                    onChange={(e) => updateFeatureStatus(feature.id, e.target.value as FeatureStatus | '')}
-                                                                    className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs"
-                                                                >
-                                                                    <option value="">Not Included</option>
-                                                                    <option value="REQUIRED">Required</option>
-                                                                    <option value="STANDARD">Standard</option>
-                                                                    <option value="OPTIONAL">Optional</option>
-                                                                </select>
+                                                                <div className="w-full">
+                                                                    <select
+                                                                        value={status}
+                                                                        onChange={(e) => updateFeatureStatus(feature.id, e.target.value as FeatureStatus | '')}
+                                                                        className="h-8 w-full min-w-0 max-w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+                                                                    >
+                                                                        <option value="">Not Included</option>
+                                                                        <option value="REQUIRED">Required</option>
+                                                                        <option value="STANDARD">Standard</option>
+                                                                        <option value="OPTIONAL">Optional</option>
+                                                                    </select>
+                                                                </div>
                                                             </div>
                                                         );
                                                     }) : (
@@ -1438,7 +1443,6 @@ export default function CatalogItemDetail() {
                                 }
                                 {taxonomyTerms.filter(t => t.category === 'CLASSIFICATION').length === 0 && (
                                     <>
-                                        <option value="SERVICE_FAMILY">Service Family</option>
                                         <option value="SERVICE_OPTION">Service Option</option>
                                         <option value="PACKAGE">Design Package</option>
                                         <option value="CONNECTIVITY">Connectivity</option>
@@ -1487,9 +1491,7 @@ export default function CatalogItemDetail() {
                     {isPanelVisible('SERVICE_OPTIONS') && item.type !== 'PACKAGE' && (
                         <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                                <h2 className="font-bold text-slate-900">
-                                    {item.type === 'SERVICE_FAMILY' ? 'Service Options' : 'Included Services'}
-                                </h2>
+                                <h2 className="font-bold text-slate-900">Included Services</h2>
                             </div>
                             
                             {/* Search for new dependency */}
@@ -1508,7 +1510,7 @@ export default function CatalogItemDetail() {
                                         {searchResults.map(res => (
                                             <button 
                                                 key={res.id}
-                                                onClick={() => addDependency(res, item.type === 'SERVICE_FAMILY' ? 'IS_A' : 'INCLUDES')}
+                                                onClick={() => addDependency(res, 'INCLUDES')}
                                                 className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center justify-between group transition-colors rounded-lg"
                                             >
                                                 <div className="min-w-0">
@@ -1527,7 +1529,7 @@ export default function CatalogItemDetail() {
                             <div className="space-y-2">
                                 {item.childDependencies
                                     .map((d, i) => {
-                                        if (d.type !== 'IS_A' && d.type !== 'INCLUDES') return null;
+                                        if (d.type !== 'INCLUDES') return null;
                                         return (
                                             <div key={d.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50 border-dashed">
                                                 <div className="min-w-0">
@@ -1545,9 +1547,9 @@ export default function CatalogItemDetail() {
                                             </div>
                                         );
                                     })}
-                                {item.childDependencies.filter(d => d.type === 'IS_A' || d.type === 'INCLUDES').length === 0 && (
+                                {item.childDependencies.filter(d => d.type === 'INCLUDES').length === 0 && (
                                     <p className="text-xs text-slate-400 italic py-2 text-center text-balance">
-                                        No {item.type === 'SERVICE_FAMILY' ? 'options' : 'services'} linked.
+                                        No services linked.
                                     </p>
                                 )}
                             </div>

@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { assertPackageType } from "@/lib/package-policy-engine";
 
 const SERVICE_COMPOSITION_TYPES: ItemType[] = [
-  ItemType.SERVICE_FAMILY,
   ItemType.MANAGED_SERVICE,
   ItemType.SERVICE_OPTION,
   ItemType.CONNECTIVITY,
@@ -107,7 +106,7 @@ export async function PUT(
       if (invalidTypeIds.length > 0) {
         return NextResponse.json(
           {
-            error: "Service composition only supports service families, managed services, service options, and connectivity items.",
+            error: "Service composition only supports managed services, service options, and connectivity items.",
             invalidCatalogItemIds: invalidTypeIds,
           },
           { status: 400 }
