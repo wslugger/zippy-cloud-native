@@ -72,5 +72,7 @@ export async function extractTextFromRequirementFile(file: File): Promise<string
     return buffer.toString("utf-8").trim();
   }
 
-  return `Uploaded file: ${file.name} (${mimeType}).\nBinary content uploaded for processing.`;
+  // Non-text formats (for example PDF/DOC) are stored as uploaded documents and
+  // represented in the UI list instead of injecting placeholder text into notes.
+  return "";
 }

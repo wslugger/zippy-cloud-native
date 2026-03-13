@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import {
     ArrowLeft, Loader2,
     FileText, Sparkles, FolderKanban, ShieldCheck, Download,
-    Compass
+    Compass, CheckCircle2, Trash2
 } from 'lucide-react';
 import { GuidedFlowWizard } from '@/components/sa-flow/GuidedFlowWizard';
 import { Badge } from '@/components/ui/badge';
@@ -50,9 +50,18 @@ interface Project {
     termMonths: number;
     sites: SolutionSite[];
     items: ProjectItem[];
+    requirementDocs?: Array<{
+        id: string;
+        fileName: string;
+        mimeType: string;
+        status: string;
+        extractedText: string | null;
+        createdAt: string;
+    }>;
     recommendations?: Array<{
         id: string;
         reason: string;
+        shortReason?: string;
         score: string | number;
         certaintyPercent?: number;
         matchedCharacteristics?: string[];
@@ -77,6 +86,7 @@ interface Suggestion {
     type: string;
     description: string | null;
     reason: string;
+    shortReason?: string;
     certaintyPercent: number;
     matchedCharacteristics: string[];
     requiredIncluded: string[];
@@ -117,6 +127,7 @@ function normalizeProjectResponse(payload: unknown): Project | null {
         termMonths: typeof raw.termMonths === 'number' ? raw.termMonths : 36,
         sites: Array.isArray(raw.sites) ? raw.sites : [],
         items: Array.isArray(raw.items) ? raw.items : [],
+        requirementDocs: Array.isArray(raw.requirementDocs) ? raw.requirementDocs : [],
         recommendations: Array.isArray(raw.recommendations) ? raw.recommendations : [],
     };
 }
@@ -129,6 +140,7 @@ function mapRecommendation(rec: Recommendation): Suggestion {
         type: rec.catalogItem.type,
         description: rec.catalogItem.shortDescription,
         reason: rec.reason,
+        shortReason: rec.shortReason,
         certaintyPercent: typeof rec.certaintyPercent === 'number' ? rec.certaintyPercent : toCertaintyPercent(rec.score),
         matchedCharacteristics: rec.matchedCharacteristics ?? parseMatchedCharacteristicsFromReason(rec.reason),
         requiredIncluded: rec.requiredIncluded ?? [],
@@ -142,7 +154,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     const [project, setProject] = useState<Project | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'kickoff' | 'services'>('kickoff');
+    const [serviceStepUnlocked, setServiceStepUnlocked] = useState(false);
     
     const [requirements, setRequirements] = useState('');
     const [analyzing, setAnalyzing] = useState(false);
@@ -150,6 +162,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [showWizard, setShowWizard] = useState(false);
+    const [removingItemId, setRemovingItemId] = useState<string | null>(null);
 
     const fetchProject = useCallback(async () => {
         try {
@@ -166,11 +179,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             }
 
             setProject(data);
-            if (data.rawRequirements) {
+            if (data.rawRequirements && (data.requirementDocs?.length ?? 0) === 0) {
                 setRequirements((prev) => prev || data.rawRequirements || '');
             }
             if (Array.isArray(data.recommendations) && data.recommendations.length > 0) {
                 setSuggestions(data.recommendations.map(mapRecommendation));
+            }
+            if ((Array.isArray(data.recommendations) && data.recommendations.length > 0) || data.items.length > 0) {
+                setServiceStepUnlocked(true);
             }
             setLoading(false);
         } catch {
@@ -185,13 +201,26 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     }, [fetchProject]);
 
     async function saveAndAnalyze() {
+        const uploadedDocContext = (project?.requirementDocs ?? [])
+            .map((doc) => `Uploaded document: ${doc.fileName} (${doc.mimeType || 'unknown'}).`)
+            .join('\n');
+        const uploadedDocText = (project?.requirementDocs ?? [])
+            .map((doc) => doc.extractedText?.trim() ?? '')
+            .filter((text) => text.length > 0)
+            .join('\n\n');
+        const combinedRequirements = [uploadedDocContext, uploadedDocText, requirements.trim()]
+            .filter((text) => text.length > 0)
+            .join('\n\n');
+
+        if (!combinedRequirements) return;
+
         setAnalyzing(true);
         try {
             // Analyze with package-aware matcher using direct requirement text (DB-persistence optional)
             const res = await fetch(`/api/projects/${id}/match`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rawRequirements: requirements }),
+                body: JSON.stringify({ rawRequirements: combinedRequirements }),
             });
             const data = await res.json().catch(() => ({}));
 
@@ -202,7 +231,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 const fallbackRes = await fetch('/api/sa/suggest-services', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ rawRequirements: requirements }),
+                    body: JSON.stringify({ rawRequirements: combinedRequirements }),
                 });
                 const fallbackData = await fallbackRes.json().catch(() => ({}));
                 if (fallbackRes.ok && Array.isArray(fallbackData.suggestions)) {
@@ -215,6 +244,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             description?: string | null;
                             shortDescription?: string | null;
                             reason?: string;
+                            shortReason?: string;
                             score?: number;
                             certaintyPercent?: number;
                             matchedCharacteristics?: string[];
@@ -225,6 +255,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             type: s.type,
                             description: s.description ?? s.shortDescription ?? null,
                             reason: s.reason ?? 'Matched by AI requirement analysis.',
+                            shortReason: s.shortReason,
                             certaintyPercent: typeof s.certaintyPercent === 'number'
                                 ? s.certaintyPercent
                                 : toCertaintyPercent(s.score),
@@ -242,31 +273,41 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             await fetch(`/api/projects/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rawRequirements: requirements }),
+                body: JSON.stringify({ rawRequirements: combinedRequirements }),
             }).catch(() => undefined);
 
             await fetchProject();
-            setActiveTab('services');
+            setServiceStepUnlocked(true);
         } finally {
             setAnalyzing(false);
         }
     }
 
-    async function uploadRequirementsFile(file: File) {
+    async function uploadRequirementsFiles(files: File[]) {
+        if (files.length === 0) return;
+
         setUploading(true);
         setUploadError(null);
         try {
-            const formData = new FormData();
-            formData.append('file', file);
+            const failedUploads: string[] = [];
 
-            const res = await fetch(`/api/projects/${id}/requirements/upload`, {
-                method: 'POST',
-                body: formData,
-            });
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
 
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || 'Upload failed');
+                const res = await fetch(`/api/projects/${id}/requirements/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    failedUploads.push(`${file.name}: ${data.error || 'Upload failed'}`);
+                }
+            }
+
+            if (failedUploads.length > 0) {
+                setUploadError(failedUploads.join(' | '));
             }
 
             await fetchProject();
@@ -292,6 +333,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         await fetchProject();
     }
 
+    async function removeService(itemId: string) {
+        setRemovingItemId(itemId);
+        try {
+            await fetch(`/api/projects/${id}/items/${itemId}`, {
+                method: 'DELETE',
+            });
+            await fetchProject();
+        } finally {
+            setRemovingItemId(null);
+        }
+    }
+
 
     if (loading) {
         return (
@@ -312,6 +365,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         );
     }
 
+    const uploadedDocCount = (project.requirementDocs ?? []).length;
+    const canAnalyze = requirements.trim().length > 0 || uploadedDocCount > 0;
+
     return (
         <div className="space-y-6">
             <div className="flex items-start justify-between">
@@ -324,81 +380,95 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                 </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 border-b border-slate-200 overflow-x-auto pb-px">
-                {(['kickoff', 'services'] as const).map(tab => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 whitespace-nowrap ${
-                            activeTab === tab
-                                ? 'border-blue-500 text-blue-400'
-                                : 'border-transparent text-slate-500 hover:text-slate-300'
-                        }`}
-                    >
-                        {tab}
-                    </button>
-                ))}
-            </div>
+            <div className="space-y-6 max-w-3xl">
+                <div className="bg-white/50 border border-slate-200 rounded-2xl p-6">
+                    <div className="flex items-center gap-3 mb-4 text-blue-400">
+                        <FileText size={24} />
+                        <h2 className="text-xl font-bold text-slate-900">Step 1: Project Kickoff Requirements</h2>
+                    </div>
+                    <p className="text-slate-600 text-sm mb-6">
+                        Upload one or more requirement documents, then add any additional SA context below.
+                        The analysis combines both sources to suggest managed services and package options.
+                    </p>
 
-            {activeTab === 'kickoff' && (
-                <div className="space-y-6 max-w-3xl">
-                    <div className="bg-white/50 border border-slate-200 rounded-2xl p-6">
-                        <div className="flex items-center gap-3 mb-4 text-blue-400">
-                            <FileText size={24} />
-                            <h2 className="text-xl font-bold text-slate-900">Project Kickoff</h2>
-                        </div>
-                        <p className="text-slate-600 text-sm mb-6">
-                            Paste customer meeting notes, RFC requirements, or typed summaries here. 
-                            Our SA SA-bot will analyze the input to intelligently suggest standard managed services, connectivity profiles, and packaged solutions.
-                        </p>
-
-                        <div className="mb-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                            <div className="flex items-center justify-between gap-3">
-                                <div>
-                                    <p className="text-xs font-semibold text-slate-700">Upload Requirement Document</p>
-                                    <p className="text-[11px] text-slate-500">TXT/JSON/PDF/DOC files are analyzed for matching. Cloud storage is optional.</p>
-                                </div>
-                                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 cursor-pointer">
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) uploadRequirementsFile(file);
-                                            e.currentTarget.value = '';
-                                        }}
-                                    />
-                                    {uploading ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
-                                    Upload File
-                                </label>
+                    <div className="mb-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <div>
+                                <p className="text-xs font-semibold text-slate-700">Upload Requirement Documents</p>
+                                <p className="text-[11px] text-slate-500">You can upload multiple TXT/JSON/PDF/DOC files.</p>
                             </div>
-                            {uploadError && <p className="mt-2 text-xs text-red-600">{uploadError}</p>}
+                            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 cursor-pointer">
+                                <input
+                                    type="file"
+                                    multiple
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const files = Array.from(e.target.files ?? []);
+                                        void uploadRequirementsFiles(files);
+                                        e.currentTarget.value = '';
+                                    }}
+                                />
+                                {uploading ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+                                {uploading ? 'Uploading...' : 'Upload Files'}
+                            </label>
                         </div>
-                        
-                        <textarea
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[250px] text-slate-700 placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono text-sm resize-y"
-                            placeholder="Customer needs highly available connectivity across 45 retail sites..."
-                            value={requirements}
-                            onChange={e => setRequirements(e.target.value)}
-                        />
-                        
-                        <div className="flex justify-end mt-4">
-                            <Button 
-                                onClick={saveAndAnalyze} 
-                                disabled={!requirements || analyzing}
-                                className="bg-blue-600 hover:bg-blue-500 text-slate-900 border-none gap-2"
-                            >
-                                {analyzing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                                Analyze & Suggest Services
-                            </Button>
-                        </div>
+                        {uploadError && <p className="mt-2 text-xs text-red-600">{uploadError}</p>}
+                        {(project.requirementDocs ?? []).length > 0 && (
+                            <div className="mt-3 space-y-2">
+                                {(project.requirementDocs ?? []).map((doc) => (
+                                    <div key={doc.id} className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-xs">
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 size={14} className="text-emerald-600" />
+                                            <span className="text-slate-800">{doc.fileName}</span>
+                                            <span className="text-slate-500">({doc.mimeType || 'unknown'})</span>
+                                        </div>
+                                        <span className="text-slate-500">
+                                            {doc.extractedText?.trim() ? 'Ready for analysis' : 'Uploaded'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="mb-1">
+                        <p className="text-xs font-semibold text-slate-700">SA Additional Notes (Optional)</p>
+                        <p className="text-[11px] text-slate-500">Use this for extra context that is not in uploaded files.</p>
+                    </div>
+                    <textarea
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[250px] text-slate-700 placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono text-sm resize-y"
+                        placeholder="Add clarifications, assumptions, constraints, or priorities for the SA-bot..."
+                        value={requirements}
+                        onChange={e => setRequirements(e.target.value)}
+                    />
+                    
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setServiceStepUnlocked(true)}
+                        >
+                            Skip Requirements & Choose Services/Packages
+                        </Button>
+                        <Button 
+                            onClick={saveAndAnalyze} 
+                            disabled={!canAnalyze || analyzing}
+                            className="bg-blue-600 hover:bg-blue-500 text-slate-900 border-none gap-2"
+                        >
+                            {analyzing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                            Analyze & Suggest Services
+                        </Button>
                     </div>
                 </div>
-            )}
+            </div>
 
-            {activeTab === 'services' && (
+            {serviceStepUnlocked && (
                 <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                        <FolderKanban size={24} className="text-blue-500" />
+                        <h2 className="text-xl font-bold text-slate-900">Step 2: Choose Services & Packages</h2>
+                    </div>
+
                     {!showWizard && (
                         <div className="flex justify-end">
                             <Button 
@@ -441,7 +511,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 {suggestions.length === 0 ? (
                                     <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-500">
                                         <p>No suggestions generated yet.</p>
-                                        <Button variant="link" onClick={() => setActiveTab('kickoff')} className="text-blue-500">Go back and analyze requirements</Button>
+                                        <p className="mt-2 text-xs text-slate-500">Run analysis in Step 1 or start guided design.</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
@@ -485,7 +555,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                                 <div className="mt-4 bg-slate-50 rounded-lg p-3 border border-slate-200/50">
                                                     <p className="text-xs text-emerald-400 flex items-start gap-2">
                                                         <Sparkles size={12} className="shrink-0 mt-0.5" />
-                                                        <span>{s.reason}</span>
+                                                        <span>{s.shortReason ?? s.reason}</span>
                                                     </p>
                                                 </div>
                                             </div>
@@ -526,6 +596,22 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                                         {item.catalogItem.type.replace('_', ' ')}
                                                     </Badge>
                                                     <ShieldCheck size={18} className="text-emerald-500" />
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => removeService(item.id)}
+                                                        disabled={removingItemId === item.id}
+                                                        className="h-7 px-2 text-xs"
+                                                    >
+                                                        {removingItemId === item.id ? (
+                                                            <Loader2 size={12} className="animate-spin" />
+                                                        ) : (
+                                                            <>
+                                                                <Trash2 size={12} />
+                                                                Remove
+                                                            </>
+                                                        )}
+                                                    </Button>
                                                 </div>
                                             </div>
                                                 <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-2">
