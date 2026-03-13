@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import {
     Package,
-    Cpu,
     FileCheck,
     Layers,
     Activity,
@@ -21,7 +20,7 @@ export default async function AdminDashboard() {
     const stats = [
         { name: 'Total Catalog items', value: itemsCount, icon: Layers, color: 'text-blue-500' },
         { name: 'Active Packages', value: packageCount, icon: Package, color: 'text-emerald-500' },
-        { name: 'BOM Dependency Rules', value: dependencyCount, icon: Cpu, color: 'text-purple-500' },
+        { name: 'BOM Dependency Rules', value: dependencyCount, icon: null, color: 'text-purple-500' },
         { name: 'Managed AI Prompts', value: promptCount, icon: Activity, color: 'text-orange-500' },
     ];
 
@@ -39,7 +38,7 @@ export default async function AdminDashboard() {
                             <span className="text-sm font-medium text-slate-600">
                                 {stat.name}
                             </span>
-                            <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                            {stat.icon ? <stat.icon className={`h-4 w-4 ${stat.color}`} /> : null}
                         </div>
                         <div className="flex items-baseline gap-2">
                             <div className="text-2xl font-bold">{stat.value}</div>
