@@ -224,7 +224,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             });
             const data = await res.json().catch(() => ({}));
 
-            if (res.ok && Array.isArray(data.recommendations)) {
+            if (res.ok && Array.isArray(data.recommendations) && data.recommendations.length > 0) {
                 setSuggestions((data.recommendations as Recommendation[]).map(mapRecommendation));
             } else {
                 // Fallback: direct Gemini suggest endpoint (service/package recommendations)

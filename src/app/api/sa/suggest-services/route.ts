@@ -2,6 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
+import {
+    adjustScoreForCoverage,
+    computeCoverage,
+    computeIntentBonus,
+    toBoundedConfidence,
+} from "@/lib/recommendation-coverage";
 import { ItemType } from "@prisma/client";
 
 // 10 requests per user per minute for the AI endpoint
@@ -31,6 +37,9 @@ interface SuggestCandidate {
     assumptions: string[];
     requiredIncluded: string[];
     optionalRecommended: string[];
+    requiredIncludedDetails: string[];
+    optionalIncludedDetails: string[];
+    designOptionRules: string[];
 }
 
 function tokens(input: string): string[] {
@@ -52,7 +61,7 @@ function evaluateCoverage(candidate: SuggestCandidate, requirements: string): { 
         { key: "name", text: candidate.name, weight: 1.4 },
         { key: "short_description", text: candidate.shortDescription ?? "", weight: 1.2 },
         { key: "long_description", text: candidate.detailedDescription ?? "", weight: 1.1 },
-        { key: "features", text: candidate.features.join(" "), weight: 1.0 },
+        { key: "features", text: `${candidate.features.join(" ")} ${candidate.requiredIncludedDetails.join(" ")} ${candidate.optionalIncludedDetails.join(" ")} ${candidate.designOptionRules.join(" ")}`, weight: 1.0 },
         { key: "constraints", text: candidate.constraints.join(" "), weight: 0.9 },
         { key: "assumptions", text: candidate.assumptions.join(" "), weight: 0.8 },
     ];
@@ -84,6 +93,76 @@ function toShortReason(reason: string): string {
     const withoutMatchedTail = normalized.split("Matched characteristics:")[0]?.trim() ?? normalized;
     const sentence = withoutMatchedTail.split(/(?<=[.!?])\s+/)[0] ?? withoutMatchedTail;
     return sentence.slice(0, 180);
+}
+
+function buildCandidateCoverageText(candidate: SuggestCandidate): string {
+    const packageUsesCompositionCoverage =
+        candidate.type === ItemType.PACKAGE &&
+        (candidate.requiredIncluded.length > 0 || candidate.optionalRecommended.length > 0);
+
+    return [
+        candidate.name,
+        packageUsesCompositionCoverage ? "" : candidate.shortDescription ?? "",
+        packageUsesCompositionCoverage ? "" : candidate.detailedDescription ?? "",
+        packageUsesCompositionCoverage ? "" : candidate.features.join(" "),
+        candidate.constraints.join(" "),
+        candidate.assumptions.join(" "),
+        candidate.requiredIncluded.join(" "),
+        candidate.requiredIncludedDetails.join(" "),
+        candidate.designOptionRules.join(" "),
+    ]
+        .filter(Boolean)
+        .join(" ");
+}
+
+function buildCandidateOptionalCoverageText(candidate: SuggestCandidate): string {
+    return [
+        candidate.optionalRecommended.join(" "),
+        candidate.optionalIncludedDetails.join(" "),
+    ]
+        .filter(Boolean)
+        .join(" ");
+}
+
+function buildCandidateIntentText(candidate: SuggestCandidate): string {
+    return [
+        candidate.name,
+        candidate.shortDescription ?? "",
+        candidate.detailedDescription ?? "",
+        candidate.features.join(" "),
+        candidate.requiredIncluded.join(" "),
+        candidate.optionalRecommended.join(" "),
+        candidate.requiredIncludedDetails.join(" "),
+        candidate.optionalIncludedDetails.join(" "),
+        candidate.designOptionRules.join(" "),
+    ]
+        .filter(Boolean)
+        .join(" ");
+}
+
+function applyBundlePreference(
+    score: number,
+    candidate: SuggestCandidate,
+    coverage: ReturnType<typeof computeCoverage>
+): number {
+    let adjusted = score;
+    if (coverage.required.length >= 2) {
+        if (candidate.type === ItemType.PACKAGE) {
+            adjusted += 0.18;
+            if (coverage.optionalMatched.length > 0 && coverage.coreMatched.length < coverage.required.length) {
+                adjusted += 0.08;
+            }
+            if (coverage.coreMatched.length === coverage.required.length) {
+                adjusted += 0.1;
+            }
+        } else {
+            adjusted *= 0.65;
+            if (coverage.matched.length < coverage.required.length) {
+                adjusted *= 0.8;
+            }
+        }
+    }
+    return Math.max(0, Math.min(0.99, adjusted));
 }
 
 async function getSystemConfigValue(key: string): Promise<string | null> {
@@ -133,29 +212,86 @@ export async function POST(request: NextRequest) {
                 packageCompositions: {
                     include: {
                         catalogItem: {
-                            select: { name: true },
+                            select: {
+                                name: true,
+                                shortDescription: true,
+                                detailedDescription: true,
+                                attributes: { include: { term: { select: { label: true, value: true } } } },
+                            },
                         },
+                    },
+                },
+                packagePolicies: {
+                    where: { active: true },
+                    include: {
+                        designOption: true,
+                        values: { include: { designOptionValue: true } },
                     },
                 },
             }
         });
-        const candidates: SuggestCandidate[] = candidatesRaw.map((item) => ({
-            id: item.id,
-            sku: item.sku,
-            name: item.name,
-            shortDescription: item.shortDescription,
-            detailedDescription: item.detailedDescription,
-            type: item.type,
-            features: item.attributes.map((attr) => attr.term.label || attr.term.value).filter(Boolean) as string[],
-            constraints: item.constraints.map((c) => c.description),
-            assumptions: item.assumptions.map((a) => a.description),
-            requiredIncluded: item.packageCompositions
+        const candidates: SuggestCandidate[] = candidatesRaw.map((item) => {
+            const requiredIncludedDetails = item.packageCompositions
                 .filter((row) => row.role === "REQUIRED" || row.role === "AUTO_INCLUDED")
-                .map((row) => row.catalogItem.name),
-            optionalRecommended: item.packageCompositions
+                .map((row) => {
+                    const memberFeatures = row.catalogItem.attributes
+                        .map((attribute) => attribute.term.label || attribute.term.value)
+                        .filter(Boolean) as string[];
+                    return [
+                        row.catalogItem.name,
+                        row.catalogItem.shortDescription ?? "",
+                        row.catalogItem.detailedDescription ?? "",
+                        memberFeatures.join(", "),
+                    ]
+                        .filter(Boolean)
+                        .join(" | ");
+                });
+
+            const optionalIncludedDetails = item.packageCompositions
                 .filter((row) => row.role === "OPTIONAL")
-                .map((row) => row.catalogItem.name),
-        }));
+                .map((row) => {
+                    const memberFeatures = row.catalogItem.attributes
+                        .map((attribute) => attribute.term.label || attribute.term.value)
+                        .filter(Boolean) as string[];
+                    return [
+                        row.catalogItem.name,
+                        row.catalogItem.shortDescription ?? "",
+                        row.catalogItem.detailedDescription ?? "",
+                        memberFeatures.join(", "),
+                    ]
+                        .filter(Boolean)
+                        .join(" | ");
+                });
+
+            const designOptionRules = item.packagePolicies.map((policy) => {
+                const option = policy.designOption?.label ?? policy.designOption?.key ?? "unknown_option";
+                const values = policy.values
+                    .map((value) => value.designOptionValue?.label ?? value.designOptionValue?.value ?? "")
+                    .filter(Boolean);
+                return `${option} ${policy.operator} ${values.join(", ") || "any"}`;
+            });
+
+            return {
+                id: item.id,
+                sku: item.sku,
+                name: item.name,
+                shortDescription: item.shortDescription,
+                detailedDescription: item.detailedDescription,
+                type: item.type,
+                features: item.attributes.map((attr) => attr.term.label || attr.term.value).filter(Boolean) as string[],
+                constraints: item.constraints.map((c) => c.description),
+                assumptions: item.assumptions.map((a) => a.description),
+                requiredIncluded: item.packageCompositions
+                    .filter((row) => row.role === "REQUIRED" || row.role === "AUTO_INCLUDED")
+                    .map((row) => row.catalogItem.name),
+                optionalRecommended: item.packageCompositions
+                    .filter((row) => row.role === "OPTIONAL")
+                    .map((row) => row.catalogItem.name),
+                requiredIncludedDetails,
+                optionalIncludedDetails,
+                designOptionRules,
+            };
+        });
 
         const apiKey = process.env.GEMINI_API_KEY;
         const primaryModel = (await getSystemConfigValue("GEMINI_MODEL")) ?? "gemini-3.1-flash-lite-preview";
@@ -171,7 +307,7 @@ export async function POST(request: NextRequest) {
         }
 
         const catalogSummary = candidates.map(c =>
-            `- id:${c.id} | type:${c.type} | sku:${c.sku} | name:${c.name} | short_desc:${c.shortDescription ?? 'N/A'} | long_desc:${c.detailedDescription ?? 'N/A'} | features:${c.features.join(', ') || 'none'} | constraints:${c.constraints.join(', ') || 'none'} | assumptions:${c.assumptions.join(', ') || 'none'} | required:${c.requiredIncluded.join(', ') || 'none'} | optional:${c.optionalRecommended.join(', ') || 'none'}`
+            `- id:${c.id} | type:${c.type} | sku:${c.sku} | name:${c.name} | short_desc:${c.shortDescription ?? 'N/A'} | long_desc:${c.detailedDescription ?? 'N/A'} | features:${c.features.join(', ') || 'none'} | constraints:${c.constraints.join(', ') || 'none'} | assumptions:${c.assumptions.join(', ') || 'none'} | required:${c.requiredIncluded.join(', ') || 'none'} | optional:${c.optionalRecommended.join(', ') || 'none'} | required_component_details:${c.requiredIncludedDetails.join(' || ') || 'none'} | optional_component_details:${c.optionalIncludedDetails.join(' || ') || 'none'} | design_option_rules:${c.designOptionRules.join(' || ') || 'none'}`
         ).join('\n');
 
         const prompt = `${promptTemplate}
@@ -180,8 +316,9 @@ Evaluate candidates using all available aspects, with this priority:
 1) Detailed description + short description + name relevance.
 2) Feature coverage and capability fit.
 3) Constraint and assumption compatibility/risk.
-4) Prefer PACKAGE over individual services when fit is equal or better and it covers more requirements.
-5) Choose an individual service only when package fit is weaker due gaps/constraints.
+4) Analyze package member service details/features and design option rules before scoring.
+5) Prefer PACKAGE over individual services when fit is equal or better and it covers more requirements.
+6) Choose an individual service only when package fit is weaker due gaps/constraints.
 
 Based on the customer requirements below, recommend up to 3 catalog items.
 
@@ -212,7 +349,11 @@ Respond ONLY with the JSON array, no markdown or extra text.`;
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: [{ parts: [{ text: prompt }] }],
-                            generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
+                            generationConfig: {
+                                temperature: 0.2,
+                                maxOutputTokens: 512,
+                                thinkingConfig: { thinkingBudget: 0 },
+                            },
                         }),
                     }
                 );
@@ -240,19 +381,45 @@ Respond ONLY with the JSON array, no markdown or extra text.`;
             .map(suggestion => {
                 const item = candidates.find(c => c.id === suggestion.id);
                 if (!item) return null;
+                const baseScore = Math.max(0, Math.min(1, Number(suggestion.score ?? 0.85)));
+                const coverage = computeCoverage(rawRequirements, {
+                    core: buildCandidateCoverageText(item),
+                    optional: buildCandidateOptionalCoverageText(item),
+                });
+                const adjustedScore = adjustScoreForCoverage(baseScore, coverage, {
+                    isPackage: item.type === ItemType.PACKAGE,
+                });
+                const withBundlePreference = applyBundlePreference(adjustedScore, item, coverage);
+                const intentBonus = computeIntentBonus(
+                    rawRequirements,
+                    buildCandidateIntentText(item)
+                );
+                const matchedCharacteristics = normalizeMatchedCharacteristics(suggestion.matchedCharacteristics);
+                const reasonWithCoverage = suggestion.reason.startsWith(coverage.sentence)
+                    ? suggestion.reason
+                    : `${coverage.sentence} ${suggestion.reason}`.trim();
+                const finalScore = toBoundedConfidence(withBundlePreference + intentBonus);
                 return {
                     ...item,
                     description: item.shortDescription,
-                    certaintyPercent: Math.max(1, Math.round((suggestion.score ?? 0.85) * 100)),
-                    matchScore: Math.max(1, Math.round((suggestion.score ?? 0.85) * 10)),
-                    matchedCharacteristics: normalizeMatchedCharacteristics(suggestion.matchedCharacteristics),
-                    shortReason: toShortReason(suggestion.reason),
-                    reason: suggestion.reason.includes("Matched characteristics:")
-                        ? suggestion.reason
-                        : `${suggestion.reason} Matched characteristics: ${normalizeMatchedCharacteristics(suggestion.matchedCharacteristics).join(", ") || "general_fit"}.`,
+                    certaintyPercent: Math.max(1, Math.round(finalScore * 100)),
+                    matchScore: Math.max(1, Math.round(finalScore * 10)),
+                    matchedCharacteristics,
+                    shortReason: coverage.required.length > 0 ? coverage.sentence : toShortReason(suggestion.reason),
+                    reason: reasonWithCoverage.includes("Matched characteristics:")
+                        ? reasonWithCoverage
+                        : `${reasonWithCoverage} Matched characteristics: ${matchedCharacteristics.join(", ") || "general_fit"}.`,
                 };
             })
-            .filter(Boolean)
+            .filter((row): row is SuggestCandidate & {
+                description: string | null;
+                certaintyPercent: number;
+                matchScore: number;
+                matchedCharacteristics: MatchCharacteristic[];
+                shortReason: string;
+                reason: string;
+            } => Boolean(row))
+            .sort((a, b) => b.certaintyPercent - a.certaintyPercent)
             .slice(0, 3);
 
         return NextResponse.json({ suggestions });
@@ -269,19 +436,32 @@ function fallbackSuggestions(
 ) {
     const suggestions = candidates
         .map(item => {
-            const coverage = evaluateCoverage(item, rawRequirements);
-            const certaintyPercent = Math.max(1, Math.round(coverage.score * 100));
-            const reason = coverage.matchedCharacteristics.length > 0
-                ? `Matched service characteristics from your requirements. Matched characteristics: ${coverage.matchedCharacteristics.join(', ')}.`
-                : `General fit based on available service characteristics.`;
+            const characteristicCoverage = evaluateCoverage(item, rawRequirements);
+            const capabilityCoverage = computeCoverage(rawRequirements, {
+                core: buildCandidateCoverageText(item),
+                optional: buildCandidateOptionalCoverageText(item),
+            });
+            const adjustedScore = adjustScoreForCoverage(characteristicCoverage.score, capabilityCoverage, {
+                isPackage: item.type === ItemType.PACKAGE,
+            });
+            const withBundlePreference = applyBundlePreference(adjustedScore, item, capabilityCoverage);
+            const intentBonus = computeIntentBonus(
+                rawRequirements,
+                buildCandidateIntentText(item)
+            );
+            const finalScore = toBoundedConfidence(withBundlePreference + intentBonus);
+            const certaintyPercent = Math.max(1, Math.round(finalScore * 100));
+            const reason = `${capabilityCoverage.sentence} ${characteristicCoverage.matchedCharacteristics.length > 0
+                ? `Matched service characteristics from your requirements.`
+                : `General fit based on available service characteristics.`}`.trim();
             return {
                 ...item,
                 description: item.shortDescription,
                 certaintyPercent,
-                matchScore: Math.max(1, Math.round(coverage.score * 10)),
-                matchedCharacteristics: coverage.matchedCharacteristics,
-                shortReason: toShortReason(reason),
-                reason,
+                matchScore: Math.max(1, Math.round(finalScore * 10)),
+                matchedCharacteristics: characteristicCoverage.matchedCharacteristics,
+                shortReason: capabilityCoverage.required.length > 0 ? capabilityCoverage.sentence : toShortReason(reason),
+                reason: `${reason} Matched characteristics: ${characteristicCoverage.matchedCharacteristics.join(', ') || "general_fit"}.`,
             };
         })
         .sort((a, b) => b.certaintyPercent - a.certaintyPercent)
