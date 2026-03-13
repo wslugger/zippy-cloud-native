@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,29 +14,29 @@ import {
 } from '../types';
 import { normalizeDesignOptionKey, parseList } from '../utils';
 import { InlineNotice } from '../components/inline-notice';
-import { ServiceSelector } from '../components/service-selector';
 
-export function FeaturesWorkspace({
-    isActive,
-    terms,
-    services,
-    selectedServiceId,
-    setSelectedServiceId,
-    termsLoading,
-    termsError,
-    servicesLoading,
-    servicesError,
-    reloadTerms,
-}: FeaturesWorkspaceProps) {
+export function FeaturesWorkspace(props: FeaturesWorkspaceProps) {
+    const {
+        isActive,
+        terms,
+        services,
+        termsLoading,
+        termsError,
+        servicesLoading,
+        servicesError,
+        reloadTerms,
+    } = props;
     const [featureSearchTerm, setFeatureSearchTerm] = useState('');
     const [editingFeatureId, setEditingFeatureId] = useState<string | null>(null);
     const [featureForm, setFeatureForm] = useState<TaxonomyFormState>(EMPTY_FEATURE_FORM);
     const [featureStatus, setFeatureStatus] = useState<WorkspaceStatus | null>(null);
     const [featureSaving, setFeatureSaving] = useState(false);
-    const [serviceFeatureIds, setServiceFeatureIds] = useState<string[]>([]);
     const [serviceFeatureLoading, setServiceFeatureLoading] = useState(false);
     const [serviceFeatureSaving, setServiceFeatureSaving] = useState(false);
     const [serviceFeatureStatus, setServiceFeatureStatus] = useState<WorkspaceStatus | null>(null);
+    const [assignmentSearchTerm, setAssignmentSearchTerm] = useState('');
+    const [serviceFeatureIdsByService, setServiceFeatureIdsByService] = useState<Record<string, string[]>>({});
+    const [assignedServiceIds, setAssignedServiceIds] = useState<string[]>([]);
 
     const featureTerms = useMemo(() => terms.filter((term) => term.category === 'FEATURE'), [terms]);
     const filteredFeatureTerms = useMemo(() => {
@@ -46,11 +46,66 @@ export function FeaturesWorkspace({
             feature.label.toLowerCase().includes(needle) || feature.value.toLowerCase().includes(needle)
         );
     }, [featureTerms, featureSearchTerm]);
+    const assignedServiceIdSet = useMemo(() => new Set(assignedServiceIds), [assignedServiceIds]);
+    const filteredServices = useMemo(() => {
+        const needle = assignmentSearchTerm.trim().toLowerCase();
+        if (!needle) return services;
+        return services.filter((service) =>
+            service.name.toLowerCase().includes(needle)
+            || service.sku.toLowerCase().includes(needle)
+            || service.type.toLowerCase().includes(needle)
+        );
+    }, [services, assignmentSearchTerm]);
+    const assignedServices = useMemo(
+        () => services.filter((service) => assignedServiceIdSet.has(service.id)),
+        [services, assignedServiceIdSet]
+    );
+
+    const fetchFeatureAssignments = useCallback(async (featureId: string) => {
+        setServiceFeatureLoading(true);
+        setServiceFeatureStatus(null);
+        try {
+            const results = await Promise.all(
+                services.map(async (service) => {
+                    const res = await fetch(`/api/admin/catalog/${service.id}/features`);
+                    const data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                        throw new Error((data as { error?: string }).error || `Failed to load features for ${service.name}`);
+                    }
+                    const assigned = (
+                        data as { supportedFeatureTermIds?: string[]; assignedFeatureTermIds?: string[] }
+                    ).supportedFeatureTermIds
+                        ?? (data as { supportedFeatureTermIds?: string[]; assignedFeatureTermIds?: string[] }).assignedFeatureTermIds
+                        ?? [];
+                    return { serviceId: service.id, assignedFeatureIds: assigned };
+                })
+            );
+
+            const nextByService = Object.fromEntries(
+                results.map((result) => [result.serviceId, result.assignedFeatureIds])
+            );
+            const nextAssignedServiceIds = results
+                .filter((result) => result.assignedFeatureIds.includes(featureId))
+                .map((result) => result.serviceId);
+
+            setServiceFeatureIdsByService(nextByService);
+            setAssignedServiceIds(nextAssignedServiceIds);
+        } catch (error) {
+            setServiceFeatureStatus({
+                type: 'error',
+                message: error instanceof Error ? error.message : 'Failed to load service features',
+            });
+            setServiceFeatureIdsByService({});
+            setAssignedServiceIds([]);
+        } finally {
+            setServiceFeatureLoading(false);
+        }
+    }, [services]);
 
     useEffect(() => {
-        if (!isActive || !selectedServiceId) return;
-        void fetchServiceFeatures(selectedServiceId);
-    }, [isActive, selectedServiceId]);
+        if (!isActive || !editingFeatureId || editingFeatureId === 'new') return;
+        void fetchFeatureAssignments(editingFeatureId);
+    }, [isActive, editingFeatureId, fetchFeatureAssignments]);
 
     function resetFeatureForm() {
         setEditingFeatureId(null);
@@ -136,59 +191,54 @@ export function FeaturesWorkspace({
         }
     }
 
-    async function fetchServiceFeatures(catalogItemId: string) {
-        setServiceFeatureLoading(true);
-        setServiceFeatureStatus(null);
-        try {
-            const res = await fetch(`/api/admin/catalog/${catalogItemId}/features`);
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                throw new Error((data as { error?: string }).error || 'Failed to load service features');
-            }
-            setServiceFeatureIds((data as { assignedFeatureTermIds?: string[] }).assignedFeatureTermIds ?? []);
-        } catch (error) {
-            setServiceFeatureStatus({
-                type: 'error',
-                message: error instanceof Error ? error.message : 'Failed to load service features',
-            });
-            setServiceFeatureIds([]);
-        } finally {
-            setServiceFeatureLoading(false);
-        }
-    }
-
-    function toggleCurrentFeatureAssignment(checked: boolean) {
-        if (!editingFeatureId || editingFeatureId === 'new') return;
-        const featureId = editingFeatureId;
-        setServiceFeatureIds((previous) => {
+    function toggleServiceAssignment(serviceId: string, checked: boolean) {
+        setAssignedServiceIds((previous) => {
             if (checked) {
-                return Array.from(new Set([...previous, featureId]));
+                return Array.from(new Set([...previous, serviceId]));
             }
-            return previous.filter((id) => id !== featureId);
+            return previous.filter((id) => id !== serviceId);
         });
     }
 
     async function saveServiceFeatures() {
-        if (!selectedServiceId) {
-            setServiceFeatureStatus({ type: 'error', message: 'Select a service first.' });
+        if (!editingFeatureId || editingFeatureId === 'new') {
+            setServiceFeatureStatus({ type: 'error', message: 'Select a saved feature first.' });
             return;
         }
+        const featureId = editingFeatureId;
 
         setServiceFeatureSaving(true);
         setServiceFeatureStatus(null);
         try {
-            const res = await fetch(`/api/admin/catalog/${selectedServiceId}/features`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ featureTermIds: serviceFeatureIds }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                throw new Error((data as { error?: string }).error || 'Failed to save service features');
-            }
+            const updates = services.map(async (service) => {
+                const currentFeatureIds = serviceFeatureIdsByService[service.id] ?? [];
+                const shouldAssign = assignedServiceIdSet.has(service.id);
+                const nextFeatureIds = shouldAssign
+                    ? Array.from(new Set([...currentFeatureIds, featureId]))
+                    : currentFeatureIds.filter((id) => id !== featureId);
 
-            setServiceFeatureStatus({ type: 'success', message: 'Service feature assignments saved.' });
-            await fetchServiceFeatures(selectedServiceId);
+                const unchanged =
+                    currentFeatureIds.length === nextFeatureIds.length
+                    && currentFeatureIds.every((id, index) => id === nextFeatureIds[index]);
+                if (unchanged) return;
+
+                const res = await fetch(`/api/admin/catalog/${service.id}/features`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ featureTermIds: nextFeatureIds }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error((data as { error?: string }).error || `Failed to save features for ${service.name}`);
+                }
+            });
+            await Promise.all(updates);
+
+            setServiceFeatureStatus({
+                type: 'success',
+                message: `Assignments saved for ${assignedServiceIds.length} service${assignedServiceIds.length === 1 ? '' : 's'}.`,
+            });
+            await fetchFeatureAssignments(featureId);
         } catch (error) {
             setServiceFeatureStatus({
                 type: 'error',
@@ -326,7 +376,7 @@ export function FeaturesWorkspace({
                                 <Button
                                     size="sm"
                                     onClick={saveServiceFeatures}
-                                    disabled={serviceFeatureSaving || !selectedServiceId}
+                                    disabled={serviceFeatureSaving || services.length === 0}
                                     className="h-7"
                                 >
                                     {serviceFeatureSaving ? <Loader2 size={12} className="mr-1 animate-spin" /> : <Save size={12} className="mr-1" />}
@@ -335,29 +385,69 @@ export function FeaturesWorkspace({
                             </div>
 
                             {serviceFeatureStatus && <InlineNotice variant={serviceFeatureStatus.type} message={serviceFeatureStatus.message} />}
+                            <div className="space-y-2">
+                                <p className="text-[11px] text-slate-600">
+                                    Assigned to <span className="font-semibold text-slate-900">{assignedServices.length}</span> service{assignedServices.length === 1 ? '' : 's'}
+                                </p>
+                                {servicesLoading && (
+                                    <p className="text-[11px] text-slate-500">
+                                        <Loader2 size={11} className="inline mr-1 animate-spin" />
+                                        Loading services...
+                                    </p>
+                                )}
+                                {servicesError && <p className="text-[11px] text-rose-600">{servicesError}</p>}
+                                {assignedServices.length > 0 ? (
+                                    <div className="rounded-md border border-slate-200 bg-white p-2 max-h-28 overflow-auto">
+                                        <ul className="space-y-1">
+                                            {assignedServices.map((service) => (
+                                                <li key={`assigned-${service.id}`} className="text-xs text-slate-700">
+                                                    <span className="font-semibold text-slate-900">{service.name}</span> ({service.sku}) - {service.type}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ) : (
+                                    <p className="text-[11px] text-slate-500">No service assignments yet.</p>
+                                )}
+                            </div>
 
-                            <ServiceSelector
-                                services={services}
-                                selectedServiceId={selectedServiceId}
-                                setSelectedServiceId={setSelectedServiceId}
-                                loading={servicesLoading}
-                                error={servicesError}
-                                showSelectionCaption
-                            />
+                            <div className="relative">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                                <Input
+                                    value={assignmentSearchTerm}
+                                    onChange={(event) => setAssignmentSearchTerm(event.target.value)}
+                                    placeholder="Search services..."
+                                    className="pl-7 h-8 text-xs bg-white"
+                                />
+                            </div>
 
                             {serviceFeatureLoading ? (
                                 <p className="text-xs text-slate-500">
                                     <Loader2 size={12} className="inline mr-1 animate-spin" /> Loading service features...
                                 </p>
                             ) : (
-                                <label className="text-xs text-slate-700 flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={serviceFeatureIds.includes(editingFeatureId)}
-                                        onChange={(event) => toggleCurrentFeatureAssignment(event.target.checked)}
-                                    />
-                                    Assign this feature to selected service
-                                </label>
+                                <div className="rounded-md border border-slate-200 bg-white max-h-56 overflow-auto">
+                                    {filteredServices.length === 0 ? (
+                                        <p className="text-xs text-slate-500 p-3">No services match your search.</p>
+                                    ) : (
+                                        <ul className="divide-y divide-slate-100">
+                                            {filteredServices.map((service) => (
+                                                <li key={`service-assign-${service.id}`} className="p-2">
+                                                    <label className="text-xs text-slate-700 flex items-center gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={assignedServiceIdSet.has(service.id)}
+                                                            onChange={(event) => toggleServiceAssignment(service.id, event.target.checked)}
+                                                        />
+                                                        <span>
+                                                            <span className="font-semibold text-slate-900">{service.name}</span> ({service.sku}) - {service.type}
+                                                        </span>
+                                                    </label>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
                             )}
                         </div>
                     ) : (

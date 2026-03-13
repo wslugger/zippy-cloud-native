@@ -1,5 +1,11 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
     const defaults = [
@@ -21,6 +27,7 @@ async function main() {
         { category: 'PANEL_FEATURES', label: 'Hardware', value: 'HARDWARE' },
         { category: 'PANEL_FEATURES', label: 'Managed Service', value: 'MANAGED_SERVICE' },
         { category: 'PANEL_FEATURES', label: 'Service Option', value: 'SERVICE_OPTION' },
+        { category: 'PANEL_FEATURES', label: 'Connectivity', value: 'CONNECTIVITY' },
     ];
 
     for (const term of defaults) {
@@ -33,4 +40,7 @@ async function main() {
     console.log("Visibility rules seeded successfully.");
 }
 
-main().finally(() => prisma.$disconnect());
+main().finally(async () => {
+    await prisma.$disconnect();
+    await pool.end();
+});
