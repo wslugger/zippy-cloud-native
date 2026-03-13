@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CATALOG_ITEM_TYPES, normalizeCatalogItemType } from '@/lib/catalog-item-types';
 import {
     Plus,
     Search,
@@ -48,6 +49,16 @@ export default function CatalogPage() {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const LIMIT = 50;
 
+    const classificationFilters = taxonomyTerms
+        .filter((term) => term.category === 'CLASSIFICATION')
+        .reduce<Array<{ value: string; label: string }>>((acc, term) => {
+            const normalizedType = normalizeCatalogItemType(term.value);
+            if (!normalizedType) return acc;
+            if (acc.some((existing) => existing.value === normalizedType)) return acc;
+            acc.push({ value: normalizedType, label: term.label || normalizedType });
+            return acc;
+        }, []);
+
     useEffect(() => {
         setPage(1);
     }, [search, filterType]);
@@ -86,7 +97,12 @@ export default function CatalogPage() {
             setLoading(true);
             const url = new URL('/api/admin/catalog', window.location.origin);
             if (search) url.searchParams.set('search', search);
-            if (filterType !== 'ALL') url.searchParams.set('type', filterType);
+            if (filterType !== 'ALL') {
+                const normalizedFilterType = normalizeCatalogItemType(filterType);
+                if (normalizedFilterType) {
+                    url.searchParams.set('type', normalizedFilterType);
+                }
+            }
             url.searchParams.set('page', String(page));
             url.searchParams.set('limit', String(LIMIT));
 
@@ -149,12 +165,10 @@ export default function CatalogPage() {
                     >
                         ALL
                     </button>
-                    {taxonomyTerms
-                        .filter(t => t.category === 'CLASSIFICATION')
-                        .map((t) => (
+                    {classificationFilters.map((t) => (
                         <button
                             key={t.value}
-                            onClick={() => setFilterType(t.value || 'ALL')}
+                            onClick={() => setFilterType(t.value)}
                             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border shadow-sm whitespace-nowrap ${filterType === t.value
                                     ? 'bg-slate-900 border-slate-900 text-white'
                                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -164,8 +178,8 @@ export default function CatalogPage() {
                         </button>
                     ))}
                     {/* Fallback if no taxonomy terms are loaded yet or database is empty */}
-                    {taxonomyTerms.filter(t => t.category === 'CLASSIFICATION').length === 0 && 
-                        ['HARDWARE', 'MANAGED_SERVICE', 'SERVICE_OPTION', 'PACKAGE', 'CONNECTIVITY'].map((type) => (
+                    {classificationFilters.length === 0 && 
+                        CATALOG_ITEM_TYPES.map((type) => (
                         <button
                             key={type}
                             onClick={() => setFilterType(type)}

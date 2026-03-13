@@ -28,7 +28,6 @@ export function useTaxonomySharedData(): SharedTaxonomyState {
             const data = (await res.json()) as TaxonomyTerm[];
             setTerms(data);
         } catch (error) {
-            console.error(error);
             setTermsError(error instanceof Error ? error.message : 'Failed to load taxonomy data');
         } finally {
             setTermsLoading(false);
@@ -53,7 +52,6 @@ export function useTaxonomySharedData(): SharedTaxonomyState {
                     : (serviceList[0]?.id ?? '')
             );
         } catch (error) {
-            console.error(error);
             setServices([]);
             setSelectedServiceId('');
             setServicesError(error instanceof Error ? error.message : 'Failed to load catalog items');

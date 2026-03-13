@@ -1,13 +1,20 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import { normalizeCatalogItemType } from "@/lib/catalog-item-types";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
-    const type = searchParams.get('type') || undefined;
+    const rawType = searchParams.get('type');
+    const type = normalizeCatalogItemType(rawType) ?? undefined;
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
     const skip = (page - 1) * limit;
+
+    if (rawType && !type) {
+        return NextResponse.json({ items: [], total: 0, page, limit });
+    }
 
     const where = {
         AND: [
@@ -17,20 +24,25 @@ export async function GET(request: Request) {
                     { sku: { contains: search, mode: 'insensitive' as const } },
                 ]
             } : {},
-            type ? { type: type as any } : {}
+            type ? { type } : {}
         ]
     };
 
     try {
+        // Keep the list endpoint resilient and fast: callers only need summary fields.
         const [items, total] = await Promise.all([
             prisma.catalogItem.findMany({
                 where,
-                include: {
-                    attributes: { include: { term: true } },
-                    pricing: { orderBy: { effectiveDate: 'desc' }, take: 1 },
-                    childDependencies: { include: { childItem: true } },
-                    constraints: true,
-                } as any,
+                select: {
+                    id: true,
+                    sku: true,
+                    name: true,
+                    shortDescription: true,
+                    detailedDescription: true,
+                    type: true,
+                    createdAt: true,
+                    updatedAt: true,
+                },
                 orderBy: { name: 'asc' },
                 take: limit,
                 skip,
@@ -38,9 +50,32 @@ export async function GET(request: Request) {
             prisma.catalogItem.count({ where }),
         ]);
         return NextResponse.json({ items, total, page, limit });
-    } catch (error) {
-        console.error("GET CATALOG ERROR:", error);
-        return NextResponse.json({ error: "Failed to fetch catalog items" }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "Failed to fetch catalog items";
+        const prismaCode = error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
+        const prismaMeta = error instanceof Prisma.PrismaClientKnownRequestError ? error.meta : undefined;
+
+        console.error("GET CATALOG ERROR:", {
+            message,
+            code: prismaCode,
+            meta: prismaMeta,
+        });
+
+        if (prismaCode === "P1001" || prismaCode === "P1002") {
+            return NextResponse.json(
+                { error: "Catalog database is unreachable. Check DATABASE_URL/network and retry.", code: prismaCode },
+                { status: 503 }
+            );
+        }
+
+        if (prismaCode === "P2021" || prismaCode === "P2022") {
+            return NextResponse.json(
+                { error: "Catalog schema is out of date. Run Prisma migrations/db push and retry.", code: prismaCode },
+                { status: 500 }
+            );
+        }
+
+        return NextResponse.json({ error: message, code: prismaCode }, { status: 500 });
     }
 }
 

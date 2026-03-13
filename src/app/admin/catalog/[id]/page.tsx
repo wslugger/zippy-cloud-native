@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { CATALOG_ITEM_TYPES, normalizeCatalogItemType } from '@/lib/catalog-item-types';
 import {
     ChevronLeft,
     Save,
@@ -110,6 +111,137 @@ interface PackageServiceWorkspace {
     error?: string;
 }
 
+function newTempId(prefix: string): string {
+    return `temp-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function toNumber(value: unknown): number {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+        const parsed = Number.parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+}
+
+function createEmptyCatalogItem(): CatalogItem {
+    return {
+        id: '',
+        sku: '',
+        name: '',
+        shortDescription: '',
+        detailedDescription: '',
+        type: 'MANAGED_SERVICE',
+        constraints: [],
+        assumptions: [],
+        collaterals: [],
+        attributes: [],
+        pricing: [{ id: newTempId('pricing'), pricingModel: 'FLAT', costMrc: 0, costNrc: 0 }],
+        childDependencies: [],
+    };
+}
+
+function normalizeCatalogItem(raw: unknown): CatalogItem {
+    const fallback = createEmptyCatalogItem();
+    const input = (raw && typeof raw === 'object') ? (raw as Record<string, unknown>) : {};
+
+    const constraints = Array.isArray(input.constraints)
+        ? input.constraints.map((entry, index) => {
+            const row = (entry && typeof entry === 'object') ? (entry as Record<string, unknown>) : {};
+            return {
+                id: typeof row.id === 'string' ? row.id : `constraint-${index}`,
+                description: typeof row.description === 'string' ? row.description : '',
+            };
+        })
+        : [];
+
+    const assumptions = Array.isArray(input.assumptions)
+        ? input.assumptions.map((entry, index) => {
+            const row = (entry && typeof entry === 'object') ? (entry as Record<string, unknown>) : {};
+            return {
+                id: typeof row.id === 'string' ? row.id : `assumption-${index}`,
+                description: typeof row.description === 'string' ? row.description : '',
+            };
+        })
+        : [];
+
+    const collaterals = Array.isArray(input.collaterals)
+        ? input.collaterals.map((entry, index) => {
+            const row = (entry && typeof entry === 'object') ? (entry as Record<string, unknown>) : {};
+            return {
+                id: typeof row.id === 'string' ? row.id : `collateral-${index}`,
+                title: typeof row.title === 'string' ? row.title : '',
+                documentUrl: typeof row.documentUrl === 'string' ? row.documentUrl : '',
+                type: typeof row.type === 'string' ? row.type : 'PDF',
+            };
+        })
+        : [];
+
+    const attributes = Array.isArray(input.attributes)
+        ? input.attributes.map((entry, index) => {
+            const row = (entry && typeof entry === 'object') ? (entry as Record<string, unknown>) : {};
+            const term = (row.term && typeof row.term === 'object') ? (row.term as Record<string, unknown>) : {};
+            return {
+                id: typeof row.id === 'string' ? row.id : `attribute-${index}`,
+                taxonomyTermId: typeof row.taxonomyTermId === 'string' ? row.taxonomyTermId : '',
+                term: {
+                    id: typeof term.id === 'string' ? term.id : '',
+                    name: typeof term.name === 'string' ? term.name : '',
+                    category: typeof term.category === 'string' ? term.category : '',
+                },
+            };
+        })
+        : [];
+
+    const pricingRaw = Array.isArray(input.pricing)
+        ? input.pricing.map((entry, index) => {
+            const row = (entry && typeof entry === 'object') ? (entry as Record<string, unknown>) : {};
+            return {
+                id: typeof row.id === 'string' ? row.id : `pricing-${index}`,
+                pricingModel: typeof row.pricingModel === 'string' ? row.pricingModel : 'FLAT',
+                costMrc: toNumber(row.costMrc),
+                costNrc: toNumber(row.costNrc),
+            };
+        })
+        : [];
+    const pricing = pricingRaw.length > 0 ? pricingRaw : fallback.pricing;
+
+    const childDependencies = Array.isArray(input.childDependencies)
+        ? input.childDependencies.map((entry, index) => {
+            const row = (entry && typeof entry === 'object') ? (entry as Record<string, unknown>) : {};
+            const childItem = (row.childItem && typeof row.childItem === 'object')
+                ? (row.childItem as Record<string, unknown>)
+                : {};
+            return {
+                id: typeof row.id === 'string' ? row.id : `dependency-${index}`,
+                childId: typeof row.childId === 'string' ? row.childId : '',
+                type: typeof row.type === 'string' ? row.type : 'INCLUDES',
+                quantityMultiplier: toNumber(row.quantityMultiplier) || 1,
+                childItem: {
+                    id: typeof childItem.id === 'string' ? childItem.id : '',
+                    sku: typeof childItem.sku === 'string' ? childItem.sku : '',
+                    name: typeof childItem.name === 'string' ? childItem.name : '',
+                },
+            };
+        }).filter((dep) => dep.childId)
+        : [];
+
+    return {
+        id: typeof input.id === 'string' ? input.id : fallback.id,
+        sku: typeof input.sku === 'string' ? input.sku : fallback.sku,
+        name: typeof input.name === 'string' ? input.name : fallback.name,
+        shortDescription: typeof input.shortDescription === 'string' ? input.shortDescription : fallback.shortDescription,
+        detailedDescription: typeof input.detailedDescription === 'string' ? input.detailedDescription : fallback.detailedDescription,
+        type: normalizeCatalogItemType(typeof input.type === 'string' ? input.type : null) || fallback.type,
+        constraints,
+        assumptions,
+        collaterals,
+        attributes,
+        pricing,
+        childDependencies,
+    };
+}
+
 export default function CatalogItemDetail() {
     const { id } = useParams();
     const router = useRouter();
@@ -142,20 +274,7 @@ export default function CatalogItemDetail() {
         if (id !== 'new') {
             fetchItem();
         } else {
-            setItem({
-                id: '',
-                sku: '',
-                name: '',
-                shortDescription: '',
-                detailedDescription: '',
-                type: 'MANAGED_SERVICE',
-                constraints: [],
-                assumptions: [],
-                collaterals: [],
-                attributes: [],
-                pricing: [{ id: `temp-p-${Date.now()}`, pricingModel: 'FLAT', costMrc: 0, costNrc: 0 }],
-                childDependencies: []
-            });
+            setItem(createEmptyCatalogItem());
             setLoading(false);
         }
         fetchTaxonomy();
@@ -287,7 +406,6 @@ export default function CatalogItemDetail() {
                     setPackageDesignSelections([]);
                 }
             } catch (error) {
-                console.error('Failed to load advanced editor data', error);
                 const message = error instanceof Error ? error.message : 'Failed to load advanced editor data';
                 setAdvancedStatus({ type: 'error', message });
             }
@@ -455,7 +573,7 @@ export default function CatalogItemDetail() {
         try {
             const res = await fetch('/api/admin/taxonomy');
             const data = await res.json();
-            setTaxonomyTerms(data);
+            setTaxonomyTerms(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Failed to fetch taxonomy:', error);
         }
@@ -466,9 +584,14 @@ export default function CatalogItemDetail() {
             setLoading(true);
             const res = await fetch(`/api/admin/catalog/${id}`);
             const data = await res.json();
-            setItem(data);
+            if (!res.ok) {
+                throw new Error((data as { error?: string })?.error || 'Failed to load catalog item');
+            }
+            setItem(normalizeCatalogItem(data));
         } catch (err) {
-            console.error(err);
+            console.error('Failed to fetch catalog item:', err);
+            setItem(null);
+            setStatus({ type: 'error', message: err instanceof Error ? err.message : 'Failed to load catalog item' });
         } finally {
             setLoading(false);
         }
@@ -833,6 +956,15 @@ export default function CatalogItemDetail() {
     };
 
     const featureTerms = taxonomyTerms.filter((term) => term.category === 'FEATURE');
+    const classificationOptions = taxonomyTerms
+        .filter((term) => term.category === 'CLASSIFICATION')
+        .reduce<Array<{ value: string; label: string }>>((acc, term) => {
+            const normalizedType = normalizeCatalogItemType(term.value);
+            if (!normalizedType) return acc;
+            if (acc.some((existing) => existing.value === normalizedType)) return acc;
+            acc.push({ value: normalizedType, label: term.label || normalizedType });
+            return acc;
+        }, []);
     const supportSelectedSet = new Set(supportedFeatureTermIds);
     const filteredSupportFeatureTerms = featureTerms
         .filter((term) => {
@@ -1433,21 +1565,18 @@ export default function CatalogItemDetail() {
                                 onChange={(e) => setItem({...item, type: e.target.value})}
                                 className="w-full h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 font-medium text-slate-900"
                             >
-                                {taxonomyTerms
-                                    .filter(t => t.category === 'CLASSIFICATION')
-                                    .map(t => (
-                                        <option key={t.id} value={t.value || ''}>
-                                            {t.label}
-                                        </option>
-                                    ))
-                                }
-                                {taxonomyTerms.filter(t => t.category === 'CLASSIFICATION').length === 0 && (
+                                {classificationOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                                {classificationOptions.length === 0 && (
                                     <>
-                                        <option value="SERVICE_OPTION">Service Option</option>
-                                        <option value="PACKAGE">Design Package</option>
-                                        <option value="CONNECTIVITY">Connectivity</option>
-                                        <option value="MANAGED_SERVICE">Managed Service</option>
-                                        <option value="HARDWARE">Hardware</option>
+                                        {CATALOG_ITEM_TYPES.map((type) => (
+                                            <option key={type} value={type}>
+                                                {type.replaceAll('_', ' ')}
+                                            </option>
+                                        ))}
                                     </>
                                 )}
                             </select>
