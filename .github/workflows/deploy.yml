@@ -68,10 +68,15 @@ jobs:
           env_vars: |
             DATABASE_URL=${{ secrets.DATABASE_URL }}
 
-      - name: Run Database Migrations
+      - name: Install Dependencies
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npm ci
+
+      - name: Generate Prisma Client
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma generate
 
       - name: Migration Safety Check
         env:
@@ -88,7 +93,7 @@ jobs:
           attempt=1
           max_attempts=5
 
-          until npx prisma migrate deploy; do
+          until node scripts/prisma-migrate-with-baseline.mjs; do
             if [ "$attempt" -ge "$max_attempts" ]; then
               echo "Prisma migrate failed after ${max_attempts} attempts."
               exit 1
