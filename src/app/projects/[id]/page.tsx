@@ -357,7 +357,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <div className="flex items-center justify-between gap-3">
                                 <div>
                                     <p className="text-xs font-semibold text-slate-700">Upload Requirement Document</p>
-                                    <p className="text-[11px] text-slate-500">TXT/JSON/PDF/DOC files are stored and linked to this project.</p>
+                                    <p className="text-[11px] text-slate-500">TXT/JSON/PDF/DOC files are analyzed for matching. Cloud storage is optional.</p>
                                 </div>
                                 <label className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 cursor-pointer">
                                     <input

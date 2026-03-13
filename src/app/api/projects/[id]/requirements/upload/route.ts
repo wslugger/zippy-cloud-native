@@ -7,6 +7,13 @@ import {
   uploadRequirementToGcs,
 } from "@/lib/requirement-storage";
 
+function toLocalEphemeralUri(projectId: string, fileName: string): string {
+  const safeName = (fileName || "requirements.txt")
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .slice(0, 180);
+  return `local://requirements/${projectId}/${Date.now()}-${safeName}`;
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -29,15 +36,19 @@ export async function POST(
     }
 
     const mimeType = file.type || "application/octet-stream";
-    const bytes = new Uint8Array(await file.arrayBuffer());
     const extractedText = await extractTextFromRequirementFile(file);
+    let gcsUri = toLocalEphemeralUri(projectId, file.name);
 
-    const { gcsUri } = await uploadRequirementToGcs({
-      projectId,
-      fileName: file.name,
-      mimeType,
-      bytes,
-    });
+    if (process.env.GCS_REQUIREMENTS_BUCKET) {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const uploaded = await uploadRequirementToGcs({
+        projectId,
+        fileName: file.name,
+        mimeType,
+        bytes,
+      });
+      gcsUri = uploaded.gcsUri;
+    }
 
     const document = await prisma.projectRequirementDocument.create({
       data: {
