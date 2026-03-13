@@ -899,8 +899,18 @@ async function main() {
         update: {},
         create: {
             key: 'PROMPT_PACKAGE_MATCH',
-            value: 'Match customer requirements to design packages. Prioritize package feasibility and explain why each recommendation fits.',
+            value: 'Analyze package candidates across name, short description, detailed description, features, constraints, assumptions, and included components. Prefer packages when they provide broader, lower-risk requirement coverage than individual services.',
             description: 'Prompt for package matching endpoint.'
+        }
+    });
+
+    await prisma.systemConfig.upsert({
+        where: { key: 'PROMPT_SA_SUGGEST' },
+        update: {},
+        create: {
+            key: 'PROMPT_SA_SUGGEST',
+            value: 'Evaluate catalog candidates using detailed description, features, constraints, assumptions, and requirement fit. Prefer package recommendations over individual services when package coverage and risk are equal or better.',
+            description: 'Prompt for service/package suggestion endpoint.'
         }
     });
 
@@ -909,7 +919,7 @@ async function main() {
         update: {},
         create: {
             key: 'GEMINI_MODEL',
-            value: 'gemini-1.5-flash',
+            value: 'gemini-3.1-flash-lite-preview',
             description: 'Gemini model id used by matching endpoints.'
         }
     });

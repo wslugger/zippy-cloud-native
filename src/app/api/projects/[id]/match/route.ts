@@ -205,6 +205,13 @@ function normalizeGeminiJson(text: string): string {
   return text.replace(/```json/gi, "").replace(/```/g, "").trim();
 }
 
+function toShortReason(reason: string): string {
+  const normalized = reason.replace(/\s+/g, " ").trim();
+  const withoutMatchedTail = normalized.split("Matched characteristics:")[0]?.trim() ?? normalized;
+  const sentence = withoutMatchedTail.split(/(?<=[.!?])\s+/)[0] ?? withoutMatchedTail;
+  return sentence.slice(0, 180);
+}
+
 function fallbackMatch(candidates: MatchCandidate[], requirements: string): MatchResult[] {
   return candidates
     .map((candidate) => {
@@ -379,7 +386,10 @@ export async function POST(
     const promptTemplate =
       (await getConfigValue("PROMPT_PACKAGE_MATCH")) ??
       "You are a solution architect assistant. Recommend the best matching design package candidates based on customer requirements. Return JSON only.";
-    const model = (await getConfigValue("GEMINI_MODEL")) ?? "gemini-1.5-flash";
+    const primaryModel = (await getConfigValue("GEMINI_MODEL")) ?? "gemini-3.1-flash-lite-preview";
+    const fallbackModel = "gemini-2.5-flash";
+    const modelCandidates = Array.from(new Set([primaryModel, fallbackModel]));
+    let modelUsed = primaryModel;
 
     const candidateSummary = candidates
       .map(
@@ -398,6 +408,11 @@ Evaluate each candidate against these characteristics:
 - constraints
 - assumptions
 
+Decision policy:
+- Analyze detailed description, features, constraints, and assumptions for every candidate.
+- Prefer a PACKAGE over individual services when coverage is equal or better and risk is lower.
+- Do not choose a package if constraints/assumptions create a material mismatch.
+
 CUSTOMER REQUIREMENTS:
 ${combinedRequirements}
 
@@ -406,7 +421,7 @@ ${candidateSummary}
 
 Return JSON only as an array of up to 5 objects with keys:
 - id
-- reason
+- reason (concise, max 18 words)
 - score (0-1 certainty)
 - matchedCharacteristics (array with values from: name, short_description, long_description, features, constraints, assumptions).`;
 
@@ -414,53 +429,61 @@ Return JSON only as an array of up to 5 objects with keys:
     let matches: MatchResult[] = [];
 
     if (apiKey && candidates.length > 0) {
-      try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
-            }),
-          }
-        );
+      for (const modelName of modelCandidates) {
+        try {
+          const geminiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
+              }),
+            }
+          );
 
-        if (geminiRes.ok) {
+          if (!geminiRes.ok) {
+            console.error(`Gemini API error (${modelName})`, await geminiRes.text());
+            continue;
+          }
+
           const payload = await geminiRes.json();
           const rawText: string = payload.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
-          try {
-            const parsed = JSON.parse(normalizeGeminiJson(rawText));
-            if (Array.isArray(parsed)) {
-              matches = parsed
-                .map((entry): MatchResult | null => {
-                  if (!entry || typeof entry !== "object") return null;
-                  const candidate = entry as {
-                    id?: unknown;
-                    reason?: unknown;
-                    score?: unknown;
-                    matchedCharacteristics?: unknown;
-                  };
-                  if (typeof candidate.id !== "string") return null;
-                  return {
-                    id: candidate.id,
-                    reason: typeof candidate.reason === "string" ? candidate.reason : "Matched by AI against service characteristics.",
-                    score: Number.isFinite(Number(candidate.score)) ? Number(candidate.score) : 0.5,
-                    matchedCharacteristics: normalizeMatchedCharacteristics(candidate.matchedCharacteristics),
-                  };
-                })
-                .filter((entry): entry is MatchResult => Boolean(entry));
-            } else {
-              matches = fallbackMatch(candidates, combinedRequirements);
-            }
-          } catch {
-            matches = fallbackMatch(candidates, combinedRequirements);
+          const parsed = JSON.parse(normalizeGeminiJson(rawText));
+          if (!Array.isArray(parsed)) {
+            continue;
           }
-        } else {
-          matches = fallbackMatch(candidates, combinedRequirements);
+
+          matches = parsed
+            .map((entry): MatchResult | null => {
+              if (!entry || typeof entry !== "object") return null;
+              const candidate = entry as {
+                id?: unknown;
+                reason?: unknown;
+                score?: unknown;
+                matchedCharacteristics?: unknown;
+              };
+              if (typeof candidate.id !== "string") return null;
+              return {
+                id: candidate.id,
+                reason: typeof candidate.reason === "string" ? candidate.reason : "Matched by AI against service characteristics.",
+                score: Number.isFinite(Number(candidate.score)) ? Number(candidate.score) : 0.5,
+                matchedCharacteristics: normalizeMatchedCharacteristics(candidate.matchedCharacteristics),
+              };
+            })
+            .filter((entry): entry is MatchResult => Boolean(entry));
+
+          modelUsed = modelName;
+          if (matches.length > 0) {
+            break;
+          }
+        } catch (error) {
+          console.error(`Gemini request/parse failed (${modelName})`, error);
         }
-      } catch {
+      }
+
+      if (matches.length === 0) {
         matches = fallbackMatch(candidates, combinedRequirements);
       }
     } else {
@@ -476,18 +499,20 @@ Return JSON only as an array of up to 5 objects with keys:
           ? match.matchedCharacteristics
           : characteristicCoverage(candidate, combinedRequirements).matchedCharacteristics;
         const certaintyPercent = Math.round(normalizedScore * 100);
+        const shortReason = toShortReason(match.reason);
         const reason = match.reason.includes("Matched characteristics:")
           ? match.reason
           : `${match.reason} Matched characteristics: ${matchedCharacteristics.join(", ") || "general_fit"}.`;
         return {
           ...candidate,
           reason,
+          shortReason,
           score: normalizedScore,
           certaintyPercent,
           matchedCharacteristics,
         };
       })
-      .filter((row): row is MatchCandidate & { reason: string; score: number; certaintyPercent: number; matchedCharacteristics: string[] } => Boolean(row))
+      .filter((row): row is MatchCandidate & { reason: string; shortReason: string; score: number; certaintyPercent: number; matchedCharacteristics: string[] } => Boolean(row))
       .slice(0, 5);
 
     try {
@@ -501,7 +526,7 @@ Return JSON only as an array of up to 5 objects with keys:
               catalogItemId: row.id,
               reason: row.reason,
               score: row.score,
-              sourceModel: model,
+              sourceModel: modelUsed,
               state: "PENDING",
               requiredIncluded: row.requiredIncluded,
               optionalRecommended: row.optionalRecommended,
@@ -530,6 +555,7 @@ Return JSON only as an array of up to 5 objects with keys:
             ...recommendation,
             certaintyPercent: match?.certaintyPercent ?? Math.round(Number(recommendation.score ?? 0) * 100),
             matchedCharacteristics: match?.matchedCharacteristics ?? [],
+            shortReason: match?.shortReason ?? toShortReason(recommendation.reason),
           };
         }),
         signals,
@@ -545,8 +571,9 @@ Return JSON only as an array of up to 5 objects with keys:
         projectId,
         catalogItemId: row.id,
         reason: row.reason,
+        shortReason: row.shortReason,
         score: row.score,
-        sourceModel: model,
+        sourceModel: modelUsed,
         state: "PENDING",
         requiredIncluded: row.requiredIncluded,
         optionalRecommended: row.optionalRecommended,

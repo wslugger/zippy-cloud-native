@@ -29,6 +29,8 @@ interface SuggestCandidate {
     features: string[];
     constraints: string[];
     assumptions: string[];
+    requiredIncluded: string[];
+    optionalRecommended: string[];
 }
 
 function tokens(input: string): string[] {
@@ -70,8 +72,18 @@ function evaluateCoverage(candidate: SuggestCandidate, requirements: string): { 
         }
     }
 
-    const score = totalWeight > 0 ? Math.max(0.05, Math.min(0.99, matchedWeight / totalWeight)) : 0.1;
+    let score = totalWeight > 0 ? Math.max(0.05, Math.min(0.99, matchedWeight / totalWeight)) : 0.1;
+    if (candidate.type === ItemType.PACKAGE) {
+        score = Math.min(0.99, score + 0.05);
+    }
     return { score, matchedCharacteristics };
+}
+
+function toShortReason(reason: string): string {
+    const normalized = reason.replace(/\s+/g, " ").trim();
+    const withoutMatchedTail = normalized.split("Matched characteristics:")[0]?.trim() ?? normalized;
+    const sentence = withoutMatchedTail.split(/(?<=[.!?])\s+/)[0] ?? withoutMatchedTail;
+    return sentence.slice(0, 180);
 }
 
 async function getSystemConfigValue(key: string): Promise<string | null> {
@@ -118,6 +130,13 @@ export async function POST(request: NextRequest) {
                 attributes: { include: { term: { select: { label: true, value: true } } } },
                 constraints: { select: { description: true } },
                 assumptions: { select: { description: true } },
+                packageCompositions: {
+                    include: {
+                        catalogItem: {
+                            select: { name: true },
+                        },
+                    },
+                },
             }
         });
         const candidates: SuggestCandidate[] = candidatesRaw.map((item) => ({
@@ -130,10 +149,18 @@ export async function POST(request: NextRequest) {
             features: item.attributes.map((attr) => attr.term.label || attr.term.value).filter(Boolean) as string[],
             constraints: item.constraints.map((c) => c.description),
             assumptions: item.assumptions.map((a) => a.description),
+            requiredIncluded: item.packageCompositions
+                .filter((row) => row.role === "REQUIRED" || row.role === "AUTO_INCLUDED")
+                .map((row) => row.catalogItem.name),
+            optionalRecommended: item.packageCompositions
+                .filter((row) => row.role === "OPTIONAL")
+                .map((row) => row.catalogItem.name),
         }));
 
         const apiKey = process.env.GEMINI_API_KEY;
-        const modelName = (await getSystemConfigValue("GEMINI_MODEL")) ?? "gemini-1.5-flash";
+        const primaryModel = (await getSystemConfigValue("GEMINI_MODEL")) ?? "gemini-3.1-flash-lite-preview";
+        const fallbackModel = "gemini-2.5-flash";
+        const modelCandidates = Array.from(new Set([primaryModel, fallbackModel]));
         const promptTemplate =
             (await getSystemConfigValue("PROMPT_SA_SUGGEST")) ??
             "You are a solution architect assistant. Match customer requirements to the best catalog offerings.";
@@ -144,12 +171,19 @@ export async function POST(request: NextRequest) {
         }
 
         const catalogSummary = candidates.map(c =>
-            `- id:${c.id} | sku:${c.sku} | name:${c.name} | short_desc:${c.shortDescription ?? 'N/A'} | long_desc:${c.detailedDescription ?? 'N/A'} | features:${c.features.join(', ') || 'none'} | constraints:${c.constraints.join(', ') || 'none'} | assumptions:${c.assumptions.join(', ') || 'none'}`
+            `- id:${c.id} | type:${c.type} | sku:${c.sku} | name:${c.name} | short_desc:${c.shortDescription ?? 'N/A'} | long_desc:${c.detailedDescription ?? 'N/A'} | features:${c.features.join(', ') || 'none'} | constraints:${c.constraints.join(', ') || 'none'} | assumptions:${c.assumptions.join(', ') || 'none'} | required:${c.requiredIncluded.join(', ') || 'none'} | optional:${c.optionalRecommended.join(', ') || 'none'}`
         ).join('\n');
 
         const prompt = `${promptTemplate}
 
-Based on the customer requirements below, recommend up to 3 services from the catalog.
+Evaluate candidates using all available aspects, with this priority:
+1) Detailed description + short description + name relevance.
+2) Feature coverage and capability fit.
+3) Constraint and assumption compatibility/risk.
+4) Prefer PACKAGE over individual services when fit is equal or better and it covers more requirements.
+5) Choose an individual service only when package fit is weaker due gaps/constraints.
+
+Based on the customer requirements below, recommend up to 3 catalog items.
 
 CUSTOMER REQUIREMENTS:
 ${rawRequirements}
@@ -159,38 +193,46 @@ ${catalogSummary}
 
 Respond with a JSON array of up to 3 objects. Each object must have:
 - "id": the catalog item id (exactly as listed above)
-- "reason": a 1-2 sentence explanation of why this item matches the requirements
+- "reason": a concise explanation (max 18 words) of why this item matches
 - "score": a number from 0 to 1 certainty
 - "matchedCharacteristics": array using only: name, short_description, long_description, features, constraints, assumptions
 
 Only include items that genuinely match. If fewer than 3 are relevant, return fewer.
 Respond ONLY with the JSON array, no markdown or extra text.`;
 
-        const geminiRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
-                }),
-            }
-        );
+        let parsed: { id: string; reason: string; score?: number; matchedCharacteristics?: unknown }[] = [];
+        let parsedFromGemini = false;
 
-        if (!geminiRes.ok) {
-            console.error("Gemini API error:", await geminiRes.text());
-            return fallbackSuggestions(candidates, rawRequirements);
+        for (const modelName of modelCandidates) {
+            try {
+                const geminiRes = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: { temperature: 0.2, maxOutputTokens: 512 },
+                        }),
+                    }
+                );
+
+                if (!geminiRes.ok) {
+                    console.error(`Gemini API error (${modelName}):`, await geminiRes.text());
+                    continue;
+                }
+
+                const geminiData = await geminiRes.json();
+                const rawText: string = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]';
+                parsed = JSON.parse(rawText.replace(/```json/gi, "").replace(/```/g, "").trim());
+                parsedFromGemini = true;
+                break;
+            } catch (error) {
+                console.error(`Gemini request/parse failed for ${modelName}:`, error);
+            }
         }
 
-        const geminiData = await geminiRes.json();
-        const rawText: string = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '[]';
-
-        let parsed: { id: string; reason: string; score?: number; matchedCharacteristics?: unknown }[] = [];
-        try {
-            parsed = JSON.parse(rawText.replace(/```json/gi, "").replace(/```/g, "").trim());
-        } catch {
-            console.error("Failed to parse Gemini response:", rawText);
+        if (!parsedFromGemini) {
             return fallbackSuggestions(candidates, rawRequirements);
         }
 
@@ -204,6 +246,7 @@ Respond ONLY with the JSON array, no markdown or extra text.`;
                     certaintyPercent: Math.max(1, Math.round((suggestion.score ?? 0.85) * 100)),
                     matchScore: Math.max(1, Math.round((suggestion.score ?? 0.85) * 10)),
                     matchedCharacteristics: normalizeMatchedCharacteristics(suggestion.matchedCharacteristics),
+                    shortReason: toShortReason(suggestion.reason),
                     reason: suggestion.reason.includes("Matched characteristics:")
                         ? suggestion.reason
                         : `${suggestion.reason} Matched characteristics: ${normalizeMatchedCharacteristics(suggestion.matchedCharacteristics).join(", ") || "general_fit"}.`,
@@ -237,6 +280,7 @@ function fallbackSuggestions(
                 certaintyPercent,
                 matchScore: Math.max(1, Math.round(coverage.score * 10)),
                 matchedCharacteristics: coverage.matchedCharacteristics,
+                shortReason: toShortReason(reason),
                 reason,
             };
         })
