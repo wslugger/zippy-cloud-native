@@ -15,13 +15,13 @@ export function Step2ServiceOptions({ parentItem, onSelect, selectedId }: Step2S
         parentItem?.type === 'PACKAGE'
             ? (parentItem.packageCompositions || [])
                   .filter((row: any) =>
-                      ['MANAGED_SERVICE', 'SERVICE_OPTION', 'SERVICE_FAMILY'].includes(row.catalogItem?.type)
+                      ['MANAGED_SERVICE', 'SERVICE_OPTION', 'CONNECTIVITY'].includes(row.catalogItem?.type)
                   )
                   .map((row: any) => ({ ...row.catalogItem, _packageRole: row.role }))
             : parentItem?.options
                 ? parentItem.options
             : parentItem.childDependencies
-                  ?.filter((d: any) => d.childItem.type === 'SERVICE_OPTION' || d.type === 'IS_A')
+                  ?.filter((d: any) => d.childItem.type === 'SERVICE_OPTION')
                   .map((d: any) => d.childItem) || [];
 
     if (options.length === 0) {

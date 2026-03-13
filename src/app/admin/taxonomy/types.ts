@@ -92,7 +92,6 @@ export const PANEL_CATEGORIES = [
 ] as const;
 
 export const ITEM_TYPES = [
-    'SERVICE_FAMILY',
     'HARDWARE',
     'MANAGED_SERVICE',
     'CONNECTIVITY',

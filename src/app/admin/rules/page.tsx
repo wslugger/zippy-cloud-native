@@ -143,7 +143,6 @@ export default function RulesPage() {
                                     <option value="INCLUDES">INCLUDES</option>
                                     <option value="MANDATORY_ATTACHMENT">MANDATORY</option>
                                     <option value="OPTIONAL_ATTACHMENT">OPTIONAL</option>
-                                    <option value="IS_A">IS_A</option>
                                     <option value="INCOMPATIBLE">INCOMPATIBLE</option>
                                     <option value="RECOMMENDS">RECOMMENDS</option>
                                 </select>
@@ -191,7 +190,6 @@ export default function RulesPage() {
                                             <span className={`text-[9px] font-bold px-2 py-0.5 rounded border mb-1 ${
                                                 rule.type === 'REQUIRES' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
                                                 rule.type === 'INCLUDES' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                                                rule.type === 'IS_A' ? 'bg-teal-500/10 border-teal-500/20 text-teal-400' :
                                                 rule.type === 'INCOMPATIBLE' ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' :
                                                 rule.type === 'RECOMMENDS' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
                                                 'bg-slate-100 border-slate-300 text-slate-600'

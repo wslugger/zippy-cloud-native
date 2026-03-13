@@ -17,7 +17,7 @@ async function main() {
             name: 'UI Payload API Test 2',
             shortDescription: '',
             detailedDescription: '',
-            type: 'SERVICE_FAMILY',
+            type: 'MANAGED_SERVICE',
             constraints: [],
             assumptions: [],
             collaterals: [],

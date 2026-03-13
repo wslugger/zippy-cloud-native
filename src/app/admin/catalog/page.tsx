@@ -15,7 +15,6 @@ import {
     Workflow,
     Settings,
     Briefcase,
-    Layers,
     Trash2
 } from 'lucide-react';
 import Link from 'next/link';
@@ -110,7 +109,6 @@ export default function CatalogPage() {
 
             case 'PACKAGE': return <Package size={16} className="text-amber-400" />;
             case 'CONNECTIVITY': return <Workflow size={16} className="text-cyan-400" />;
-            case 'SERVICE_FAMILY': return <Layers size={16} className="text-indigo-400" />;
             default: return <Box size={16} className="text-slate-600" />;
         }
     };
@@ -167,7 +165,7 @@ export default function CatalogPage() {
                     ))}
                     {/* Fallback if no taxonomy terms are loaded yet or database is empty */}
                     {taxonomyTerms.filter(t => t.category === 'CLASSIFICATION').length === 0 && 
-                        ['HARDWARE', 'MANAGED_SERVICE', 'SERVICE_OPTION', 'PACKAGE', 'CONNECTIVITY', 'SERVICE_FAMILY'].map((type) => (
+                        ['HARDWARE', 'MANAGED_SERVICE', 'SERVICE_OPTION', 'PACKAGE', 'CONNECTIVITY'].map((type) => (
                         <button
                             key={type}
                             onClick={() => setFilterType(type)}
@@ -176,7 +174,7 @@ export default function CatalogPage() {
                                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                 }`}
                         >
-                            {type === 'MANAGED_SERVICE' ? 'SERVICE' : type === 'SERVICE_FAMILY' ? 'FAMILY' : type === 'SERVICE_OPTION' ? 'OPTION' : type}
+                            {type === 'MANAGED_SERVICE' ? 'SERVICE' : type === 'SERVICE_OPTION' ? 'OPTION' : type}
                         </button>
                     ))}
                 </div>

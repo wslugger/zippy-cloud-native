@@ -138,7 +138,7 @@ export async function calculateBOM(
                 pricing: { include: { tiers: true } },
                 childDependencies: {
                     where: {
-                        // IS_A is not auto-expanded — it's used for family classification only
+                        // Only operational dependency types are auto-expanded into BOM rows.
                         type: { in: [DependencyType.INCLUDES, DependencyType.MANDATORY_ATTACHMENT] },
                     },
                 },

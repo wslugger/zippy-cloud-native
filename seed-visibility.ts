@@ -21,7 +21,7 @@ async function main() {
         { category: 'PANEL_ATTACHMENTS', label: 'Connectivity', value: 'CONNECTIVITY' },
         { category: 'PANEL_ATTACHMENTS', label: 'Design Package', value: 'PACKAGE' },
         
-        { category: 'PANEL_SERVICE_OPTIONS', label: 'Service Family', value: 'SERVICE_FAMILY' },
+        { category: 'PANEL_SERVICE_OPTIONS', label: 'Managed Service', value: 'MANAGED_SERVICE' },
         { category: 'PANEL_SERVICE_OPTIONS', label: 'Design Package', value: 'PACKAGE' },
         
         { category: 'PANEL_FEATURES', label: 'Hardware', value: 'HARDWARE' },

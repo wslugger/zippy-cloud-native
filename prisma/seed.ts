@@ -89,18 +89,6 @@ async function main() {
         },
     });
 
-
-
-    // --- Service Family: SD-WAN ---
-    const sdwanFamily = await prisma.catalogItem.create({
-        data: {
-            sku: "FAM-SDWAN",
-            name: "SD-WAN",
-            shortDescription: "Software-Defined Wide Area Network service family",
-            type: ItemType.SERVICE_FAMILY,
-        },
-    });
-
     // --- Managed Services (Vendor Stacks) ---
     const merakiSdwan = await prisma.catalogItem.create({
         data: {
@@ -523,7 +511,7 @@ async function main() {
     await prisma.itemDependency.create({
         data: {
             parentId: packageItem.id,
-            childId: sdwanFamily.id,
+            childId: merakiSdwan.id,
             type: DependencyType.INCLUDES,
         },
     });
@@ -531,25 +519,8 @@ async function main() {
     await prisma.itemDependency.create({
         data: {
             parentId: packageBusinessCritical.id,
-            childId: sdwanFamily.id,
-            type: DependencyType.INCLUDES,
-        },
-    });
-
-    // IS_A: SD-WAN family → managed services (vendor stacks)
-    await prisma.itemDependency.create({
-        data: {
-            parentId: sdwanFamily.id,
-            childId: merakiSdwan.id,
-            type: DependencyType.IS_A,
-        },
-    });
-
-    await prisma.itemDependency.create({
-        data: {
-            parentId: sdwanFamily.id,
             childId: catalystSdwan.id,
-            type: DependencyType.IS_A,
+            type: DependencyType.INCLUDES,
         },
     });
 
@@ -928,7 +899,6 @@ async function main() {
     console.log("Package ID:", packageItem.id);
     console.log("Hardware ID:", hardwareItemMx64.id);
 
-    console.log("SD-WAN Family ID:", sdwanFamily.id);
     console.log("Meraki SD-WAN ID:", merakiSdwan.id);
     console.log("Catalyst SD-WAN ID:", catalystSdwan.id);
     console.log("Project ID:", project.id);

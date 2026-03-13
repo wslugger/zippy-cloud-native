@@ -121,10 +121,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Requirements are needed." }, { status: 400 });
         }
 
-        // Fetch candidates: PACKAGE, SERVICE_FAMILY, and MANAGED_SERVICE
+        // Fetch candidates: PACKAGE and MANAGED_SERVICE
         const candidatesRaw = await prisma.catalogItem.findMany({
             where: {
-                type: { in: [ItemType.PACKAGE, ItemType.SERVICE_FAMILY, ItemType.MANAGED_SERVICE] }
+                type: { in: [ItemType.PACKAGE, ItemType.MANAGED_SERVICE] }
             },
             include: {
                 attributes: { include: { term: { select: { label: true, value: true } } } },
