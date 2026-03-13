@@ -1,0 +1,212 @@
+[
+    {
+        "serviceName": "DDoS Protection",
+        "shortDescription": "Network-level distributed denial of service mitigation.",
+        "detailedDescription": "Cloud-based or inline scrubbing service designed to detect and mitigate volumetric, protocol, and application-layer DDoS attacks before they impact the enterprise network edge.",
+        "constraints": "Always-on scrubbing can introduce slight latency. On-demand scrubbing requires a traffic diversion trigger (e.g., BGP route injection) which takes time to activate.",
+        "assumptions": "Customer has publicly accessible services or IP space that require protection against volumetric attacks.",
+        "features": [
+            {
+                "featureName": "Always-On Scrubbing",
+                "shortDescription": "Continuous traffic filtering.",
+                "detailedDescription": "All inbound traffic is routed through the provider's scrubbing centers continuously, ensuring immediate mitigation of attacks.",
+                "constraints": "May introduce permanent latency overhead to all inbound connections.",
+                "assumptions": "Customer prioritizes immediate mitigation over marginal latency increases."
+            },
+            {
+                "featureName": "On-Demand Mitigation",
+                "shortDescription": "Triggered traffic diversion.",
+                "detailedDescription": "Traffic is diverted to scrubbing centers (via BGP) only when an attack is detected.",
+                "constraints": "Detection and diversion take time, meaning initial attack traffic will hit the customer edge.",
+                "assumptions": "Customer can tolerate brief impact periods at the onset of an attack."
+            },
+            {
+                "featureName": "Volumetric Attack Protection",
+                "shortDescription": "High-bandwidth attack mitigation.",
+                "detailedDescription": "Absorbs massive UDP, ICMP, and SYN floods utilizing the provider's massive global bandwidth capacity.",
+                "constraints": "Requires the provider's backbone capacity to far exceed the attack size.",
+                "assumptions": "Attacks are intended to overwhelm circuit bandwidth rather than application logic."
+            }
+        ]
+    },
+    {
+        "serviceName": "Webex",
+        "shortDescription": "Cloud-based unified communications and collaboration.",
+        "detailedDescription": "Cisco's cloud collaboration platform providing enterprise voice (Webex Calling), video conferencing, messaging, and webinar capabilities delivered as a SaaS application.",
+        "constraints": "Dependent on the quality of the underlying internet or SD-WAN transport. Requires specific licensing tiers for advanced PSTN calling and meeting capacities.",
+        "assumptions": "Customer endpoints (PCs, mobile devices, SIP phones) have reliable IP connectivity with appropriate QoS prioritized across the LAN/WAN.",
+        "features": [
+            {
+                "featureName": "Cloud Calling (PBX)",
+                "shortDescription": "Enterprise voice capabilities.",
+                "detailedDescription": "Full PBX functionality hosted in the cloud, including hunt groups, auto-attendants, and voicemail.",
+                "constraints": "Voice quality degrades rapidly if the underlying network has high jitter or packet loss.",
+                "assumptions": "Customer is moving away from on-premise PBX hardware."
+            },
+            {
+                "featureName": "Video Conferencing",
+                "shortDescription": "High-definition meetings.",
+                "detailedDescription": "Multi-party HD video meetings with screen sharing, whiteboarding, and recording.",
+                "constraints": "Requires significant downstream and upstream bandwidth at remote sites.",
+                "assumptions": "Endpoints are equipped with cameras and adequate processing power."
+            },
+            {
+                "featureName": "PSTN Integration (Cloud Connected Audio)",
+                "shortDescription": "External dial-in/out.",
+                "detailedDescription": "Allows users to make and receive traditional telephone calls natively within the Webex app via Cisco or third-party telecom providers.",
+                "constraints": "Requires dedicated telecom porting and regulatory compliance in specific countries.",
+                "assumptions": "Customer requires traditional telephony replacement alongside collaboration."
+            }
+        ]
+    },
+    {
+        "serviceName": "MS Teams",
+        "shortDescription": "Microsoft's unified communication and workspace platform.",
+        "detailedDescription": "Cloud-based collaboration platform integrating persistent chat, video meetings, file storage, and enterprise voice (Teams Phone) within the Microsoft 365 ecosystem.",
+        "constraints": "Requires Microsoft 365 licensing. Voice capabilities (Direct Routing or Operator Connect) require complex integration with certified Session Border Controllers (SBCs) or telecom operators.",
+        "assumptions": "Customer has adopted the Microsoft 365 ecosystem for identity (Entra ID) and basic productivity tools.",
+        "features": [
+            {
+                "featureName": "Teams Phone",
+                "shortDescription": "Microsoft cloud voice.",
+                "detailedDescription": "Enterprise-grade phone system integration directly into the Teams client.",
+                "constraints": "Advanced contact center routing requires third-party add-ons.",
+                "assumptions": "Customer desires a single-pane-of-glass for chat, video, and voice."
+            },
+            {
+                "featureName": "Direct Routing / Operator Connect",
+                "shortDescription": "Carrier PSTN integration.",
+                "detailedDescription": "Methods for connecting native Teams environments to external telecom networks for PSTN access.",
+                "constraints": "Direct Routing requires managing complex Session Border Controllers (SBCs); Operator Connect limits choice to participating carriers.",
+                "assumptions": "Customer requires external calling capabilities inside the Microsoft ecosystem."
+            },
+            {
+                "featureName": "Persistent Workspace Chat",
+                "shortDescription": "Channel-based collaboration.",
+                "detailedDescription": "Organizes communication and file sharing into persistent, searchable channels integrated with SharePoint.",
+                "constraints": "Can lead to data sprawl and governance issues without strict IT policies.",
+                "assumptions": "Teams prefer asynchronous communication over constant email."
+            }
+        ]
+    },
+    {
+        "serviceName": "CCaaS",
+        "shortDescription": "Cloud-delivered omnichannel contact center.",
+        "detailedDescription": "A comprehensive cloud-based customer experience solution offering omnichannel routing (voice, chat, email, social), IVR, workforce engagement, and AI-driven analytics without on-premise infrastructure.",
+        "constraints": "Requires robust, low-jitter WAN connectivity for agent voice quality. Complex integrations with CRM platforms (e.g., Salesforce) require API development and maintenance.",
+        "assumptions": "Customer seeks to transition legacy on-premise call centers to an OpEx-based, scalable cloud model.",
+        "features": [
+            {
+                "featureName": "Omnichannel Routing",
+                "shortDescription": "Unified agent queuing.",
+                "detailedDescription": "Routes voice calls, emails, web chats, and social media interactions to the same agent interface based on skill and availability.",
+                "constraints": "Requires agents to be trained across multiple communication mediums simultaneously.",
+                "assumptions": "Customer's support model extends beyond traditional voice calls."
+            },
+            {
+                "featureName": "CRM Integration",
+                "shortDescription": "Contextual customer data.",
+                "detailedDescription": "Automatically pulls customer records and provides 'screen pops' to agents based on incoming caller ID or interaction data.",
+                "constraints": "Reliant on the cleanliness of data within the CRM and API limits.",
+                "assumptions": "Customer utilizes a modern CRM system (e.g., Salesforce, Zendesk, Dynamics)."
+            },
+            {
+                "featureName": "AI Virtual Agents",
+                "shortDescription": "Automated conversational bots.",
+                "detailedDescription": "Utilizes Natural Language Processing (NLP) to handle routine customer inquiries without human agent intervention.",
+                "constraints": "Requires extensive initial training data and ongoing tuning to prevent customer frustration.",
+                "assumptions": "A significant portion of incoming queries are repetitive and standardizable."
+            }
+        ]
+    },
+    {
+        "serviceName": "IPCC",
+        "shortDescription": "On-premise IP-based contact center.",
+        "detailedDescription": "Legacy, premise-based enterprise contact center architecture relying on local servers, voice gateways, and dedicated PSTN circuits (PRIs/SIP trunks).",
+        "constraints": "High capital expenditure (CapEx) for hardware and licensing. Difficult to scale rapidly or support remote agents without complex VPN/VDI architectures.",
+        "assumptions": "Customer requires absolute data residency, local survivability, or has complex legacy telecom integrations that cannot move to the cloud.",
+        "features": [
+            {
+                "featureName": "Premise-Based Call Routing (ACD)",
+                "shortDescription": "Local voice queuing.",
+                "detailedDescription": "Hardware-based Automatic Call Distributor routing calls to local IP phones based on pre-programmed logic.",
+                "constraints": "Lacks the agility and rapid feature deployment of cloud alternatives.",
+                "assumptions": "Agents are primarily located within physical corporate offices."
+            },
+            {
+                "featureName": "Local Voice Gateways",
+                "shortDescription": "Physical PSTN termination.",
+                "detailedDescription": "On-site routers equipped with DSPs terminating physical carrier circuits (PRI/T1 or local SIP).",
+                "constraints": "Vulnerable to local physical outages (power, circuit cuts) unless heavily redundant.",
+                "assumptions": "Customer maintains dedicated telecom contracts directly to their data centers."
+            },
+            {
+                "featureName": "Custom CTI Integration",
+                "shortDescription": "Legacy application links.",
+                "detailedDescription": "Computer Telephony Integration built specifically for localized, proprietary database platforms.",
+                "constraints": "Difficult to upgrade or migrate without rebuilding the custom middleware.",
+                "assumptions": "Business relies on legacy back-office systems that lack modern REST APIs."
+            }
+        ]
+    },
+    {
+        "serviceName": "Secure Cloud Interconnect (SCI)",
+        "shortDescription": "Usage-based private cloud connectivity.",
+        "detailedDescription": "A managed network service providing highly secure, private, and usage-based bandwidth connections from enterprise WANs (like MPLS) directly to major Cloud Service Providers (AWS, Azure, Google).",
+        "constraints": "Performance is subject to usage limits depending on the billing model. Requires existing compatible private WAN infrastructure to attach the interconnect.",
+        "assumptions": "Customer requires secure, non-internet routing to public cloud resources with flexible, consumption-based billing.",
+        "features": [
+            {
+                "featureName": "Usage-Based Billing",
+                "shortDescription": "Pay-as-you-go capacity.",
+                "detailedDescription": "Pricing model based on the actual amount of data transferred rather than a static bandwidth tier.",
+                "constraints": "Can lead to unpredictable billing if cloud traffic spikes unexpectedly.",
+                "assumptions": "Cloud workloads have highly variable or bursty traffic patterns."
+            },
+            {
+                "featureName": "Pre-Provisioned CSP Connections",
+                "shortDescription": "Rapid cloud turn-up.",
+                "detailedDescription": "Provider maintains pre-existing backbone connections to CSPs, allowing customer logical circuits to be provisioned in days rather than months.",
+                "constraints": "Limited to the Cloud Service Providers (CSPs) the carrier has pre-integrated with.",
+                "assumptions": "Customer utilizes major, recognized public cloud platforms."
+            },
+            {
+                "featureName": "Private Peering (BGP)",
+                "shortDescription": "Dynamic cloud routing.",
+                "detailedDescription": "Establishes private BGP sessions directly into cloud VNet/VPC environments bypassing the public internet.",
+                "constraints": "Requires careful route filtering to prevent cloud routing loops with the enterprise WAN.",
+                "assumptions": "Customer requires guaranteed privacy and bypassing of public internet transit."
+            }
+        ]
+    },
+    {
+        "serviceName": "Software Defined Interconnect (SDI)",
+        "shortDescription": "Fixed-bandwidth automated cloud interconnection.",
+        "detailedDescription": "An automated, API-driven interconnection service providing guaranteed, fixed-bandwidth private links between enterprise networks, data centers, and Cloud Service Providers via a software-defined fabric.",
+        "constraints": "Bandwidth is fixed (not usage-based), meaning the customer pays for the allocated capacity regardless of utilization.",
+        "assumptions": "Customer requires highly deterministic, guaranteed capacity for mission-critical cloud workloads (e.g., database replication).",
+        "features": [
+            {
+                "featureName": "Fixed-Bandwidth Allocation",
+                "shortDescription": "Guaranteed throughput.",
+                "detailedDescription": "Provides a dedicated amount of throughput (e.g., 1Gbps or 10Gbps) that is always available.",
+                "constraints": "Customer pays for idle capacity during low-usage periods.",
+                "assumptions": "Workloads demand consistent, unchanging high-volume data transfers."
+            },
+            {
+                "featureName": "Automated Provisioning",
+                "shortDescription": "API-driven deployment.",
+                "detailedDescription": "Allows customers to spin up or adjust interconnections via a web portal or API without manual carrier intervention.",
+                "constraints": "Dependent on the carrier's SDN fabric reachability in specific data centers.",
+                "assumptions": "Customer values agility and self-service over traditional manual telecom orders."
+            },
+            {
+                "featureName": "Low Latency Fabric",
+                "shortDescription": "Optimized switching fabric.",
+                "detailedDescription": "Traffic is switched across a high-performance Layer 2/Layer 3 fabric specifically engineered for minimal delay between data centers and clouds.",
+                "constraints": "Latency is dictated by the physical distance to the cloud on-ramp facility.",
+                "assumptions": "Applications (like synchronous replication) are highly latency-sensitive."
+            }
+        ]
+    }
+]

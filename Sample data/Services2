@@ -1,0 +1,79 @@
+[
+    {
+        "serviceName": "Meraki SDWAN",
+        "shortDescription": "Cloud-managed SD-WAN overlay.",
+        "detailedDescription": "SD-WAN overlay utilizing Meraki MX appliances. Implements AutoVPN for IPsec tunneling, basic dynamic path selection based on latency/jitter/loss metrics, and unified threat management (UTM) via a single-pane-of-glass dashboard.",
+        "constraints": "Throughput and tunnel scale are hardware-bound. Advanced security features require specific licensing tiers. Lacks advanced routing protocol manipulation and granular traffic engineering compared to traditional enterprise routers.",
+        "assumptions": "Customer provides underlying IP transport. Out-of-band telemetry and control plane require continuous reachability to the Meraki cloud."
+    },
+    {
+        "serviceName": "Meraki LAN",
+        "shortDescription": "Cloud-managed L2/L3 access and aggregation switching.",
+        "detailedDescription": "Layer 2 and basic Layer 3 Ethernet switching via the Cisco Meraki MS series. Features centralized management, topology mapping, and port configuration via a cloud-hosted controller.",
+        "constraints": "Configuration pushes and monitoring require active internet connectivity to the Meraki dashboard. The control plane is cloud-dependent for dynamic updates.",
+        "assumptions": "Local network topology supports out-of-band management access to the internet. Connected endpoints conform to the switch's available PoE budget."
+    },
+    {
+        "serviceName": "Meraki WAN",
+        "shortDescription": "Cloud-managed edge routing and stateful firewalling.",
+        "detailedDescription": "Edge routing device providing stateful firewalling, NAT, and basic IPsec VPN connectivity using Meraki MX appliances. Operates without active/active dynamic path optimization.",
+        "constraints": "Lacks application-aware routing and dynamic path selection. Supports only basic active/standby dual-WAN failover mechanisms.",
+        "assumptions": "Deployed at sites requiring simple IP connectivity or static VPN tunnels where advanced traffic engineering is unnecessary."
+    },
+    {
+        "serviceName": "Cisco Catalyst SDWAN",
+        "shortDescription": "Enterprise-grade SD-WAN fabric.",
+        "detailedDescription": "SD-WAN architecture decoupling control (vSmart), management (vManage), and data planes (Catalyst 8000/vEdge). Supports arbitrary topology creation, forward error correction (FEC), and granular traffic engineering.",
+        "constraints": "Architectural complexity requiring dedicated control plane infrastructure. Requires specialized training for policy creation, troubleshooting, and certificate management.",
+        "assumptions": "Targeted at large-scale deployments requiring complex routing (BGP/OSPF redistribution), strict micro-segmentation, and multi-cloud integration."
+    },
+    {
+        "serviceName": "Cisco Catalyst LAN",
+        "shortDescription": "ASIC-based enterprise switching infrastructure.",
+        "detailedDescription": "Campus switching utilizing the Cisco Catalyst 9000 series. Integrates with Cisco Catalyst Center (formerly DNA Center) to support SD-Access fabric overlays (VXLAN/LISP), TrustSec micro-segmentation, and streaming telemetry.",
+        "constraints": "Fabric provisioning and advanced telemetry require Cisco DNA Advantage licensing and a dedicated Catalyst Center appliance (on-premise or virtual).",
+        "assumptions": "Deployed in environments requiring programmatic network fabrics, scalable segmentation, and high-availability hardware architectures."
+    },
+    {
+        "serviceName": "Cisco Catalyst WLAN",
+        "shortDescription": "Controller-based enterprise wireless architecture.",
+        "detailedDescription": "Wireless access utilizing 802.11ax/be (Wi-Fi 6/6E/7) access points and Catalyst 9800 wireless LAN controllers. Implements CAPWAP tunneling, centralized encryption, and advanced RF resource management.",
+        "constraints": "Performance is susceptible to RF interference, physical attenuation, and channel overlap. Requires stringent RF site surveys and precise AP placement.",
+        "assumptions": "Underlying wired LAN provides adequate PoE/PoE+ power budgets and sufficient uplink bandwidth to support high-density wireless traffic."
+    },
+    {
+        "serviceName": "Business Broadband (fiber)",
+        "shortDescription": "Value-conscious, shared infrastructure internet access.",
+        "detailedDescription": "Business-class internet connectivity delivered via broadband fiber. Often provides asymmetrical speeds, suitable for non-business-critical primary internet and secondary internet.",
+        "constraints": "Delivered over shared infrastructure where performance fluctuates based on localized network congestion, leading to variable 'best-effort' throughput and latency (often lower upload speeds). Lacks stringent Service Level Agreements (SLAs) for uptime, jitter, or packet delivery.",
+        "assumptions": "Customer's physical location can be connected to provider fiber infrastructure."
+    },
+    {
+        "serviceName": "Dedicated Internet Access (DIA)",
+        "shortDescription": "Dedicated, uncontended internet access.",
+        "detailedDescription": "Internet connectivity delivered over a dedicated fiber circuit with a 1:1 oversubscription ratio. Provides uncontended, symmetrical bandwidth directly from the customer premises to the provider's IP backbone.",
+        "constraints": "Higher monthly recurring costs compared to broadband. Installation requires dedicated physical fiber build-outs, often resulting in long delivery lead times (30 to 90+ days).",
+        "assumptions": "Required for mission-critical sites, large SD-WAN hubs, and environments hosting inbound services where guaranteed throughput and strict SLAs are mandatory."
+    },
+    {
+        "serviceName": "Fixed Wireless Access (5G)",
+        "shortDescription": "Cellular broadband access (5G/LTE).",
+        "detailedDescription": "Wireless internet connectivity utilizing 5G NR and LTE networks. Provides rapid deployment capabilities and physical path diversity from wired terrestrial circuits.",
+        "constraints": "Throughput and latency are variable, modulated by RF signal propagation, atmospheric attenuation, cell tower congestion, and distance to the gNodeB.",
+        "assumptions": "Adequate cellular signal strength (RSRP/RSRQ) is available at the installation point. Often subject to carrier data caps or bandwidth throttling."
+    },
+    {
+        "serviceName": "LEO Satellite",
+        "shortDescription": "Low Earth Orbit satellite broadband.",
+        "detailedDescription": "Internet connectivity provided via constellations of Low Earth Orbit satellites. Offers lower latency (~40-60ms) compared to GEO satellites but operates over a shared RF medium and shared ground station backhaul.",
+        "constraints": "Requires a completely unobstructed line of sight to the sky. Susceptible to atmospheric attenuation (rain fade) and variable throughput depending on satellite passings and regional user density.",
+        "assumptions": "Utilized primarily as an out-of-band management link, diverse backup path, or primary connection in geographic areas lacking terrestrial infrastructure."
+    },
+    {
+        "serviceName": "MPLS",
+        "shortDescription": "Multi-Protocol Label Switching private WAN.",
+        "detailedDescription": "Layer 2.5/Layer 3 VPN technology routing traffic deterministically across a service provider's backbone. Enforces strict Quality of Service (QoS) queues and provides SLA-backed latency and packet delivery guarantees.",
+        "constraints": "Higher cost per Mbps relative to internet transport. Rigid, static architecture with long provisioning lead times and complex integration requirements for direct-to-cloud (SaaS) traffic flows.",
+        "assumptions": "Required for legacy latency-sensitive applications or core data center interconnects where deterministic routing is an absolute mandate."
+    }
+]
