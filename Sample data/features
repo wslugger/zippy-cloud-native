@@ -1,0 +1,962 @@
+[
+    {
+        "serviceName": "Meraki SDWAN",
+        "shortDescription": "Cloud-managed SD-WAN overlay.",
+        "detailedDescription": "SD-WAN overlay utilizing Meraki MX appliances. Implements AutoVPN for IPsec tunneling, basic dynamic path selection based on latency/jitter/loss metrics, and unified threat management (UTM) via a single-pane-of-glass dashboard.",
+        "constraints": "Throughput and tunnel scale are hardware-bound. Advanced security features require specific licensing tiers. Lacks advanced routing protocol manipulation and granular traffic engineering compared to traditional enterprise routers.",
+        "assumptions": "Customer provides underlying IP transport. Out-of-band telemetry and control plane require continuous reachability to the Meraki cloud.",
+        "features": [
+            {
+                "featureName": "Cloud Management - Cisco Meraki Dashboard",
+                "shortDescription": "Centralized web-based management.",
+                "detailedDescription": "A unified cloud dashboard providing configuration, monitoring, and troubleshooting tools across the entire Meraki stack.",
+                "constraints": "Requires continuous internet connectivity; cannot be managed locally if the cloud link fails.",
+                "assumptions": "Out-of-band management access is not strictly required if primary links are stable."
+            },
+            {
+                "featureName": "Multi-Tenant Controllers",
+                "shortDescription": "Shared cloud controller infrastructure.",
+                "detailedDescription": "Management infrastructure hosted by the vendor and logically partitioned for multiple customers.",
+                "constraints": "Customers cannot dictate controller maintenance windows or host controllers on-premise.",
+                "assumptions": "Customer accepts a SaaS-based management model."
+            },
+            {
+                "featureName": "Strong IKE and IPSEC Encryption (AutoVPN)",
+                "shortDescription": "Automated secure tunneling.",
+                "detailedDescription": "Proprietary technology that dynamically builds IPsec tunnels between Meraki sites without manual crypto configuration.",
+                "constraints": "Proprietary to Meraki; does not natively support dynamic multipoint VPN (DMVPN) to non-Meraki peers.",
+                "assumptions": "Devices have unrestricted outbound internet access to the Meraki cloud registry."
+            },
+            {
+                "featureName": "Zero-Touch Provisioning (ZTP)",
+                "shortDescription": "Automated device onboarding.",
+                "detailedDescription": "Devices automatically download configuration templates upon connecting to the internet.",
+                "constraints": "Requires a DHCP-assigned IP and unfettered outbound internet access on first boot.",
+                "assumptions": "Underlying WAN circuit is active and provides basic DHCP."
+            },
+            {
+                "featureName": "Centralized Software Upgrades",
+                "shortDescription": "Dashboard-driven firmware management.",
+                "detailedDescription": "Firmware upgrades are pushed globally or per-network from the Meraki cloud.",
+                "constraints": "Lack of granular, localized rollback options; dependent on vendor firmware release schedules.",
+                "assumptions": "Network administrators schedule maintenance windows via the dashboard."
+            },
+            {
+                "featureName": "Scheduled Software Upgrade",
+                "shortDescription": "Automated upgrade windows.",
+                "detailedDescription": "Allows administrators to define specific dates and times for automated firmware application.",
+                "constraints": "Requires devices to be online during the scheduled window to receive the update.",
+                "assumptions": "Maintenance windows align with organizational downtime policies."
+            },
+            {
+                "featureName": "Vendor Provided Analytics",
+                "shortDescription": "Built-in network insights.",
+                "detailedDescription": "Out-of-the-box telemetry providing visibility into client behavior, top applications, and link health.",
+                "constraints": "Data retention is limited based on the licensing tier; limited raw data export capabilities.",
+                "assumptions": "Sufficient for standard operational visibility without requiring third-party tools."
+            },
+            {
+                "featureName": "Historical Reporting",
+                "shortDescription": "Retrospective network data.",
+                "detailedDescription": "Access to past network performance metrics, client usage, and security events.",
+                "constraints": "Typically capped at 30 to 90 days depending on the specific metric and licensing.",
+                "assumptions": "Compliance requirements do not mandate multi-year raw data retention within the dashboard."
+            },
+            {
+                "featureName": "Advanced Monitoring",
+                "shortDescription": "Deep visibility via Meraki Insight.",
+                "detailedDescription": "Provides granular performance tracking for specific web applications and WAN link performance.",
+                "constraints": "Requires an additional 'Meraki Insight' license tier.",
+                "assumptions": "Customer requires proactive monitoring of critical SaaS applications."
+            },
+            {
+                "featureName": "QOS - Shaping",
+                "shortDescription": "Traffic prioritization.",
+                "detailedDescription": "Allocates bandwidth and prioritizes critical application traffic over bulk traffic.",
+                "constraints": "Shaping capabilities are limited compared to complex modular QoS (MQC) on traditional routers.",
+                "assumptions": "Standard enterprise traffic classes (Voice, Video, Data) fit within predefined capabilities."
+            },
+            {
+                "featureName": "Application Recognition",
+                "shortDescription": "Layer 7 traffic identification.",
+                "detailedDescription": "Identifies applications traversing the network using deep packet inspection (DPI).",
+                "constraints": "May not correctly identify custom, encrypted, or obscure proprietary applications.",
+                "assumptions": "The majority of traffic consists of standard, recognizable enterprise and web applications."
+            },
+            {
+                "featureName": "App- and SLA-based Routing Policy",
+                "shortDescription": "Dynamic path selection.",
+                "detailedDescription": "Routes specific traffic types across the best available WAN link based on latency, jitter, or loss thresholds.",
+                "constraints": "Policies are globally defined and less granular than traditional policy-based routing (PBR).",
+                "assumptions": "Multiple active WAN links are available at the site."
+            },
+            {
+                "featureName": "Advanced Security (AMP, IPS)",
+                "shortDescription": "Integrated threat management.",
+                "detailedDescription": "Provides intrusion prevention (Snort) and Advanced Malware Protection (AMP) at the network edge.",
+                "constraints": "Requires an Advanced Security or SD-WAN Plus license. Reduces overall device throughput.",
+                "assumptions": "Customer requires consolidated branch security rather than backhauling traffic to a DC firewall."
+            },
+            {
+                "featureName": "Content Filtering",
+                "shortDescription": "Web access control.",
+                "detailedDescription": "Blocks access to specific website categories to enforce corporate acceptable use policies.",
+                "constraints": "Requires Advanced Security licensing. Less granular than a dedicated Secure Web Gateway (SWG).",
+                "assumptions": "DNS and web traffic traverse the SD-WAN appliance unencrypted or can be categorized via SNI."
+            },
+            {
+                "featureName": "API Integration",
+                "shortDescription": "Programmable dashboard access.",
+                "detailedDescription": "REST APIs for automating provisioning, configuration changes, and monitoring.",
+                "constraints": "API rate limits apply; complex orchestrations require custom development.",
+                "assumptions": "Customer has development resources or automation platforms (like Ansible/Terraform)."
+            },
+            {
+                "featureName": "Event Logging / Syslog - Export",
+                "shortDescription": "External log aggregation.",
+                "detailedDescription": "Exports security, flow, and appliance logs to an external Syslog server or SIEM.",
+                "constraints": "Must be configured globally; requires a reachable internal or cloud SIEM.",
+                "assumptions": "Customer utilizes a centralized logging strategy for security compliance."
+            },
+            {
+                "featureName": "Service-Side NAT",
+                "shortDescription": "Local network address translation.",
+                "detailedDescription": "Translates overlapping internal subnets to unique IP addresses before traversing the VPN.",
+                "constraints": "Can complicate troubleshooting and end-to-end visibility.",
+                "assumptions": "Site has overlapping IP space that cannot be easily re-IP'd."
+            },
+            {
+                "featureName": "DHCP Server",
+                "shortDescription": "Local IP allocation.",
+                "detailedDescription": "Provides dynamic IP addressing to local clients directly from the branch appliance.",
+                "constraints": "Lacks the advanced scope options and redundancy of a dedicated enterprise IPAM/DHCP server.",
+                "assumptions": "Branch networks are small enough that localized, basic DHCP is sufficient."
+            }
+        ]
+    },
+    {
+        "serviceName": "Cisco Catalyst SDWAN",
+        "shortDescription": "Enterprise-grade SD-WAN fabric.",
+        "detailedDescription": "SD-WAN architecture decoupling control (vSmart), management (vManage), and data planes (Catalyst 8000/vEdge). Supports arbitrary topology creation, forward error correction (FEC), and granular traffic engineering.",
+        "constraints": "Architectural complexity requiring dedicated control plane infrastructure. Requires specialized training for policy creation, troubleshooting, and certificate management.",
+        "assumptions": "Targeted at large-scale deployments requiring complex routing (BGP/OSPF redistribution), strict micro-segmentation, and multi-cloud integration.",
+        "features": [
+            {
+                "featureName": "Dedicated Control/Management Planes (vSmart, vManage)",
+                "shortDescription": "Decoupled architecture.",
+                "detailedDescription": "Separates the data forwarding plane from the management (vManage) and control (vSmart) planes for massive scalability.",
+                "constraints": "Requires significant infrastructure to host, or subscriptions to Cisco-hosted controllers.",
+                "assumptions": "Customer requires advanced architectural separation for scale and security."
+            },
+            {
+                "featureName": "Strong IKE and IPSEC Encryption",
+                "shortDescription": "Standardized secure tunnels.",
+                "detailedDescription": "Utilizes standard IPsec with robust cipher suites (AES-256) to secure data in transit across all transports.",
+                "constraints": "High encryption overhead requires appropriate hardware sizing for edge routers.",
+                "assumptions": "Data traverses untrusted public networks (like the internet)."
+            },
+            {
+                "featureName": "Vendor Hosted Controllers",
+                "shortDescription": "Cloud-delivered control infrastructure.",
+                "detailedDescription": "Cisco hosts and maintains the vManage, vSmart, and vBond components in the cloud (AWS/Azure).",
+                "constraints": "Removes direct back-end control from the customer; reliant on Cisco SLAs for controller uptime.",
+                "assumptions": "Customer prefers reduced on-premise infrastructure footprint."
+            },
+            {
+                "featureName": "Zero-Touch Provisioning (ZTP)",
+                "shortDescription": "Automated device onboarding.",
+                "detailedDescription": "Catalyst edge routers authenticate via a PnP portal to automatically find their vManage controller and download configurations.",
+                "constraints": "Requires accurate pre-configuration in Cisco Smart Account/PnP portal and factory default state on routers.",
+                "assumptions": "Installers have no local console access or CLI expertise."
+            },
+            {
+                "featureName": "Centralized Software Upgrades",
+                "shortDescription": "Fabric-wide image management.",
+                "detailedDescription": "vManage acts as a repository to distribute and activate software images across the entire WAN fabric.",
+                "constraints": "Upgrading a complex fabric requires careful sequencing (vManage -> vSmart -> Edge).",
+                "assumptions": "Customer prefers consistent software baselines across the deployment."
+            },
+            {
+                "featureName": "Deep Analytics (vAnalytics)",
+                "shortDescription": "AI-driven SD-WAN insights.",
+                "detailedDescription": "SaaS service that ingests telemetry to provide predictive insights, anomaly detection, and long-term trending.",
+                "constraints": "Requires specific DNA Advantage or Premier licensing tiers.",
+                "assumptions": "Customer requires proactive intelligence for capacity planning and issue resolution."
+            },
+            {
+                "featureName": "Historical Reporting",
+                "shortDescription": "Retrospective network data.",
+                "detailedDescription": "Reporting on application usage, tunnel performance, and security events over time via vManage.",
+                "constraints": "Long-term data retention limits exist unless integrated with an external data lake or vAnalytics.",
+                "assumptions": "Required for post-incident analysis and compliance."
+            },
+            {
+                "featureName": "Advanced Monitoring",
+                "shortDescription": "Granular flow visibility.",
+                "detailedDescription": "Detailed visibility into localized routing protocols, tunnel health, and interface statistics.",
+                "constraints": "Can require significant vManage storage space if excessive flow data is retained.",
+                "assumptions": "Operations teams require deep, packet-level or flow-level troubleshooting."
+            },
+            {
+                "featureName": "QOS - Shaping & Granular Traffic Engineering",
+                "shortDescription": "Advanced bandwidth allocation.",
+                "detailedDescription": "Highly granular QoS capabilities using Modular QoS CLI (MQC) logic, applying advanced queuing and shaping algorithms.",
+                "constraints": "Complex to design and deploy effectively across a diverse WAN fabric.",
+                "assumptions": "Customer runs multiple latency-sensitive applications demanding strict prioritization."
+            },
+            {
+                "featureName": "Application Recognition",
+                "shortDescription": "NBAR2 Layer 7 identification.",
+                "detailedDescription": "Uses Network Based Application Recognition (NBAR2) to accurately identify thousands of specific applications.",
+                "constraints": "Requires periodic signature updates; encrypted traffic classification can be limited.",
+                "assumptions": "Routing policies rely on exact application identification rather than just IP/Port."
+            },
+            {
+                "featureName": "App- and SLA-based Routing Policy",
+                "shortDescription": "Complex dynamic path selection.",
+                "detailedDescription": "Application-Aware Routing (AAR) dynamically shifts traffic based on real-time loss, latency, and jitter against defined SLAs.",
+                "constraints": "Improper SLA thresholds can cause route flapping and instability.",
+                "assumptions": "Multiple diverse WAN transports are available."
+            },
+            {
+                "featureName": "BGP/OSPF Routing Integration",
+                "shortDescription": "Dynamic LAN/WAN routing.",
+                "detailedDescription": "Full support for redistributing BGP and OSPF routes into the Overlay Management Protocol (OMP) for complex enterprise topologies.",
+                "constraints": "Requires high networking expertise to prevent routing loops and suboptimal pathing.",
+                "assumptions": "Customer has complex legacy networks or localized data centers requiring dynamic route exchange."
+            },
+            {
+                "featureName": "Forward Error Correction (FEC)",
+                "shortDescription": "Packet loss mitigation.",
+                "detailedDescription": "Injects parity packets into the data stream to reconstruct dropped packets on the receiving end without retransmission.",
+                "constraints": "Consumes additional bandwidth (overhead) on the WAN link.",
+                "assumptions": "Customer utilizes lossy transport (like standard broadband or LTE) for critical voice/video traffic."
+            },
+            {
+                "featureName": "Cloud OnRamp",
+                "shortDescription": "Optimized SaaS and IaaS access.",
+                "detailedDescription": "Automates connectivity and optimizes path selection to major public clouds (AWS, Azure, GCP) and SaaS providers (M365).",
+                "constraints": "Requires specific licensing and integration with third-party cloud APIs.",
+                "assumptions": "Enterprise relies heavily on public cloud infrastructure."
+            },
+            {
+                "featureName": "TrustSec Micro-segmentation",
+                "shortDescription": "End-to-end policy tagging.",
+                "detailedDescription": "Integrates with Cisco ISE to propagate Scalable Group Tags (SGTs) across the SD-WAN fabric for consistent security policies.",
+                "constraints": "Requires comprehensive Cisco ISE deployment and DNA Advantage licensing.",
+                "assumptions": "Customer implements a Zero Trust Network Access (ZTNA) model."
+            },
+            {
+                "featureName": "API Integration",
+                "shortDescription": "Programmable vManage access.",
+                "detailedDescription": "Extensive REST API support for orchestrating complex deployments and integrating with ITSM platforms.",
+                "constraints": "Requires development expertise to utilize securely and effectively.",
+                "assumptions": "Customer utilizes Infrastructure as Code (IaC) or automated orchestration."
+            },
+            {
+                "featureName": "Event Logging / Syslog - Export",
+                "shortDescription": "External log aggregation.",
+                "detailedDescription": "Native ability to push comprehensive system, routing, and security logs to enterprise SIEM platforms.",
+                "constraints": "High volume of logs requires appropriately sized external aggregation servers.",
+                "assumptions": "Compliance mandates centralized security logging."
+            },
+            {
+                "featureName": "SNMP",
+                "shortDescription": "Legacy network management.",
+                "detailedDescription": "Support for SNMPv2/v3 for polling interface statistics and receiving traps by legacy NMS tools.",
+                "constraints": "Less efficient than modern streaming telemetry.",
+                "assumptions": "Customer relies on legacy monitoring platforms like SolarWinds or PRTG."
+            },
+            {
+                "featureName": "Service-Side NAT",
+                "shortDescription": "Local network address translation.",
+                "detailedDescription": "Translates local IPs before they enter the SD-WAN overlay, resolving overlapping IP space issues.",
+                "constraints": "Complicates end-to-end visibility and application flows.",
+                "assumptions": "Customer acquired sites with overlapping IP subnets."
+            },
+            {
+                "featureName": "DHCP Server",
+                "shortDescription": "Local IP allocation.",
+                "detailedDescription": "Edge routers can function as localized DHCP servers for branch LANs.",
+                "constraints": "Not recommended for large campuses which require centralized IPAM.",
+                "assumptions": "Small branch environments lacking dedicated local servers."
+            }
+        ]
+    },
+    {
+        "serviceName": "Meraki LAN",
+        "shortDescription": "Cloud-managed L2/L3 access and aggregation switching.",
+        "detailedDescription": "Layer 2 and basic Layer 3 Ethernet switching via the Cisco Meraki MS series. Features centralized management, topology mapping, and port configuration via a cloud-hosted controller.",
+        "constraints": "Configuration pushes and monitoring require active internet connectivity to the Meraki dashboard. The control plane is cloud-dependent for dynamic updates.",
+        "assumptions": "Local network topology supports out-of-band management access to the internet. Connected endpoints conform to the switch's available PoE budget.",
+        "features": [
+            {
+                "featureName": "Cloud Management - Cisco Meraki Dashboard",
+                "shortDescription": "Centralized switch management.",
+                "detailedDescription": "Provides visual topology maps, port-level configuration, and troubleshooting tools via the cloud.",
+                "constraints": "Switches cannot be fully managed via CLI; dependent on cloud connectivity.",
+                "assumptions": "Out-of-band internet access is available for the switches."
+            },
+            {
+                "featureName": "Zero-Touch Provisioning (ZTP)",
+                "shortDescription": "Automated switch onboarding.",
+                "detailedDescription": "Switches retrieve configurations based on serial number logic once connected to the network.",
+                "constraints": "Requires an upstream DHCP server and internet access to function initially.",
+                "assumptions": "Streamlined installation by non-technical staff is required."
+            },
+            {
+                "featureName": "Centralized Software Upgrades",
+                "shortDescription": "Cloud-driven switch firmware.",
+                "detailedDescription": "Switch firmware is updated en masse or per-network from the Meraki dashboard.",
+                "constraints": "Device reboots are required, causing temporary network disruption.",
+                "assumptions": "Updates can be scheduled during off-hours."
+            },
+            {
+                "featureName": "Scheduled Software Upgrade",
+                "shortDescription": "Automated upgrade windows.",
+                "detailedDescription": "Configure exact times for the network switches to download and apply firmware.",
+                "constraints": "Fails if internet access is down during the scheduled window.",
+                "assumptions": "Downtime policies allow for automated reboots."
+            },
+            {
+                "featureName": "Vendor Provided Analytics",
+                "shortDescription": "Port-level telemetry.",
+                "detailedDescription": "Visibility into PoE draw, port utilization, and basic client identification.",
+                "constraints": "Lacks the deep packet inspection capabilities of the MX series.",
+                "assumptions": "Standard switch analytics are sufficient for operations."
+            },
+            {
+                "featureName": "Tag-based VLANs (IEEE 802.1Q)",
+                "shortDescription": "Standard network segmentation.",
+                "detailedDescription": "Support for standard 802.1Q trunking and access ports for Layer 2 isolation.",
+                "constraints": "VLAN scaling limits depend on specific MS switch models.",
+                "assumptions": "Endpoints require broadcast domain separation."
+            },
+            {
+                "featureName": "RSTP (Rapid Spanning Tree Protocol - 802.1w)",
+                "shortDescription": "Layer 2 loop prevention.",
+                "detailedDescription": "Provides fast convergence and loop prevention in redundant Layer 2 topologies.",
+                "constraints": "Inferior to modern routed access designs in massive enterprise campuses.",
+                "assumptions": "Topologies include redundant Layer 2 links."
+            },
+            {
+                "featureName": "FHRP (VRRP/HSRP)",
+                "shortDescription": "Default gateway redundancy.",
+                "detailedDescription": "Provides high availability for Layer 3 default gateways using VRRP or equivalent.",
+                "constraints": "Supported primarily on advanced MS300+ series switches.",
+                "assumptions": "Network relies on dual distribution/core switches."
+            },
+            {
+                "featureName": "Static Routes",
+                "shortDescription": "Manual L3 path definition.",
+                "detailedDescription": "Ability to define static routes for Layer 3 switching to local subnets or routers.",
+                "constraints": "Does not scale dynamically with network topology changes.",
+                "assumptions": "Routing topology is simple and rarely changes."
+            },
+            {
+                "featureName": "API Integration",
+                "shortDescription": "Programmable port management.",
+                "detailedDescription": "APIs allow automated enabling/disabling of ports and VLAN assignments.",
+                "constraints": "API rate limits and lack of real-time state streaming.",
+                "assumptions": "Customer automates port provisioning."
+            },
+            {
+                "featureName": "Event Logging / Syslog - Export",
+                "shortDescription": "Switch log externalization.",
+                "detailedDescription": "Sends switch-level events (port up/down, auth failures) to an external server.",
+                "constraints": "Requires external log management infrastructure.",
+                "assumptions": "Compliance requires auditing switch-level access."
+            },
+            {
+                "featureName": "OSPF v2/v3",
+                "shortDescription": "Dynamic internal routing.",
+                "detailedDescription": "Support for Open Shortest Path First dynamic routing for complex campus environments.",
+                "constraints": "Requires Advanced licensing and specific hardware models; does not support BGP.",
+                "assumptions": "Campus requires dynamic route learning."
+            },
+            {
+                "featureName": "DHCP Server",
+                "shortDescription": "Local switch-based IP allocation.",
+                "detailedDescription": "Layer 3 switches can act as DHCP servers for connected VLANs.",
+                "constraints": "Basic functionality; not suitable for complex, multi-site IP address management.",
+                "assumptions": "Deployed in isolated networks without dedicated IPAM."
+            }
+        ]
+    },
+    {
+        "serviceName": "Cisco Catalyst LAN",
+        "shortDescription": "ASIC-based enterprise switching infrastructure.",
+        "detailedDescription": "Campus switching utilizing the Cisco Catalyst 9000 series. Integrates with Cisco Catalyst Center (formerly DNA Center) to support SD-Access fabric overlays (VXLAN/LISP), TrustSec micro-segmentation, and streaming telemetry.",
+        "constraints": "Fabric provisioning and advanced telemetry require Cisco DNA Advantage licensing and a dedicated Catalyst Center appliance (on-premise or virtual).",
+        "assumptions": "Deployed in environments requiring programmatic network fabrics, scalable segmentation, and high-availability hardware architectures.",
+        "features": [
+            {
+                "featureName": "Command Line Interface (CLI) or Catalyst Center Management",
+                "shortDescription": "Flexible management planes.",
+                "detailedDescription": "Can be managed traditionally via local CLI (IOS-XE) or centrally orchestrated via Cisco Catalyst Center.",
+                "constraints": "Mixing CLI and Catalyst Center management can cause configuration drift and out-of-sync errors.",
+                "assumptions": "Customer standardizes on a single management methodology."
+            },
+            {
+                "featureName": "L2/L3 Routing (OSPF, EIGRP, BGP)",
+                "shortDescription": "Advanced dynamic routing.",
+                "detailedDescription": "Full enterprise routing protocol support for complex campus core and distribution layers.",
+                "constraints": "Advanced routing features require Network Advantage licensing.",
+                "assumptions": "Required for a routed-access campus design."
+            },
+            {
+                "featureName": "Tag-based VLANs (IEEE 802.1Q)",
+                "shortDescription": "Standard network segmentation.",
+                "detailedDescription": "High-scale Layer 2 VLAN support for isolating broadcast domains.",
+                "constraints": "Large Layer 2 domains increase the risk of broadcast storms.",
+                "assumptions": "Legacy segmentation models are in use."
+            },
+            {
+                "featureName": "Advanced QoS",
+                "shortDescription": "Hardware-level traffic prioritization.",
+                "detailedDescription": "ASIC-driven Modular QoS CLI (MQC) supporting deep buffer allocation, strict priority queuing, and shaping.",
+                "constraints": "Complex syntax requires specialized engineering knowledge to deploy correctly.",
+                "assumptions": "Crucial for convergence of voice, video, and data on large campus networks."
+            },
+            {
+                "featureName": "High Availability (StackWise/VSS)",
+                "shortDescription": "Hardware redundancy.",
+                "detailedDescription": "Technologies that allow multiple physical switches to operate as a single logical switch with redundant control planes.",
+                "constraints": "Requires specific stacking cables or 10G/40G links; firmware upgrades affect the whole stack.",
+                "assumptions": "High availability is mandated at the access or distribution layer."
+            },
+            {
+                "featureName": "802.1x Authentication",
+                "shortDescription": "Port-based network access control.",
+                "detailedDescription": "Requires devices/users to authenticate against a RADIUS server (like Cisco ISE) before gaining network access.",
+                "constraints": "Requires a robust PKI and identity management infrastructure.",
+                "assumptions": "Strict zero-trust or compliance-driven security posture."
+            },
+            {
+                "featureName": "Local Syslog & SNMP",
+                "shortDescription": "Traditional telemetry.",
+                "detailedDescription": "Standard logging and polling mechanisms for network management systems.",
+                "constraints": "SNMP polling is resource-intensive and not real-time.",
+                "assumptions": "Integration with legacy IT monitoring tools is required."
+            },
+            {
+                "featureName": "SD-Access Fabric (LISP/VXLAN)",
+                "shortDescription": "Automated campus overlay.",
+                "detailedDescription": "Creates a logical overlay network utilizing LISP for the control plane and VXLAN for the data plane, enabling seamless mobility and segmentation.",
+                "constraints": "Requires Cisco Catalyst Center, ISE, and DNA Advantage licensing; complex underlying architecture.",
+                "assumptions": "Enterprise requires macro-segmentation independent of physical topologies."
+            },
+            {
+                "featureName": "TrustSec Micro-segmentation",
+                "shortDescription": "Tag-based policy enforcement.",
+                "detailedDescription": "Enforces access control using Scalable Group Tags (SGT) assigned by ISE, rather than IP-based ACLs.",
+                "constraints": "Requires compatible hardware across the entire path to propagate tags reliably.",
+                "assumptions": "Zero-trust micro-segmentation is a business requirement."
+            },
+            {
+                "featureName": "AI Endpoint Analytics",
+                "shortDescription": "Deep device profiling.",
+                "detailedDescription": "Uses AI/ML via Catalyst Center to automatically identify and profile unknown endpoints (like IoT devices).",
+                "constraints": "Requires active data telemetry and DNA Advantage licensing.",
+                "assumptions": "Network contains a large number of headless or IoT devices requiring classification."
+            },
+            {
+                "featureName": "Zero-Touch Provisioning (via Catalyst Center)",
+                "shortDescription": "Orchestrated hardware deployment.",
+                "detailedDescription": "Plug and Play (PnP) integration allows Catalyst Center to discover and fully provision new switches automatically.",
+                "constraints": "Requires pre-configuration in Catalyst Center and DHCP/DNS prerequisites.",
+                "assumptions": "Large-scale campus refresh or expansion."
+            },
+            {
+                "featureName": "Streaming Telemetry",
+                "shortDescription": "Real-time network data.",
+                "detailedDescription": "Pushes continuous, real-time metrics to Catalyst Center or third-party collectors using gRPC/Netconf.",
+                "constraints": "Generates massive amounts of data requiring robust collector infrastructure.",
+                "assumptions": "Customer requires instantaneous visibility and proactive assurance."
+            }
+        ]
+    },
+    {
+        "serviceName": "Meraki WLAN",
+        "shortDescription": "Cloud-managed enterprise wireless architecture.",
+        "detailedDescription": "Wireless access utilizing Cisco Meraki MR series access points. Features cloud-based centralized management, integrated wireless intrusion prevention (WIPS), out-of-the-box location analytics, and seamless guest access portals.",
+        "constraints": "Performance is susceptible to RF interference, physical attenuation, and channel overlap. Control plane, telemetry, and configuration updates require active internet connectivity to the Meraki dashboard.",
+        "assumptions": "Underlying wired LAN provides sufficient PoE/PoE+ power budgets and uplink bandwidth to support high-density wireless traffic. Local topology allows APs to reach the cloud dashboard.",
+        "features": [
+            {
+                "featureName": "Cloud-Based Management - Cisco Meraki Dashboard",
+                "shortDescription": "Centralized wireless management.",
+                "detailedDescription": "Manages SSIDs, RF profiles, and client tracking via the Meraki cloud portal.",
+                "constraints": "Requires active internet connectivity; APs continue to serve data but cannot be reconfigured if offline.",
+                "assumptions": "Customer requires simple, scalable wireless management without physical controllers."
+            },
+            {
+                "featureName": "Zero-Touch Provisioning (ZTP)",
+                "shortDescription": "Automated AP onboarding.",
+                "detailedDescription": "APs download their SSID and RF configurations automatically upon connecting to the internet.",
+                "constraints": "Requires DHCP and unrestricted outbound firewall rules.",
+                "assumptions": "Non-IT staff can physically mount and plug in access points."
+            },
+            {
+                "featureName": "Real-time Performance Monitoring",
+                "shortDescription": "Wireless health metrics.",
+                "detailedDescription": "Dashboard visibility into channel utilization, interference, and client connection latency.",
+                "constraints": "Historical data retention is limited compared to dedicated analytics platforms.",
+                "assumptions": "Sufficient for daily helpdesk troubleshooting."
+            },
+            {
+                "featureName": "Client Monitoring",
+                "shortDescription": "Endpoint visibility.",
+                "detailedDescription": "Tracks individual wireless clients, their OS, application usage, and signal strength over time.",
+                "constraints": "Relies on Layer 7 inspection which may be obscured by MAC randomization and encryption.",
+                "assumptions": "Administrators require user-centric troubleshooting."
+            },
+            {
+                "featureName": "802.11ax/Wi-Fi 6",
+                "shortDescription": "High-efficiency wireless standard.",
+                "detailedDescription": "Support for OFDMA and MU-MIMO to handle higher client densities and deliver better throughput.",
+                "constraints": "Clients must have Wi-Fi 6 compatible NICs to realize full benefits.",
+                "assumptions": "Deployed in moderate to high-density environments."
+            },
+            {
+                "featureName": "Single-Band Radio",
+                "shortDescription": "Basic wireless coverage.",
+                "detailedDescription": "Entry-level APs providing 2.4GHz or 5GHz connectivity (rare in modern enterprise deployments).",
+                "constraints": "Severely limits throughput and client capacity; prone to 2.4GHz interference.",
+                "assumptions": "Extremely cost-sensitive deployment for low-bandwidth IoT only."
+            },
+            {
+                "featureName": "802.11ax/Wi-Fi 6E",
+                "shortDescription": "6GHz spectrum support.",
+                "detailedDescription": "Utilizes the new 6GHz spectrum for massive bandwidth increases and zero legacy interference.",
+                "constraints": "Requires PoE+ or PoE++ power budgets; limited range compared to 2.4/5GHz; requires 6E compatible clients.",
+                "assumptions": "Customer requires bleeding-edge performance for AR/VR or extremely dense environments."
+            },
+            {
+                "featureName": "Dual-Band Radios",
+                "shortDescription": "Standard enterprise coverage.",
+                "detailedDescription": "APs transmitting simultaneously on 2.4GHz and 5GHz frequencies for maximum compatibility.",
+                "constraints": "2.4GHz band still requires careful RF planning due to limited non-overlapping channels.",
+                "assumptions": "Standard enterprise deployment supporting mixed legacy and modern clients."
+            },
+            {
+                "featureName": "Guest Access/Portals - Internal Portal",
+                "shortDescription": "Native splash pages.",
+                "detailedDescription": "Meraki-hosted captive portals for guest click-through agreements, SMS auth, or basic billing.",
+                "constraints": "Customization options are limited to basic HTML/CSS and logo uploads.",
+                "assumptions": "Customer requires simple, compliant guest access without external servers."
+            },
+            {
+                "featureName": "Guest Access/Portals - External Portal Integration",
+                "shortDescription": "Third-party splash pages.",
+                "detailedDescription": "Integration with external RADIUS/Captive Portal providers (like Purple or Cloud4Wi) via API.",
+                "constraints": "Requires ongoing subscriptions to third-party services.",
+                "assumptions": "Customer requires advanced marketing analytics or complex guest workflows."
+            },
+            {
+                "featureName": "Out-of-the-box Location Analytics",
+                "shortDescription": "Physical foot-traffic insights.",
+                "detailedDescription": "Provides presence analytics, capture rates, and dwell times based on wireless probe requests.",
+                "constraints": "Accuracy is limited (often 5-10 meters) and impacted by modern smartphone MAC randomization.",
+                "assumptions": "Retail or hospitality environments seeking basic visitor trends."
+            }
+        ]
+    },
+    {
+        "serviceName": "Cisco Catalyst WLAN",
+        "shortDescription": "Controller-based enterprise wireless architecture.",
+        "detailedDescription": "Wireless access utilizing 802.11ax/be (Wi-Fi 6/6E/7) access points and Catalyst 9800 wireless LAN controllers. Implements CAPWAP tunneling, centralized encryption, and advanced RF resource management.",
+        "constraints": "Performance is susceptible to RF interference, physical attenuation, and channel overlap. Requires stringent RF site surveys and precise AP placement.",
+        "assumptions": "Underlying wired LAN provides adequate PoE/PoE+ power budgets and sufficient uplink bandwidth to support high-density wireless traffic.",
+        "features": [
+            {
+                "featureName": "Wireless LAN Controller (Catalyst 9800 - Local or Cloud)",
+                "shortDescription": "Centralized control plane.",
+                "detailedDescription": "IOS-XE based controller that manages AP configuration, RF policies, and client roaming.",
+                "constraints": "Requires dedicated hardware or virtual appliances; single point of failure if not deployed in HA.",
+                "assumptions": "Customer requires highly deterministic wireless control and scale."
+            },
+            {
+                "featureName": "CAPWAP Tunneling",
+                "shortDescription": "Centralized data forwarding.",
+                "detailedDescription": "Tunnels all wireless client traffic back to the WLC, enabling seamless roaming without VLAN changes at the edge.",
+                "constraints": "Can create a bandwidth bottleneck at the controller and requires robust routing from the WLC to the core.",
+                "assumptions": "Customer prefers centralized policy enforcement and IP addressing."
+            },
+            {
+                "featureName": "802.11ax/Wi-Fi 6",
+                "shortDescription": "High-density wireless standard.",
+                "detailedDescription": "Supports OFDMA, BSS Coloring, and target wake time (TWT) for dense campus environments.",
+                "constraints": "Requires clients to support Wi-Fi 6 for maximum efficiency.",
+                "assumptions": "Standard baseline for new enterprise wireless deployments."
+            },
+            {
+                "featureName": "Advanced RF Resource Management",
+                "shortDescription": "Automated channel/power adjustment.",
+                "detailedDescription": "Cisco RRM dynamically adjusts AP transmit power and channels to mitigate interference and optimize coverage.",
+                "constraints": "Aggressive RRM tuning can cause instability if the physical site survey is poor.",
+                "assumptions": "Dynamic environments where RF interference changes regularly."
+            },
+            {
+                "featureName": "Seamless Roaming",
+                "shortDescription": "Uninterrupted mobility.",
+                "detailedDescription": "Supports 802.11r/k/v for fast transition between access points without dropping voice or video calls.",
+                "constraints": "Requires proper physical overlap between APs (typically 15-20%).",
+                "assumptions": "Users frequently move throughout the facility while on active calls."
+            },
+            {
+                "featureName": "Real-time Performance Monitoring",
+                "shortDescription": "Controller-level insights.",
+                "detailedDescription": "Visibility into AP health, client connection status, and RF metrics directly on the WLC.",
+                "constraints": "UI can be complex; historical data is better viewed in Catalyst Center.",
+                "assumptions": "Engineers require deep technical data for troubleshooting."
+            },
+            {
+                "featureName": "Wi-Fi 6E / Wi-Fi 7 Support",
+                "shortDescription": "Next-generation spectrum access.",
+                "detailedDescription": "Utilizes 6GHz spectrum (6E) and advanced Multi-Link Operation (Wi-Fi 7) for multi-gigabit wireless speeds.",
+                "constraints": "Requires PoE++ (802.3bt) switching infrastructure; range is significantly shorter on 6GHz.",
+                "assumptions": "Deployment in high-capacity venues or for specialized high-bandwidth applications."
+            },
+            {
+                "featureName": "High Availability (N+1)",
+                "shortDescription": "Controller redundancy.",
+                "detailedDescription": "Stateful Switchover (SSO) or N+1 controller designs to ensure wireless networks stay online during hardware failures.",
+                "constraints": "Increases hardware and licensing costs.",
+                "assumptions": "Wireless access is mission-critical to the business."
+            },
+            {
+                "featureName": "Cisco DNA Center Integration",
+                "shortDescription": "Fabric wireless integration.",
+                "detailedDescription": "Connects the WLC to Catalyst Center to enable SD-Access wireless and centralized policy.",
+                "constraints": "Requires DNA Advantage licensing and complex SD-Access underlay architecture.",
+                "assumptions": "Customer is deploying a full Cisco SD-Access fabric."
+            },
+            {
+                "featureName": "AI-Driven Wireless Analytics",
+                "shortDescription": "Proactive wireless assurance.",
+                "detailedDescription": "Uses machine learning to baseline performance and identify anomalous client behavior or RF issues.",
+                "constraints": "Requires Catalyst Center and active telemetry streaming.",
+                "assumptions": "Customer desires automated troubleshooting and predictive maintenance."
+            },
+            {
+                "featureName": "Guest Access/Portals",
+                "shortDescription": "Secure visitor Wi-Fi.",
+                "detailedDescription": "Integration with Cisco ISE or native WLC portals to provide segmented internet access for guests.",
+                "constraints": "Complex workflows require Cisco ISE policies and licensing.",
+                "assumptions": "Corporate security mandates total isolation of guest traffic."
+            }
+        ]
+    },
+    {
+        "serviceName": "Business Broadband (fiber)",
+        "shortDescription": "Value-conscious, shared infrastructure internet access.",
+        "detailedDescription": "Business-class internet connectivity delivered via broadband fiber. Often provides asymmetrical speeds, suitable for non-business-critical primary internet and secondary internet.",
+        "constraints": "Delivered over shared infrastructure where performance fluctuates based on localized network congestion, leading to variable 'best-effort' throughput and latency (often lower upload speeds). Lacks stringent Service Level Agreements (SLAs) for uptime, jitter, or packet delivery.",
+        "assumptions": "Customer's physical location can be connected to provider fiber infrastructure.",
+        "features": [
+            {
+                "featureName": "Shared Network Infrastructure",
+                "shortDescription": "Oversubscribed core networks.",
+                "detailedDescription": "Bandwidth is shared among multiple local businesses or residential nodes on the same provider equipment.",
+                "constraints": "Throughput drops during peak regional usage times.",
+                "assumptions": "Cost savings are prioritized over guaranteed, dedicated bandwidth."
+            },
+            {
+                "featureName": "Best-Effort Delivery",
+                "shortDescription": "No performance guarantees.",
+                "detailedDescription": "Traffic is routed without strict Quality of Service (QoS) SLAs across the provider network.",
+                "constraints": "Latency and jitter can spike, affecting real-time applications like VoIP.",
+                "assumptions": "Used primarily as an SD-WAN underlay or for general web browsing."
+            },
+            {
+                "featureName": "Asymmetrical Speeds",
+                "shortDescription": "Unequal upload/download.",
+                "detailedDescription": "Provides high download speeds (e.g., 1Gbps) but significantly lower upload speeds (e.g., 35Mbps).",
+                "constraints": "Bottlenecks occur when uploading large files to the cloud or hosting on-premise servers.",
+                "assumptions": "Traffic profile is heavily skewed towards downloading (typical user browsing)."
+            },
+            {
+                "featureName": "Dynamic IP Addressing",
+                "shortDescription": "Changing public IPs.",
+                "detailedDescription": "The provider assigns a public IP via DHCP that may change periodically.",
+                "constraints": "Breaks static site-to-site VPNs or inbound server hosting unless DDNS is used.",
+                "assumptions": "Outbound-only internet access is required."
+            },
+            {
+                "featureName": "Static IP Address",
+                "shortDescription": "Fixed public IP.",
+                "detailedDescription": "An optional add-on providing a permanent, non-changing public IP address.",
+                "constraints": "Usually limits to a single IP or a small /29 block; incurs extra monthly costs.",
+                "assumptions": "Required for building consistent SD-WAN tunnels or hosting local services."
+            },
+            {
+                "featureName": "Basic Provider-Managed Router/Modem",
+                "shortDescription": "Standard ISP equipment.",
+                "detailedDescription": "The ISP provides a basic combined modem/router/firewall gateway.",
+                "constraints": "Lacks advanced enterprise routing features; often requires 'Bridge Mode' configuration to use an enterprise firewall.",
+                "assumptions": "Customer will place their own SD-WAN or Firewall appliance behind it."
+            }
+        ]
+    },
+    {
+        "serviceName": "Dedicated Internet Access (DIA)",
+        "shortDescription": "Dedicated, uncontended internet access.",
+        "detailedDescription": "Internet connectivity delivered over a dedicated fiber circuit with a 1:1 oversubscription ratio. Provides uncontended, symmetrical bandwidth directly from the customer premises to the provider's IP backbone.",
+        "constraints": "Higher monthly recurring costs compared to broadband. Installation requires dedicated physical fiber build-outs, often resulting in long delivery lead times (30 to 90+ days).",
+        "assumptions": "Required for mission-critical sites, large SD-WAN hubs, and environments hosting inbound services where guaranteed throughput and strict SLAs are mandatory.",
+        "features": [
+            {
+                "featureName": "1:1 Oversubscription Ratio (Dedicated)",
+                "shortDescription": "Guaranteed bandwidth.",
+                "detailedDescription": "The contracted bandwidth is dedicated entirely to the customer, not shared with other subscribers.",
+                "constraints": "High monthly cost per megabit compared to broadband.",
+                "assumptions": "Business requires 100% of their purchased throughput at all times."
+            },
+            {
+                "featureName": "Symmetrical Speeds",
+                "shortDescription": "Equal upload and download.",
+                "detailedDescription": "Upload bandwidth matches download bandwidth (e.g., 500Mbps up / 500Mbps down).",
+                "constraints": "None; highly beneficial for enterprise use.",
+                "assumptions": "Customer relies heavily on cloud applications, video conferencing, or off-site backups."
+            },
+            {
+                "featureName": "Strict SLAs (Uptime, Latency, Packet Delivery)",
+                "shortDescription": "Contractual performance guarantees.",
+                "detailedDescription": "Service Level Agreements guaranteeing 99.99%+ uptime, specific latency maximums, and financial penalties for failure.",
+                "constraints": "Provider must have extensive infrastructure to offer and honor these SLAs.",
+                "assumptions": "Downtime results in immediate financial loss for the business."
+            },
+            {
+                "featureName": "Static IP Block (/29 or similar)",
+                "shortDescription": "Routable enterprise IPs.",
+                "detailedDescription": "Provides a contiguous block of static public IP addresses for enterprise edge routing.",
+                "constraints": "Customer must justify larger IP blocks to regional internet registries (ARIN/RIPE).",
+                "assumptions": "Required for hosting multiple inbound services, DMZs, or SD-WAN edge nodes."
+            },
+            {
+                "featureName": "BGP Routing Support",
+                "shortDescription": "Dynamic internet routing.",
+                "detailedDescription": "Allows the customer to peer via eBGP with the provider for dynamic IP failover and multi-homing.",
+                "constraints": "Requires an enterprise-grade edge router and an assigned Autonomous System Number (ASN).",
+                "assumptions": "Customer manages their own public IP space and dual-homes to multiple ISPs."
+            },
+            {
+                "featureName": "Managed Provider Edge Router",
+                "shortDescription": "Turnkey hardware delivery.",
+                "detailedDescription": "The ISP provides, manages, and monitors the edge router delivering the handoff to the customer.",
+                "constraints": "Customer lacks administrative access to the edge router.",
+                "assumptions": "Customer prefers a managed service model to reduce local IT overhead."
+            },
+            {
+                "featureName": "DDoS Protection Integration",
+                "shortDescription": "Network-level threat scrubbing.",
+                "detailedDescription": "In-line or on-demand scrubbing of malicious Distributed Denial of Service traffic before it reaches the circuit.",
+                "constraints": "Adds significant cost; may introduce slight latency during active scrubbing.",
+                "assumptions": "Enterprise is a high-profile target for cyber attacks."
+            },
+            {
+                "featureName": "Diverse Routing/Dual-Homing",
+                "shortDescription": "Physical path redundancy.",
+                "detailedDescription": "Constructing diverse physical fiber entrances into the building to prevent backhoe-fade.",
+                "constraints": "Requires expensive construction and specific building geography.",
+                "assumptions": "Facility is a critical hub or data center."
+            }
+        ]
+    },
+    {
+        "serviceName": "Fixed Wireless Access (5G)",
+        "shortDescription": "Cellular broadband access (5G/LTE).",
+        "detailedDescription": "Wireless internet connectivity utilizing 5G NR and LTE networks. Provides rapid deployment capabilities and physical path diversity from wired terrestrial circuits.",
+        "constraints": "Throughput and latency are variable, modulated by RF signal propagation, atmospheric attenuation, cell tower congestion, and distance to the gNodeB.",
+        "assumptions": "Adequate cellular signal strength (RSRP/RSRQ) is available at the installation point. Often subject to carrier data caps or bandwidth throttling.",
+        "features": [
+            {
+                "featureName": "Cellular Modem/Router",
+                "shortDescription": "Wireless edge gateway.",
+                "detailedDescription": "Hardware that converts 5G/LTE RF signals into standard Ethernet/IP handoffs.",
+                "constraints": "Device placement must be optimized for cellular reception, often requiring PoE extension from network closets.",
+                "assumptions": "Customer needs a standalone cellular bridge to connect to their SD-WAN router."
+            },
+            {
+                "featureName": "Active SIM Card Provisioning",
+                "shortDescription": "Carrier network access.",
+                "detailedDescription": "Physical or eSIM provisioning linking the hardware to a specific carrier data plan.",
+                "constraints": "Tied to specific carrier networks; roaming agreements vary.",
+                "assumptions": "Carrier has confirmed coverage at the physical site."
+            },
+            {
+                "featureName": "5G NR / LTE Connectivity",
+                "shortDescription": "High-speed mobile data.",
+                "detailedDescription": "Utilizes modern cellular standards to deliver sub-100ms latency and high bandwidth.",
+                "constraints": "Speeds drop drastically if 5G is unavailable and device falls back to 4G/LTE or 3G.",
+                "assumptions": "Site is within range of modern upgraded cellular towers."
+            },
+            {
+                "featureName": "Dynamic IP Addressing",
+                "shortDescription": "Carrier-grade NAT (CGNAT).",
+                "detailedDescription": "Carrier assigns private or dynamic public IPs to the cellular connection.",
+                "constraints": "CGNAT strictly prevents inbound connections and can complicate IPsec VPN establishment.",
+                "assumptions": "Connection is used purely for outbound internet or client-initiated VPNs."
+            },
+            {
+                "featureName": "Best-Effort Delivery",
+                "shortDescription": "Shared cellular capacity.",
+                "detailedDescription": "Traffic is subject to network congestion on the shared cellular tower.",
+                "constraints": "Performance degrades significantly during regional events or high tower load.",
+                "assumptions": "Acceptable for backup links or temporary deployments."
+            },
+            {
+                "featureName": "External Directional Antenna",
+                "shortDescription": "RF signal enhancement.",
+                "detailedDescription": "Roof or wall-mounted antennas aimed directly at the carrier tower to bypass building attenuation.",
+                "constraints": "Requires specialized cabling (LMR-400), grounding, and professional installation.",
+                "assumptions": "Indoor signal is too weak due to concrete, metal, or low-E glass construction."
+            },
+            {
+                "featureName": "Static IP Address",
+                "shortDescription": "Fixed cellular IP.",
+                "detailedDescription": "Specialized carrier plan providing a routable, static public IP address.",
+                "constraints": "Difficult to procure from consumer-focused carriers; requires enterprise M2M/IoT plans.",
+                "assumptions": "Necessary for persistent inbound VPN tunnels when used as a primary link."
+            },
+            {
+                "featureName": "Pooled Data Plans",
+                "shortDescription": "Aggregated bandwidth billing.",
+                "detailedDescription": "Data allowances are shared across all 5G devices in the enterprise fleet to prevent overage charges on single high-use sites.",
+                "constraints": "Requires managing data usage globally to avoid massive fleet-wide overage penalties.",
+                "assumptions": "Enterprise deploys dozens or hundreds of cellular backup connections."
+            }
+        ]
+    },
+    {
+        "serviceName": "LEO Satellite",
+        "shortDescription": "Low Earth Orbit satellite broadband.",
+        "detailedDescription": "Internet connectivity provided via constellations of Low Earth Orbit satellites. Offers lower latency (~40-60ms) compared to GEO satellites but operates over a shared RF medium and shared ground station backhaul.",
+        "constraints": "Requires a completely unobstructed line of sight to the sky. Susceptible to atmospheric attenuation (rain fade) and variable throughput depending on satellite passings and regional user density.",
+        "assumptions": "Utilized primarily as an out-of-band management link, diverse backup path, or primary connection in geographic areas lacking terrestrial infrastructure.",
+        "features": [
+            {
+                "featureName": "Satellite Dish/Terminal",
+                "shortDescription": "Phased array antenna.",
+                "detailedDescription": "Motorized or fixed flat-panel antenna that electronically tracks fast-moving LEO satellites.",
+                "constraints": "Requires secure mounting, power, and absolute line of sight without tree/building obstruction.",
+                "assumptions": "Site location allows for roof or open-ground installation."
+            },
+            {
+                "featureName": "Clear Line of Sight to Sky",
+                "shortDescription": "Unobstructed RF path.",
+                "detailedDescription": "The terminal must maintain a wide cone of visibility to the sky to track satellites horizon-to-horizon.",
+                "constraints": "Urban canyons or heavily wooded areas will cause frequent micro-outages.",
+                "assumptions": "Pre-installation surveys confirm sky visibility."
+            },
+            {
+                "featureName": "Low Latency Orbit Connectivity",
+                "shortDescription": "Sub-100ms satellite internet.",
+                "detailedDescription": "Satellites orbit much closer to Earth (approx 550km) than GEO satellites, reducing latency to 40-60ms.",
+                "constraints": "Latency still spikes during satellite handoffs or heavy network load.",
+                "assumptions": "Allows for functional VoIP and interactive application usage, unlike legacy satellite."
+            },
+            {
+                "featureName": "Dynamic IP Addressing",
+                "shortDescription": "Carrier-grade NAT (CGNAT).",
+                "detailedDescription": "Provides a non-routable IP address managed by the satellite provider's ground station.",
+                "constraints": "Prevents inbound routing and hosting services locally.",
+                "assumptions": "Acceptable for outbound traffic or SD-WAN overlays that initiate tunnels outbound."
+            },
+            {
+                "featureName": "High-Performance Enterprise Terminal",
+                "shortDescription": "Business-grade hardware.",
+                "detailedDescription": "Larger phased array antennas designed for better performance in extreme weather and higher throughput.",
+                "constraints": "Significantly higher hardware cost compared to consumer models.",
+                "assumptions": "Customer requires maximum reliability in a remote location."
+            },
+            {
+                "featureName": "Static IP Address",
+                "shortDescription": "Routable public IP.",
+                "detailedDescription": "Assigns a fixed public IP address to the satellite terminal via enterprise-tier service plans.",
+                "constraints": "Usually incurs a high monthly premium.",
+                "assumptions": "Required for specific enterprise firewall or SD-WAN architectures."
+            },
+            {
+                "featureName": "Priority Routing/Data Tiers",
+                "shortDescription": "Prioritized network traffic.",
+                "detailedDescription": "Enterprise plans provide higher priority on the shared satellite network over residential users.",
+                "constraints": "Throughput is still subject to the physical capacity of the satellite currently overhead.",
+                "assumptions": "Customer requires consistent performance during peak regional usage hours."
+            }
+        ]
+    },
+    {
+        "serviceName": "MPLS",
+        "shortDescription": "Multi-Protocol Label Switching private WAN.",
+        "detailedDescription": "Layer 2.5/Layer 3 VPN technology routing traffic deterministically across a service provider's backbone. Enforces strict Quality of Service (QoS) queues and provides SLA-backed latency and packet delivery guarantees.",
+        "constraints": "Higher cost per Mbps relative to internet transport. Rigid, static architecture with long provisioning lead times and complex integration requirements for direct-to-cloud (SaaS) traffic flows.",
+        "assumptions": "Required for legacy latency-sensitive applications or core data center interconnects where deterministic routing is an absolute mandate.",
+        "features": [
+            {
+                "featureName": "Private Carrier Backbone Routing",
+                "shortDescription": "Isolated network transport.",
+                "detailedDescription": "Traffic is routed over a service provider's private infrastructure, completely separated from the public internet.",
+                "constraints": "Sites can only communicate with other sites on the same provider's MPLS network unless complex NNI (Network-to-Network Interfaces) are built.",
+                "assumptions": "Customer mandates total isolation for security or compliance reasons."
+            },
+            {
+                "featureName": "Label-Switched Path (LSP)",
+                "shortDescription": "Deterministic routing.",
+                "detailedDescription": "Traffic is forwarded based on short path labels rather than complex IP routing lookups, ensuring highly predictable paths.",
+                "constraints": "Paths are controlled by the carrier, removing granular traffic engineering control from the customer.",
+                "assumptions": "Predictability and stability are prioritized over dynamic pathing."
+            },
+            {
+                "featureName": "Strict QoS Queues (Class of Service)",
+                "shortDescription": "End-to-end prioritization.",
+                "detailedDescription": "Carrier honors QoS tags (DSCP/CoS) across their core, guaranteeing bandwidth for voice and critical data.",
+                "constraints": "Customer must carefully map internal QoS to the carrier's specific Class of Service tiers (usually 3 to 5 classes).",
+                "assumptions": "Voice and video applications require absolute protection against jitter and drops."
+            },
+            {
+                "featureName": "SLA-Backed Latency/Delivery",
+                "shortDescription": "Financially backed performance.",
+                "detailedDescription": "Carrier provides strict contractual guarantees for latency, jitter, and packet delivery across the backbone.",
+                "constraints": "SLAs are heavily dependent on geographic distance (e.g., transatlantic links inherently have higher latency).",
+                "assumptions": "Application architecture cannot tolerate variable internet-style performance."
+            },
+            {
+                "featureName": "BGP/OSPF Peering with CE (Customer Edge)",
+                "shortDescription": "Dynamic route exchange.",
+                "detailedDescription": "Customer edge router peers dynamically with the Provider Edge (PE) router to advertise local subnets.",
+                "constraints": "Requires coordination with the carrier for routing changes or prefix list updates.",
+                "assumptions": "Customer networks are large and subnets change dynamically."
+            },
+            {
+                "featureName": "Managed CE Router",
+                "shortDescription": "Provider-managed hardware.",
+                "detailedDescription": "Carrier owns, monitors, and configures the router residing at the customer premises.",
+                "constraints": "Customer has zero access to configure LAN/WAN interfaces or local routing.",
+                "assumptions": "Enterprise prefers a hands-off, fully outsourced WAN routing model."
+            },
+            {
+                "featureName": "Diverse Local Access Loops",
+                "shortDescription": "Redundant physical connections.",
+                "detailedDescription": "Providing two physical circuits from different central offices to the customer site to prevent local outages.",
+                "constraints": "Extremely expensive and often requires major construction to achieve true physical diversity.",
+                "assumptions": "Site is a mission-critical data center or headquarters."
+            },
+            {
+                "featureName": "Multicast Support",
+                "shortDescription": "Efficient one-to-many routing.",
+                "detailedDescription": "Carrier backbone supports native multicast routing for applications like live video streaming or financial trading data.",
+                "constraints": "Requires complex configuration (PIM/IGMP) between customer and provider.",
+                "assumptions": "Customer runs specialized applications that rely on multicast."
+            },
+            {
+                "featureName": "Cloud Provider Interconnect (e.g., ExpressRoute/DirectConnect)",
+                "shortDescription": "Private cloud on-ramps.",
+                "detailedDescription": "Direct, private integration from the MPLS backbone into public cloud providers (AWS, Azure) bypassing the internet.",
+                "constraints": "Requires additional port fees from both the carrier and the cloud provider.",
+                "assumptions": "Customer hosts mission-critical infrastructure in the public cloud requiring SLA-backed access."
+            }
+        ]
+    }
+]
