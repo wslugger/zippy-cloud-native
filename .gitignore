@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Serena local overrides
 .serena/project.local.yml
+
+# Local Playwright MCP artifacts
+.playwright-mcp/

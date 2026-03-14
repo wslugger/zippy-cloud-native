@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zippy — Project Detail</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+          colors: {
+            'z-green': '#65B741', 'z-green-d': '#4d9630', 'z-green-l': '#E8F5E0',
+            'z-navy': '#1B2A4A', 'z-navy-l': '#243556',
+            'z-cyan': '#00BCD4', 'z-blue': '#2196F3',
+            'z-page': '#F7F8FA', 'z-muted': '#94A3B8', 'z-border': '#E2E8F0',
+            'z-text': '#64748B',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #F7F8FA; }
+    .brand-gradient { background: linear-gradient(90deg, #65B741, #00BCD4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .btn-green { background: linear-gradient(135deg, #65B741, #4daa2a); box-shadow: 0 2px 12px rgba(101,183,65,0.3); transition: all 0.2s; }
+    .btn-green:hover { box-shadow: 0 4px 18px rgba(101,183,65,0.4); transform: translateY(-1px); }
+    .btn-green-outline { border: 1.5px solid #65B741; color: #3d7a24; background: white; transition: all 0.15s; }
+    .btn-green-outline:hover { background: #E8F5E0; }
+
+    /* Section status indicators */
+    .step-done { background: #E8F5E0; border-color: #b6dfa0; }
+    .step-active { background: white; border-color: #65B741; box-shadow: 0 0 0 3px rgba(101,183,65,0.08); }
+    .step-pending { background: white; border-color: #E2E8F0; opacity: 0.6; }
+
+    /* Package card has green left accent */
+    .pkg-card { border-left: 3px solid #65B741; }
+
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .pulse { animation: pulse-dot 1.5s ease-in-out infinite; }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .fade-in { animation: fadeUp 0.35s ease both; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Top Nav -->
+  <header class="bg-white border-b border-z-border h-14 flex items-center px-6 sticky top-0 z-50">
+    <div class="flex items-center gap-2.5 mr-6">
+      <svg width="28" height="22" viewBox="0 0 42 32" fill="none">
+        <ellipse cx="24" cy="20" rx="14" ry="10" fill="#65B741"/>
+        <circle cx="32" cy="14" r="6" fill="#65B741"/>
+        <circle cx="34" cy="13" r="1.5" fill="#1B2A4A"/>
+        <line x1="31" y1="9" x2="29" y2="5" stroke="#65B741" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="33" y1="8" x2="32" y2="4" stroke="#65B741" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="29" cy="4.5" r="1.5" fill="#65B741"/>
+        <circle cx="32" cy="3.5" r="1.5" fill="#65B741"/>
+        <path d="M2 18 Q8 16 14 17" stroke="#2196F3" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+        <path d="M0 21 Q7 19 13 20" stroke="#00BCD4" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+      </svg>
+      <span class="text-lg font-extrabold tracking-tight brand-gradient">ZIPPY</span>
+    </div>
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-1.5 text-sm text-z-muted flex-1">
+      <a href="02-sa-dashboard.html" class="hover:text-z-navy transition-colors">Projects</a>
+      <span>/</span>
+      <span class="text-z-navy font-semibold">Acme Corp — National SD-WAN</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background: linear-gradient(135deg, #65B741, #00BCD4);">SC</div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
+
+    <!-- Project Title Row -->
+    <div class="flex items-start justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-1">
+          <h1 class="text-xl font-bold text-z-navy">Acme Corp — National SD-WAN</h1>
+          <span class="text-[10px] font-bold px-2 py-1 rounded-md border" style="background:#E8F5E0;border-color:#b6dfa0;color:#3d7a24;">IN REVIEW</span>
+        </div>
+        <p class="text-sm text-z-text">3 sites · Created Mar 14, 2026 · By Sarah Chen</p>
+      </div>
+      <button class="text-sm border border-z-border text-z-text px-4 py-2 rounded-xl hover:border-z-navy transition-colors">Edit Project</button>
+    </div>
+
+    <!-- ── SECTION 1: REQUIREMENTS (completed) ── -->
+    <section class="step-done rounded-2xl border p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold" style="background:#65B741;color:white;">✓</div>
+          <h2 class="text-sm font-bold text-z-navy uppercase tracking-wider">1 · Requirements</h2>
+        </div>
+        <button class="text-xs text-z-green font-semibold hover:underline">Edit</button>
+      </div>
+
+      <div class="flex flex-wrap gap-2 mb-3">
+        <div class="flex items-center gap-1.5 text-xs bg-white border border-z-border rounded-lg px-3 py-1.5 text-z-text">
+          <span class="text-red-400">📄</span> Cloud-First_SDWAN_Strategy.pdf
+        </div>
+        <div class="flex items-center gap-1.5 text-xs bg-white border border-z-border rounded-lg px-3 py-1.5 text-z-text">
+          <span class="text-red-400">📄</span> Network_Requirements_v2.pdf
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-z-border p-3 text-xs text-z-text font-mono leading-relaxed line-clamp-3">
+        Cloud-first SD-WAN deployment across 3 regional hubs (Chicago, Dallas, Atlanta). Requires SASE integration,
+        local internet breakout at each site, hub-and-spoke topology. 450 users total. Prefer Cisco Catalyst
+        hardware. Must support HIPAA data handling requirements and 99.99% SLA...
+      </div>
+    </section>
+
+    <!-- ── SECTION 2: AI RECOMMENDATIONS (active) ── -->
+    <section class="step-active rounded-2xl border p-5">
+      <div class="flex items-center justify-between mb-5">
+        <div class="flex items-center gap-3">
+          <div class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold border-2 border-z-green text-z-green">2</div>
+          <h2 class="text-sm font-bold text-z-navy uppercase tracking-wider">AI Recommended Services</h2>
+          <span class="pulse w-2 h-2 rounded-full inline-block" style="background:#65B741;"></span>
+        </div>
+        <button class="btn-green text-white text-xs font-semibold px-4 py-2 rounded-xl flex items-center gap-1.5">
+          ✦ Re-analyze
+        </button>
+      </div>
+
+      <!-- DESIGN PACKAGES subsection -->
+      <div class="mb-5">
+        <div class="flex items-center gap-2 mb-3 px-4 py-2.5 rounded-xl" style="background:linear-gradient(90deg,rgba(101,183,65,0.08),rgba(0,188,212,0.05));border:1px solid rgba(101,183,65,0.2);">
+          <span class="text-sm">📦</span>
+          <span class="text-xs font-bold text-z-navy uppercase tracking-wider">Design Packages</span>
+          <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full text-white" style="background:linear-gradient(90deg,#65B741,#00BCD4);">Includes Guided Workflow →</span>
+        </div>
+
+        <div class="space-y-3">
+
+          <!-- Package Card 1 -->
+          <div class="fade-in pkg-card bg-white rounded-xl border border-z-border p-4">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded text-white" style="background:#65B741;">PACKAGE</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded text-white" style="background:#00BCD4;">91% match</span>
+                <span class="text-[10px] font-semibold text-z-muted font-mono">PKG-cloudcentric</span>
+              </div>
+              <button class="btn-green-outline text-xs font-semibold px-4 py-1.5 rounded-lg">Add</button>
+            </div>
+            <h3 class="font-bold text-z-navy text-sm mb-1">Cloud Centric</h3>
+            <p class="text-xs text-z-text mb-3 leading-relaxed">Designed for organisations where the majority of applications and services are located in the cloud. Full Cisco Catalyst stack with SASE integration.</p>
+            <div class="flex flex-wrap gap-3 text-[11px] text-z-text mb-3">
+              <span><span class="font-semibold text-z-navy">Required:</span> Cisco Catalyst SDWAN, Cisco Catalyst LAN</span>
+              <span><span class="font-semibold text-z-navy">Optional:</span> Cisco Catalyst WLAN, Security Services</span>
+            </div>
+            <div class="bg-z-green-l rounded-lg p-3 text-xs text-z-text leading-relaxed border border-green-100">
+              <span class="text-z-green font-semibold">✦ AI Analysis: </span>
+              Cloud Centric package aligns directly with the cloud-first strategy and Cisco Catalyst preference. Hub-and-spoke topology is supported natively with SASE breakout at each regional site. Covers SD-WAN, LAN and optional WLAN requirements in a single guided workflow.
+            </div>
+          </div>
+
+          <!-- Package Card 2 -->
+          <div class="fade-in pkg-card bg-white rounded-xl border border-z-border p-4">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded text-white" style="background:#65B741;">PACKAGE</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded text-white" style="background:#2196F3;">76% match</span>
+                <span class="text-[10px] font-semibold text-z-muted font-mono">PKG-ExpressConnect</span>
+              </div>
+              <button class="btn-green-outline text-xs font-semibold px-4 py-1.5 rounded-lg">Add</button>
+            </div>
+            <h3 class="font-bold text-z-navy text-sm mb-1">Express Connect</h3>
+            <p class="text-xs text-z-text mb-3 leading-relaxed">A value-oriented solution designed for simple network designs with Meraki SD-WAN, LAN, and optional WLAN.</p>
+            <div class="flex flex-wrap gap-3 text-[11px] text-z-text mb-3">
+              <span><span class="font-semibold text-z-navy">Required:</span> Meraki SDWAN</span>
+              <span><span class="font-semibold text-z-navy">Optional:</span> Meraki LAN, Meraki WLAN</span>
+            </div>
+            <div class="bg-amber-50 rounded-lg p-3 text-xs text-z-text leading-relaxed border border-amber-100">
+              <span class="text-amber-600 font-semibold">⚠ Note: </span>
+              Uses Meraki stack — partial vendor mismatch with stated Cisco Catalyst preference. Suitable as a lower-cost alternative if Catalyst is not mandatory.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STANDALONE SERVICES subsection -->
+      <div>
+        <div class="flex items-center gap-2 mb-3 px-4 py-2 rounded-xl bg-z-page border border-z-border">
+          <span class="text-sm">⚙️</span>
+          <span class="text-xs font-bold text-z-muted uppercase tracking-wider">Standalone Services</span>
+          <span class="ml-auto text-[10px] text-z-muted">Individual services — no guided workflow</span>
+        </div>
+
+        <div class="space-y-2">
+          <!-- Service card -->
+          <div class="fade-in bg-white rounded-xl border border-z-border p-4">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded text-white" style="background:#2196F3;">MANAGED SERVICE</span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-z-text">63% match</span>
+                  <span class="text-[10px] font-semibold text-z-muted font-mono">SVC-CATALYST-SDWAN</span>
+                </div>
+                <h3 class="font-bold text-z-navy text-sm">Cisco Catalyst SDWAN</h3>
+                <p class="text-xs text-z-text mt-1">Cloud-managed SD-WAN overlay using Cisco Catalyst vManage. Supports hub-spoke and full-mesh.</p>
+              </div>
+              <button class="btn-green-outline text-xs font-semibold px-4 py-1.5 rounded-lg ml-4 shrink-0">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION 3: SELECTED SERVICES ── -->
+    <section class="bg-white rounded-2xl border border-z-border p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-7 h-7 rounded-full border-2 border-z-border text-z-muted flex items-center justify-center text-sm font-bold">3</div>
+          <h2 class="text-sm font-bold text-z-navy uppercase tracking-wider">Selected Services</h2>
+          <span class="text-[10px] font-semibold bg-z-green-l text-z-green px-2 py-0.5 rounded-full">1 added</span>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between p-4 bg-z-page rounded-xl border border-z-border mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-white" style="background:#65B741;">📦</div>
+          <div>
+            <div class="text-sm font-bold text-z-navy">Cloud Centric</div>
+            <div class="text-[11px] text-z-muted font-mono">PKG-cloudcentric · 3 sites</div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-sm font-bold text-z-navy font-mono">$42,300<span class="text-z-muted text-xs font-normal">/mo</span></div>
+          <div class="text-[10px] text-z-muted">MRC estimate</div>
+        </div>
+      </div>
+
+      <button class="btn-green w-full text-white font-bold text-sm py-3 rounded-xl flex items-center justify-center gap-2">
+        Start Guided Design Workflow →
+      </button>
+
+      <!-- ROM Footer -->
+      <div class="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-z-border">
+        <div class="text-center">
+          <div class="text-lg font-bold text-z-navy font-mono">$42,300</div>
+          <div class="text-[10px] text-z-muted font-semibold uppercase">MRC</div>
+        </div>
+        <div class="text-center">
+          <div class="text-lg font-bold text-z-navy font-mono">$18,500</div>
+          <div class="text-[10px] text-z-muted font-semibold uppercase">NRC</div>
+        </div>
+        <div class="text-center">
+          <div class="text-lg font-bold text-z-green font-mono">$526,100</div>
+          <div class="text-[10px] text-z-muted font-semibold uppercase">TCV (12mo)</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Mockup Nav -->
+  <div class="fixed bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-white rounded-full border border-z-border shadow-lg px-4 py-2">
+    <a href="01-login.html" class="text-xs px-3 py-1.5 rounded-full text-z-text hover:text-z-navy transition-colors">Login</a>
+    <a href="02-sa-dashboard.html" class="text-xs px-3 py-1.5 rounded-full text-z-text hover:text-z-navy transition-colors">SA Dashboard</a>
+    <a href="03-sa-project-detail.html" class="text-xs px-3 py-1.5 rounded-full bg-z-navy text-white font-medium">Project Detail</a>
+    <a href="04-admin-dashboard.html" class="text-xs px-3 py-1.5 rounded-full text-z-text hover:text-z-navy transition-colors">Admin</a>
+  </div>
+
+</body>
+</html>
