@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { assertProjectOwnership } from "@/lib/project-ownership";
 import { prisma } from "@/lib/prisma";
+import { advanceProjectWorkflowStage, recordProjectEvent } from "@/lib/project-analytics";
 import {
   extractTextFromRequirementFile,
   uploadRequirementToGcs,
@@ -50,30 +51,34 @@ export async function POST(
       gcsUri = uploaded.gcsUri;
     }
 
-    const document = await prisma.projectRequirementDocument.create({
-      data: {
-        projectId,
-        fileName: file.name,
-        mimeType,
-        gcsUri,
-        extractedText,
-        status: extractedText ? "PARSED" : "UPLOADED",
-      },
-    });
-
-    if (extractedText) {
-      const current = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { rawRequirements: true },
-      });
-
-      await prisma.project.update({
-        where: { id: projectId },
+    const docStatus = extractedText ? "PARSED" : "UPLOADED";
+    const document = await prisma.$transaction(async (tx) => {
+      const created = await tx.projectRequirementDocument.create({
         data: {
-          rawRequirements: [current?.rawRequirements, extractedText].filter(Boolean).join("\n\n"),
+          projectId,
+          fileName: file.name,
+          mimeType,
+          gcsUri,
+          extractedText,
+          status: docStatus,
         },
       });
-    }
+
+      const workflowStage = await advanceProjectWorkflowStage(tx, projectId, "REQUIREMENTS_CAPTURED");
+      await recordProjectEvent(tx, {
+        projectId,
+        userId: session.userId,
+        eventType: "REQUIREMENT_DOC_UPLOADED",
+        workflowStage: workflowStage ?? "REQUIREMENTS_CAPTURED",
+        metadata: {
+          fileName: file.name,
+          mimeType,
+          status: docStatus,
+        },
+      });
+
+      return created;
+    });
 
     return NextResponse.json({ document }, { status: 201 });
   } catch (error: unknown) {

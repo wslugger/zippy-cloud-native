@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { recordProjectEvent, getProjectWorkflowStage } from "@/lib/project-analytics";
 
 // DELETE /api/projects/[id]/items/[itemId]
 export async function DELETE(
@@ -26,15 +27,26 @@ export async function DELETE(
 
     const item = await prisma.projectItem.findUnique({
       where: { id: itemId },
-      select: { id: true, projectId: true },
+      select: { id: true, projectId: true, catalogItemId: true },
     });
 
     if (!item || item.projectId !== id) {
       return NextResponse.json({ error: "Project item not found" }, { status: 404 });
     }
 
-    await prisma.projectItem.delete({
-      where: { id: itemId },
+    await prisma.$transaction(async (tx) => {
+      await tx.projectItem.delete({
+        where: { id: itemId },
+      });
+
+      const workflowStage = await getProjectWorkflowStage(tx, id);
+      await recordProjectEvent(tx, {
+        projectId: id,
+        userId: session.userId,
+        eventType: "SERVICE_REMOVED",
+        workflowStage,
+        catalogItemId: item.catalogItemId,
+      });
     });
 
     return new NextResponse(null, { status: 204 });

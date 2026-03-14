@@ -46,6 +46,7 @@ interface Project {
     name: string;
     customerName: string | null;
     rawRequirements: string | null;
+    manualNotes: string | null;
     status: string;
     termMonths: number;
     sites: SolutionSite[];
@@ -123,6 +124,7 @@ function normalizeProjectResponse(payload: unknown): Project | null {
         name: raw.name,
         customerName: raw.customerName ?? null,
         rawRequirements: raw.rawRequirements ?? null,
+        manualNotes: raw.manualNotes ?? null,
         status: raw.status ?? 'DRAFT',
         termMonths: typeof raw.termMonths === 'number' ? raw.termMonths : 36,
         sites: Array.isArray(raw.sites) ? raw.sites : [],
@@ -179,7 +181,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             }
 
             setProject(data);
-            if (data.rawRequirements && (data.requirementDocs?.length ?? 0) === 0) {
+            if (data.manualNotes) {
+                setRequirements((prev) => prev || data.manualNotes || '');
+            } else if (data.rawRequirements && (data.requirementDocs?.length ?? 0) === 0) {
                 setRequirements((prev) => prev || data.rawRequirements || '');
             }
             if (Array.isArray(data.recommendations) && data.recommendations.length > 0) {
@@ -273,7 +277,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             await fetch(`/api/projects/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ rawRequirements: combinedRequirements }),
+                body: JSON.stringify({
+                    rawRequirements: requirements.trim() || null,
+                    manualNotes: requirements.trim() || null,
+                }),
             }).catch(() => undefined);
 
             await fetchProject();
@@ -653,7 +660,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                                             {collaterals.map((col) => (
                                                                 <a
                                                                     key={col.id}
-                                                                    href={col.documentUrl}
+                                                                    href={`/api/projects/${id}/collateral/${col.id}/click`}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="flex items-center justify-between rounded border border-slate-200 bg-slate-50 px-3 py-2 hover:border-blue-300"

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { Prisma } from "@prisma/client";
+import { advanceProjectWorkflowStage, getProjectWorkflowStage, recordProjectEvent } from "@/lib/project-analytics";
 
 function isMissingTableOrColumnError(error: unknown): boolean {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
@@ -13,10 +14,12 @@ type ProjectBaseRow = {
     name: string;
     customerName: string | null;
     status: string;
+    workflowStage: string | null;
     termMonths: number;
     createdAt: Date;
     updatedAt: Date;
     rawRequirements: string | null;
+    manualNotes: string | null;
     userId: string | null;
 };
 
@@ -41,16 +44,20 @@ async function loadProjectBase(projectId: string, sessionUserId: string): Promis
 
         const hasUserId = columns.some((column) => column.column_name === "userId");
         const hasRawRequirements = columns.some((column) => column.column_name === "rawRequirements");
+        const hasManualNotes = columns.some((column) => column.column_name === "manualNotes");
+        const hasWorkflowStage = columns.some((column) => column.column_name === "workflowStage");
 
         const selectClause = [
             `"id"`,
             `"name"`,
             `"customerName"`,
             `"status"`,
+            hasWorkflowStage ? `"workflowStage"` : `NULL::text AS "workflowStage"`,
             `"termMonths"`,
             `"createdAt"`,
             `"updatedAt"`,
             hasRawRequirements ? `"rawRequirements"` : `NULL::text AS "rawRequirements"`,
+            hasManualNotes ? `"manualNotes"` : `NULL::text AS "manualNotes"`,
             hasUserId ? `"userId"` : `NULL::text AS "userId"`,
         ].join(", ");
 
@@ -215,7 +222,7 @@ export async function PUT(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { name, customerName, status, termMonths, rawRequirements } = await request.json();
+        const { name, customerName, status, termMonths, rawRequirements, manualNotes } = await request.json();
 
         if (status) {
             const current = await prisma.project.findUnique({
@@ -244,9 +251,39 @@ export async function PUT(
             }
         }
 
-        const project = await prisma.project.update({
-            where: { id, userId: session.userId },
-            data: { name, customerName, status, termMonths, rawRequirements },
+        const hasManualNotes = typeof manualNotes === "string" || manualNotes === null;
+        const normalizedManualNotes = hasManualNotes
+            ? typeof manualNotes === "string"
+                ? manualNotes.trim().length > 0
+                    ? manualNotes.trim()
+                    : null
+                : null
+            : undefined;
+
+        const project = await prisma.$transaction(async (tx) => {
+            const updated = await tx.project.update({
+                where: { id, userId: session.userId },
+                data: { name, customerName, status, termMonths, rawRequirements, manualNotes: normalizedManualNotes },
+            });
+
+            if (hasManualNotes) {
+                const workflowStage = normalizedManualNotes
+                    ? await advanceProjectWorkflowStage(tx, id, "REQUIREMENTS_CAPTURED")
+                    : await getProjectWorkflowStage(tx, id);
+
+                await recordProjectEvent(tx, {
+                    projectId: id,
+                    userId: session.userId,
+                    eventType: "NOTES_ENTERED",
+                    workflowStage,
+                    metadata: {
+                        hasNotes: Boolean(normalizedManualNotes),
+                        noteLength: normalizedManualNotes?.length ?? 0,
+                    },
+                });
+            }
+
+            return updated;
         });
 
         return NextResponse.json(project);

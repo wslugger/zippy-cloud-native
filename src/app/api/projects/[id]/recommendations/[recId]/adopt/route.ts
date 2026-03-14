@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { assertProjectOwnership } from "@/lib/project-ownership";
 import { prisma } from "@/lib/prisma";
+import { advanceProjectWorkflowStage, recordProjectEvent } from "@/lib/project-analytics";
 
 export async function POST(
   _request: NextRequest,
@@ -64,6 +65,19 @@ export async function POST(
       await tx.projectRecommendation.update({
         where: { id: recId },
         data: { state: "ADOPTED" },
+      });
+
+      const workflowStage = await advanceProjectWorkflowStage(tx, projectId, "SERVICE_SELECTED");
+      await recordProjectEvent(tx, {
+        projectId,
+        userId: session.userId,
+        eventType: "RECOMMENDATION_ADOPTED",
+        workflowStage: workflowStage ?? "SERVICE_SELECTED",
+        catalogItemId: recommendation.catalogItemId,
+        metadata: {
+          recommendationId: recId,
+          selectedCount: selectedIds.size,
+        },
       });
 
       return tx.projectItem.findMany({
