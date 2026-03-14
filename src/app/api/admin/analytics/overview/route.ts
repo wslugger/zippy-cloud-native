@@ -60,7 +60,19 @@ export async function GET(request: Request) {
     const runItemWhereWithDate: Prisma.ProjectRecommendationRunItemWhereInput = createdAt ? { createdAt } : {};
     const recommendationWhereWithDate: Prisma.ProjectRecommendationWhereInput = createdAt ? { createdAt } : {};
 
-    const runItemDelegate = (prisma as unknown as { projectRecommendationRunItem?: typeof prisma.projectRecommendation }).projectRecommendationRunItem;
+    const runItemDelegate = (
+      prisma as unknown as {
+        projectRecommendationRunItem?: {
+          groupBy?: (args: {
+            by: ["catalogItemId"];
+            where: Prisma.ProjectRecommendationRunItemWhereInput;
+            _count: { _all: true };
+            orderBy: { _count: { catalogItemId: "desc" } };
+            take: number;
+          }) => Promise<Array<{ catalogItemId: string; _count: { _all: number } }>>;
+        };
+      }
+    ).projectRecommendationRunItem;
     const eventDelegate = (prisma as unknown as { projectEvent?: typeof prisma.projectRecommendation }).projectEvent;
 
     const [totalProjects, stageGroups, statusGroups, docsOnly, notesOnly, bothInputs, neitherInput] =
@@ -215,8 +227,8 @@ export async function GET(request: Request) {
     }
 
     let topRecommendedRaw: Array<{ catalogItemId: string; _count: { _all: number } }> = [];
-    if (runItemDelegate) {
-      topRecommendedRaw = await prisma.projectRecommendationRunItem.groupBy({
+    if (runItemDelegate?.groupBy) {
+      topRecommendedRaw = await runItemDelegate.groupBy({
         by: ["catalogItemId"],
         where: runItemWhereWithDate,
         _count: { _all: true },
@@ -224,22 +236,24 @@ export async function GET(request: Request) {
         take: 10,
       });
       if (topRecommendedRaw.length === 0) {
-        topRecommendedRaw = await prisma.projectRecommendation.groupBy({
+        const groupedRecommendations = await prisma.projectRecommendation.groupBy({
           by: ["catalogItemId"],
           where: recommendationWhereWithDate,
           _count: { _all: true },
           orderBy: { _count: { catalogItemId: "desc" } },
           take: 10,
         });
+        topRecommendedRaw = groupedRecommendations as Array<{ catalogItemId: string; _count: { _all: number } }>;
       }
     } else {
-      topRecommendedRaw = await prisma.projectRecommendation.groupBy({
+      const groupedRecommendations = await prisma.projectRecommendation.groupBy({
         by: ["catalogItemId"],
         where: recommendationWhereWithDate,
         _count: { _all: true },
         orderBy: { _count: { catalogItemId: "desc" } },
         take: 10,
       });
+      topRecommendedRaw = groupedRecommendations as Array<{ catalogItemId: string; _count: { _all: number } }>;
     }
 
     let topPickedRaw: Array<{ catalogItemId: string | null; _count: { _all: number } }> = [];
@@ -278,7 +292,7 @@ export async function GET(request: Request) {
         }),
       ]);
       if (topPickedRaw.length === 0) {
-        topPickedRaw = await prisma.projectRecommendation.groupBy({
+        const groupedAdopted = await prisma.projectRecommendation.groupBy({
           by: ["catalogItemId"],
           where: {
             ...recommendationWhereWithDate,
@@ -288,9 +302,10 @@ export async function GET(request: Request) {
           orderBy: { _count: { catalogItemId: "desc" } },
           take: 10,
         });
+        topPickedRaw = groupedAdopted as Array<{ catalogItemId: string | null; _count: { _all: number } }>;
       }
     } else {
-      topPickedRaw = await prisma.projectRecommendation.groupBy({
+      const groupedAdopted = await prisma.projectRecommendation.groupBy({
         by: ["catalogItemId"],
         where: {
           ...recommendationWhereWithDate,
@@ -300,6 +315,7 @@ export async function GET(request: Request) {
         orderBy: { _count: { catalogItemId: "desc" } },
         take: 10,
       });
+      topPickedRaw = groupedAdopted as Array<{ catalogItemId: string | null; _count: { _all: number } }>;
     }
 
     const stageCountMap = new Map(stageGroups.map((row) => [row.workflowStage, row._count._all]));
