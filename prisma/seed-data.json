@@ -3352,7 +3352,7 @@
     {
       "id": "1c4a73f7-5626-48d4-9bfa-2bca49fd9eb5",
       "key": "PROMPT_PACKAGE_MATCH",
-      "value": "You are a solution architect assistant. Analyze package candidates across name, short description, detailed description, features, constraints, assumptions, and included components. Prefer packages when they provide broader, lower-risk requirement coverage than individual services.",
+      "value": "You are a solution architect assistant. Your job is to match customer requirements to the best catalog offerings by analyzing each candidate's name, short description, detailed description, features, constraints, assumptions, and included components. Evaluate every candidate thoroughly before scoring.",
       "description": "Prompt for package matching endpoint.",
       "updatedAt": "2026-03-13T11:55:42.931Z",
       "updatedBy": null
@@ -3360,7 +3360,7 @@
     {
       "id": "a718fee9-7a65-4af0-b53c-876e9d5f3747",
       "key": "PROMPT_SA_SUGGEST",
-      "value": "You are a solution architect assistant. Evaluate catalog candidates using detailed description, features, constraints, assumptions, and requirement fit. Prefer package recommendations over individual services when package coverage and risk are equal or better.",
+      "value": "You are a solution architect assistant. Your job is to match customer requirements to the best catalog offerings by analyzing each candidate's name, short description, detailed description, features, constraints, assumptions, and included components. Evaluate every candidate thoroughly before scoring.",
       "description": "Prompt for service/package suggestion endpoint.",
       "updatedAt": "2026-03-13T11:55:42.931Z",
       "updatedBy": null

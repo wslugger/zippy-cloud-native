@@ -507,61 +507,93 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 <h3 className="font-bold flex items-center gap-2 text-blue-500">
                                     <Sparkles size={18} /> AI Recommended Services
                                 </h3>
-                                
+
                                 {suggestions.length === 0 ? (
                                     <div className="bg-white border border-slate-200 rounded-xl p-8 text-center text-slate-500">
                                         <p>No suggestions generated yet.</p>
                                         <p className="mt-2 text-xs text-slate-500">Run analysis in Step 1 or start guided design.</p>
                                     </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {suggestions.map((s, i) => (
+                                ) : (() => {
+                                    const pkgs = suggestions.filter(s => s.type === 'PACKAGE');
+                                    const svcs = suggestions.filter(s => s.type !== 'PACKAGE');
+
+                                    const SuggestionCard = ({ s, i }: { s: Suggestion; i: number }) => {
+                                        const isAdded = project.items.some(it => it.catalogItemId === s.id);
+                                        return (
                                             <div key={i} className="bg-white/80 border border-slate-200 rounded-xl p-5 hover:border-blue-500/30 transition-all">
-                                                <div className="flex items-start justify-between">
-                                                    <div>
-                                                        <h4 className="font-bold text-slate-900 flex items-center gap-2">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <h4 className="font-bold text-slate-900 flex flex-wrap items-center gap-2">
                                                             {s.name}
-                                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-blue-500/10 border-blue-500/20 text-blue-400">
-                                                                {s.type}
-                                                            </span>
-                                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-emerald-500/10 border-emerald-500/20 text-emerald-500">
+                                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-emerald-500/10 border-emerald-500/20 text-emerald-500 shrink-0">
                                                                 {s.certaintyPercent}% certainty
                                                             </span>
                                                         </h4>
-                                                        <p className="text-xs font-mono text-slate-500 mt-1">{s.sku}</p>
-                                                    <p className="text-sm text-slate-600 mt-2">{s.description}</p>
-                                                    {s.matchedCharacteristics.length > 0 && (
-                                                        <p className="text-[11px] text-slate-500 mt-1">
-                                                            Matched: {s.matchedCharacteristics.join(', ')}
-                                                        </p>
-                                                    )}
-                                                    {s.requiredIncluded?.length > 0 && (
-                                                        <p className="text-[11px] text-slate-500 mt-2">
-                                                            Required: {s.requiredIncluded.join(', ')}
-                                                        </p>
-                                                    )}
-                                                    {s.optionalRecommended?.length > 0 && (
-                                                        <p className="text-[11px] text-slate-500 mt-1">
-                                                            Optional: {s.optionalRecommended.join(', ')}
-                                                        </p>
-                                                    )}
+                                                        <p className="text-xs font-mono text-slate-400 mt-0.5">{s.sku}</p>
+                                                        <p className="text-sm text-slate-600 mt-2">{s.description}</p>
+                                                        {s.requiredIncluded?.length > 0 && (
+                                                            <p className="text-[11px] text-slate-500 mt-2">
+                                                                <span className="font-medium">Required:</span> {s.requiredIncluded.join(', ')}
+                                                            </p>
+                                                        )}
+                                                        {s.optionalRecommended?.length > 0 && (
+                                                            <p className="text-[11px] text-slate-500 mt-1">
+                                                                <span className="font-medium">Optional:</span> {s.optionalRecommended.join(', ')}
+                                                            </p>
+                                                        )}
+                                                        {s.matchedCharacteristics.length > 0 && (
+                                                            <p className="text-[11px] text-slate-400 mt-1">
+                                                                Matched: {s.matchedCharacteristics.join(', ')}
+                                                            </p>
+                                                        )}
                                                     </div>
-                                                    <Button size="sm" variant="secondary" onClick={() => addService(s.id, s.recommendationId)} 
-                                                        disabled={project.items.some(it => it.catalogItemId === s.id)}
-                                                    >
-                                                        {project.items.some(it => it.catalogItemId === s.id) ? 'Added' : 'Add'}
+                                                    <Button size="sm" variant="secondary" className="shrink-0" onClick={() => addService(s.id, s.recommendationId)} disabled={isAdded}>
+                                                        {isAdded ? 'Added' : 'Add'}
                                                     </Button>
                                                 </div>
                                                 <div className="mt-4 bg-slate-50 rounded-lg p-3 border border-slate-200/50">
-                                                    <p className="text-xs text-emerald-400 flex items-start gap-2">
+                                                    <p className="text-xs text-emerald-500 flex items-start gap-2">
                                                         <Sparkles size={12} className="shrink-0 mt-0.5" />
                                                         <span>{s.shortReason ?? s.reason}</span>
                                                     </p>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
+                                        );
+                                    };
+
+                                    return (
+                                        <div className="space-y-5">
+                                            {/* ── Design Packages ── */}
+                                            {pkgs.length > 0 && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold uppercase tracking-widest text-violet-500">Design Packages</span>
+                                                        <span className="h-px flex-1 bg-violet-200/60" />
+                                                    </div>
+                                                    {/* Guided workflow callout */}
+                                                    <div className="flex items-start gap-2.5 bg-violet-50 border border-violet-200/70 rounded-lg px-3.5 py-2.5">
+                                                        <Compass size={14} className="text-violet-500 shrink-0 mt-0.5" />
+                                                        <p className="text-[11px] text-violet-700 leading-relaxed">
+                                                            <span className="font-semibold">Packages include a guided design workflow</span> — step-by-step configuration of topology, internet breakout, hardware, and design options for every site.
+                                                        </p>
+                                                    </div>
+                                                    {pkgs.map((s, i) => <SuggestionCard key={s.id} s={s} i={i} />)}
+                                                </div>
+                                            )}
+
+                                            {/* ── Standalone Services ── */}
+                                            {svcs.length > 0 && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold uppercase tracking-widest text-slate-400">Standalone Services</span>
+                                                        <span className="h-px flex-1 bg-slate-200/80" />
+                                                    </div>
+                                                    {svcs.map((s, i) => <SuggestionCard key={s.id} s={s} i={i} />)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </div>
 
                             {/* Selected Manual Items Panel */}

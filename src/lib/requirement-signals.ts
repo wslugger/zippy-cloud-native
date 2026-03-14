@@ -36,3 +36,42 @@ export function parseRequirementSignals(text: string): RequirementSignals {
 
   return signals;
 }
+
+/**
+ * Structural feasibility check: validates that a package's design option policies
+ * do not conflict with detected requirement signals (topology, internet breakout).
+ *
+ * This is NOT a scoring function — it returns a boolean indicating whether the
+ * package is structurally compatible with the requirements.
+ */
+export function isFeasibleBySignals(
+  policies: Array<{
+    operator: string;
+    designOption?: { key?: string };
+    values?: Array<{ designOptionValue?: { value?: string } }>;
+  }>,
+  signals: RequirementSignals
+): boolean {
+  const signalMap: Record<string, string | undefined> = {
+    topology: signals.topology,
+    internetBreakout: signals.internetBreakout,
+  };
+
+  for (const policy of policies) {
+    const optionKey = policy.designOption?.key;
+    if (!optionKey) continue;
+    const signal = signalMap[optionKey];
+    if (!signal) continue;
+
+    const values = new Set(
+      (policy.values ?? []).map((v) => v.designOptionValue?.value).filter(Boolean) as string[]
+    );
+
+    if (policy.operator === "FORCE" && !values.has(signal)) return false;
+    if (policy.operator === "FORBID" && values.has(signal)) return false;
+    if (policy.operator === "ALLOW_ONLY" && !values.has(signal)) return false;
+    if (policy.operator === "REQUIRE_ONE_OF" && !values.has(signal)) return false;
+  }
+
+  return true;
+}
