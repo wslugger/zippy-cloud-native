@@ -477,13 +477,21 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                     </div>
 
                     {!showWizard && (
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-2">
+                            {project.items.length > 0 && (
+                                <Link href={`/projects/${id}/design-document`}>
+                                    <Button variant="outline" className="gap-2">
+                                        <FileText size={16} />
+                                        Open Design Document
+                                    </Button>
+                                </Link>
+                            )}
                             <Button 
                                 onClick={() => setShowWizard(true)}
                                 className="bg-blue-600 hover:bg-blue-500 text-white gap-2 shadow-lg shadow-blue-500/20"
                             >
                                 <Compass size={18} />
-                                Start Guided Design
+                                Start Design Builder
                             </Button>
                         </div>
                     )}
@@ -493,7 +501,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                              <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900">
                                     <Compass size={24} className="text-blue-500" />
-                                    SA Guided Flow
+                                    Project Design Builder
                                 </h2>
                                 <Button variant="ghost" size="sm" onClick={() => setShowWizard(false)} className="text-slate-500">
                                     Cancel & Close
@@ -581,7 +589,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                                     <div className="flex items-start gap-2.5 bg-violet-50 border border-violet-200/70 rounded-lg px-3.5 py-2.5">
                                                         <Compass size={14} className="text-violet-500 shrink-0 mt-0.5" />
                                                         <p className="text-[11px] text-violet-700 leading-relaxed">
-                                                            <span className="font-semibold">Packages include a guided design workflow</span> — step-by-step configuration of topology, internet breakout, hardware, and design options for every site.
+                                                            <span className="font-semibold">Packages include the design builder workflow</span> — configure package members, service options, and design options at project scope.
                                                         </p>
                                                     </div>
                                                     {pkgs.map((s, i) => <SuggestionCard key={s.id} s={s} i={i} />)}

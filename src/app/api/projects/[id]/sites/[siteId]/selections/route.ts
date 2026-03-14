@@ -69,6 +69,7 @@ export async function POST(
                 catalogItemId: true,
                 quantity: true,
                 configValues: true,
+                designOptionValues: true,
             },
         });
 
@@ -77,6 +78,7 @@ export async function POST(
             selectionMap.set(existing.catalogItemId, {
                 quantity: existing.quantity,
                 configValues: (existing.configValues as Record<string, unknown>) ?? {},
+                designOptionValues: (existing.designOptionValues as Record<string, string | string[]>) ?? {},
             });
         }
 
@@ -137,11 +139,13 @@ export async function POST(
             const rows = [];
             for (const selection of effectiveSelections) {
                 const mergedConfig = { ...(selection.configValues ?? {}), ...(mergedForcedConfig[selection.catalogItemId] ?? {}) } as Prisma.InputJsonValue;
+                const mergedDesignOptionValues = selection.designOptionValues as Prisma.InputJsonValue;
                 const row = await tx.siteSelection.upsert({
                     where: { siteId_catalogItemId: { siteId, catalogItemId: selection.catalogItemId } },
                     update: {
                         quantity: selection.quantity ?? 1,
                         configValues: mergedConfig,
+                        designOptionValues: mergedDesignOptionValues,
                         role: selection.catalogItemId === catalogItemId ? role : undefined,
                     },
                     create: {
@@ -149,6 +153,7 @@ export async function POST(
                         catalogItemId: selection.catalogItemId,
                         quantity: selection.quantity ?? 1,
                         configValues: mergedConfig,
+                        designOptionValues: mergedDesignOptionValues,
                         role: selection.catalogItemId === catalogItemId ? role : undefined,
                     },
                     include: {

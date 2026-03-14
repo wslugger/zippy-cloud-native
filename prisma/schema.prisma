@@ -164,6 +164,7 @@ model Project {
   recommendations ProjectRecommendation[]
   recommendationRuns ProjectRecommendationRun[]
   events          ProjectEvent[]
+  designDocuments ProjectDesignDocument[]
 }
 
 model ProjectItem {
@@ -174,6 +175,7 @@ model ProjectItem {
   createdAt     DateTime                  @default(now())
   updatedAt     DateTime                  @updatedAt
   configValues  Json?
+  designOptionValues Json?
   catalogItem   CatalogItem               @relation(fields: [catalogItemId], references: [id])
   project       Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   designOptions ProjectItemDesignOption[]
@@ -211,12 +213,31 @@ model SiteSelection {
   catalogItemId String
   quantity      Int          @default(1)
   configValues  Json?
+  designOptionValues Json?
   role          String?
   createdAt     DateTime     @default(now())
   catalogItem   CatalogItem  @relation(fields: [catalogItemId], references: [id])
   site          SolutionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, catalogItemId])
+}
+
+model ProjectDesignDocument {
+  id               String               @id @default(uuid())
+  projectId        String
+  version          Int                  @default(1)
+  status           DesignDocumentStatus @default(DRAFT)
+  title            String               @default("Design Document")
+  executiveSummary String?
+  conclusions      String?
+  generatorModel   String?
+  generationMeta   Json?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  project          Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, version])
+  @@index([projectId, status])
 }
 
 model User {
@@ -543,4 +564,9 @@ enum ProjectEventType {
   SERVICE_MANUALLY_ADDED
   SERVICE_REMOVED
   COLLATERAL_CLICKED
+}
+
+enum DesignDocumentStatus {
+  DRAFT
+  PUBLISHED
 }

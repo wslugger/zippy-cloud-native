@@ -76,6 +76,10 @@ export async function POST(
                 catalogItemId: selection.catalogItemId,
                 quantity: selection.quantity ?? 1,
                 config: Object.keys(selection.configValues ?? {}).length > 0 ? selection.configValues : null,
+                designOptionValues:
+                    Object.keys(selection.designOptionValues ?? {}).length > 0
+                        ? selection.designOptionValues
+                        : null,
             }));
 
             const createdItems = [];
@@ -90,13 +94,15 @@ export async function POST(
                     },
                     update: { 
                         quantity: itemData.quantity,
-                        configValues: itemData.config || undefined
+                        configValues: itemData.config || undefined,
+                        designOptionValues: itemData.designOptionValues || undefined,
                     },
                     create: {
                         projectId,
                         catalogItemId: itemData.catalogItemId,
                         quantity: itemData.quantity,
-                        configValues: itemData.config
+                        configValues: itemData.config,
+                        designOptionValues: itemData.designOptionValues,
                     }
                 });
                 createdItems.push(item);
