@@ -44,7 +44,7 @@ export default function ServiceConfigurationPage({ params }: { params: Promise<{
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [showWizard, setShowWizard] = useState(false);
+  const [showWizard, setShowWizard] = useState(true);
   const [savingStep, setSavingStep] = useState(false);
 
   const fetchProject = useCallback(async () => {

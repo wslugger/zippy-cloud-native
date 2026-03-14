@@ -204,6 +204,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
 
   const [topLevelItems, setTopLevelItems] = useState<TopLevelItem[]>([]);
   const [lockedTopLevelIds, setLockedTopLevelIds] = useState<string[]>([]);
@@ -322,17 +323,17 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
       rows.push({ item, packageId });
     };
 
-    for (const item of selectedTopLevelItems) {
-      if (item.type !== 'PACKAGE') {
-        add(item, null);
-      }
-    }
-
     for (const pkg of packageMemberRows) {
       for (const member of pkg.members) {
         if (member.selected) {
           add(member.item, pkg.packageId);
         }
+      }
+    }
+
+    for (const item of selectedTopLevelItems) {
+      if (item.type !== 'PACKAGE') {
+        add(item, null);
       }
     }
 
@@ -345,6 +346,26 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
 
     return rows;
   }, [selectedTopLevelItems, packageMemberRows, selections, itemIndex]);
+
+  useEffect(() => {
+    if (serviceConfigItems.length === 0) {
+      setActiveServiceId(null);
+      return;
+    }
+
+    const activeExists = activeServiceId
+      ? serviceConfigItems.some(({ item }) => item.id === activeServiceId)
+      : false;
+
+    if (!activeExists) {
+      setActiveServiceId(serviceConfigItems[0].item.id);
+    }
+  }, [serviceConfigItems, activeServiceId]);
+
+  const activeServiceConfigItem = useMemo(
+    () => serviceConfigItems.find(({ item }) => item.id === activeServiceId) ?? serviceConfigItems[0] ?? null,
+    [serviceConfigItems, activeServiceId]
+  );
 
   const saveSelections = useCallback(async () => {
     setSaving(true);
@@ -584,123 +605,156 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                 </div>
               ))}
 
-              {serviceConfigItems.map(({ item, packageId }) => {
-                const selection = selections[item.id];
-
-                const dependencyRows = (item.childDependencies ?? [])
-                  .filter((dep) => dep.childItem.type === 'SERVICE_OPTION' || dep.childItem.type === 'CONNECTIVITY')
-                  .filter((dep) => OPTIONAL_DEPENDENCY_TYPES.has(dep.type) || MANDATORY_DEPENDENCY_TYPES.has(dep.type))
-                  .map((dep) => ({
-                    dep,
-                    mandatory: MANDATORY_DEPENDENCY_TYPES.has(dep.type),
-                    selected: MANDATORY_DEPENDENCY_TYPES.has(dep.type) || Boolean(selections[dep.childId]),
-                  }));
-
-                return (
-                  <div key={item.id} className="rounded-2xl border border-slate-300 bg-white p-4 space-y-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-base font-bold text-slate-900">{item.name}</p>
-                        <p className="text-xs text-slate-500 font-mono">{item.sku} · {item.type}</p>
-                        <p className="text-sm text-slate-600 mt-1">{item.shortDescription || 'No short description.'}</p>
-                      </div>
-                      {packageId && (
-                        <span className="text-[10px] font-semibold px-2 py-1 rounded bg-slate-100 text-slate-700">
-                          From Package
-                        </span>
-                      )}
+              {serviceConfigItems.length > 0 && (
+                <div className="rounded-2xl border border-slate-300 bg-white p-4 space-y-4">
+                  <div className="overflow-x-auto">
+                    <div className="inline-flex min-w-full gap-2 border-b border-slate-200 pb-2">
+                      {serviceConfigItems.map(({ item, packageId }) => (
+                        <button
+                          key={`service-tab-${item.id}`}
+                          type="button"
+                          onClick={() => setActiveServiceId(item.id)}
+                          className={cn(
+                            'shrink-0 rounded-lg border px-3 py-2 text-left transition-all',
+                            activeServiceConfigItem?.item.id === item.id
+                              ? 'border-zippy-green bg-zippy-green-light/20'
+                              : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                          )}
+                        >
+                          <p className="text-sm font-semibold text-slate-900">{item.name}</p>
+                          <p className="text-[11px] text-slate-500">{item.sku}</p>
+                          {packageId && (
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 mt-1">
+                              From Package
+                            </p>
+                          )}
+                        </button>
+                      ))}
                     </div>
-
-                    {dependencyRows.length > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">Add-on Services</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {dependencyRows.map(({ dep, mandatory, selected }) => (
-                            <label key={`${item.id}-${dep.childId}`} className="flex items-start gap-2 rounded border border-slate-200 bg-slate-50 p-2">
-                              <input
-                                type="checkbox"
-                                checked={selected}
-                                disabled={mandatory}
-                                onChange={(event) => toggleOptionalDependency(dep.childId, event.target.checked)}
-                                className="mt-1"
-                              />
-                              <span>
-                                <span className="text-sm font-semibold text-slate-900 block">{dep.childItem.name}</span>
-                                <span className="text-[11px] text-slate-500">
-                                  {mandatory ? 'Included by catalog dependency' : 'Optional add-on'}
-                                </span>
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">Design Options</p>
-                      {(item.designOptions ?? []).length === 0 ? (
-                        <p className="text-sm text-slate-500">No design options assigned to this service.</p>
-                      ) : (
-                        <div className="space-y-3">
-                          {(item.designOptions ?? []).map((assignment) => {
-                            const availableValues = assignment.allowedValues.length > 0
-                              ? assignment.allowedValues.map((row) => row.designOptionValue)
-                              : assignment.designOption.values;
-
-                            const selectedValues = selection?.designOptionValues[assignment.designOption.key]
-                              ?? (assignment.defaultValue ? [assignment.defaultValue.value] : []);
-
-                            if (assignment.allowMulti) {
-                              return (
-                                <div key={`${item.id}-${assignment.designOption.id}`} className="rounded border border-slate-200 p-3">
-                                  <p className="text-sm font-semibold text-slate-900">{assignment.designOption.label}</p>
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1 mt-2">
-                                    {availableValues.map((value) => {
-                                      const checked = selectedValues.includes(value.value);
-                                      return (
-                                        <label key={value.id} className="flex items-center gap-2 text-sm text-slate-700">
-                                          <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={(event) => {
-                                              const nextValues = event.target.checked
-                                                ? [...selectedValues, value.value]
-                                                : selectedValues.filter((entry) => entry !== value.value);
-                                              setOptionValue(item.id, assignment.designOption.key, nextValues);
-                                            }}
-                                          />
-                                          {value.label}
-                                        </label>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            }
-
-                            return (
-                              <div key={`${item.id}-${assignment.designOption.id}`} className="rounded border border-slate-200 p-3">
-                                <label className="text-sm font-semibold text-slate-900 block mb-1">{assignment.designOption.label}</label>
-                                <select
-                                  value={selectedValues[0] ?? ''}
-                                  onChange={(event) => setOptionValue(item.id, assignment.designOption.key, event.target.value ? [event.target.value] : [])}
-                                  className="w-full rounded border border-slate-300 px-2 py-1 text-sm"
-                                >
-                                  <option value="">Select...</option>
-                                  {availableValues.map((value) => (
-                                    <option key={value.id} value={value.value}>{value.label}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
                   </div>
-                );
-              })}
+
+                  {activeServiceConfigItem && (
+                    <div className="space-y-4">
+                      {(() => {
+                        const { item, packageId } = activeServiceConfigItem;
+                        const selection = selections[item.id];
+                        const dependencyRows = (item.childDependencies ?? [])
+                          .filter((dep) => dep.childItem.type === 'SERVICE_OPTION' || dep.childItem.type === 'CONNECTIVITY')
+                          .filter((dep) => OPTIONAL_DEPENDENCY_TYPES.has(dep.type) || MANDATORY_DEPENDENCY_TYPES.has(dep.type))
+                          .map((dep) => ({
+                            dep,
+                            mandatory: MANDATORY_DEPENDENCY_TYPES.has(dep.type),
+                            selected: MANDATORY_DEPENDENCY_TYPES.has(dep.type) || Boolean(selections[dep.childId]),
+                          }));
+
+                        return (
+                          <>
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-base font-bold text-slate-900">{item.name}</p>
+                                <p className="text-xs text-slate-500 font-mono">{item.sku} · {item.type}</p>
+                                <p className="text-sm text-slate-600 mt-1">{item.shortDescription || 'No short description.'}</p>
+                              </div>
+                              {packageId && (
+                                <span className="text-[10px] font-semibold px-2 py-1 rounded bg-slate-100 text-slate-700">
+                                  From Package
+                                </span>
+                              )}
+                            </div>
+
+                            {dependencyRows.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">Add-on Services</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {dependencyRows.map(({ dep, mandatory, selected }) => (
+                                    <label key={`${item.id}-${dep.childId}`} className="flex items-start gap-2 rounded border border-slate-200 bg-slate-50 p-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={selected}
+                                        disabled={mandatory}
+                                        onChange={(event) => toggleOptionalDependency(dep.childId, event.target.checked)}
+                                        className="mt-1"
+                                      />
+                                      <span>
+                                        <span className="text-sm font-semibold text-slate-900 block">{dep.childItem.name}</span>
+                                        <span className="text-[11px] text-slate-500">
+                                          {mandatory ? 'Included by catalog dependency' : 'Optional add-on'}
+                                        </span>
+                                      </span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">Design Options</p>
+                              {(item.designOptions ?? []).length === 0 ? (
+                                <p className="text-sm text-slate-500">No design options assigned to this service.</p>
+                              ) : (
+                                <div className="space-y-3">
+                                  {(item.designOptions ?? []).map((assignment) => {
+                                    const availableValues = assignment.allowedValues.length > 0
+                                      ? assignment.allowedValues.map((row) => row.designOptionValue)
+                                      : assignment.designOption.values;
+
+                                    const selectedValues = selection?.designOptionValues[assignment.designOption.key]
+                                      ?? (assignment.defaultValue ? [assignment.defaultValue.value] : []);
+
+                                    if (assignment.allowMulti) {
+                                      return (
+                                        <div key={`${item.id}-${assignment.designOption.id}`} className="rounded border border-slate-200 p-3">
+                                          <p className="text-sm font-semibold text-slate-900">{assignment.designOption.label}</p>
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-1 mt-2">
+                                            {availableValues.map((value) => {
+                                              const checked = selectedValues.includes(value.value);
+                                              return (
+                                                <label key={value.id} className="flex items-center gap-2 text-sm text-slate-700">
+                                                  <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={(event) => {
+                                                      const nextValues = event.target.checked
+                                                        ? [...selectedValues, value.value]
+                                                        : selectedValues.filter((entry) => entry !== value.value);
+                                                      setOptionValue(item.id, assignment.designOption.key, nextValues);
+                                                    }}
+                                                  />
+                                                  {value.label}
+                                                </label>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+
+                                    return (
+                                      <div key={`${item.id}-${assignment.designOption.id}`} className="rounded border border-slate-200 p-3">
+                                        <label className="text-sm font-semibold text-slate-900 block mb-1">{assignment.designOption.label}</label>
+                                        <select
+                                          value={selectedValues[0] ?? ''}
+                                          onChange={(event) => setOptionValue(item.id, assignment.designOption.key, event.target.value ? [event.target.value] : [])}
+                                          className="w-full rounded border border-slate-300 px-2 py-1 text-sm"
+                                        >
+                                          <option value="">Select...</option>
+                                          {availableValues.map((value) => (
+                                            <option key={value.id} value={value.value}>{value.label}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {packageMemberRows.length > 0 && (
                 <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4 space-y-3">
