@@ -973,6 +973,9 @@ export default function CatalogItemDetail() {
             return term.label.toLowerCase().includes(needle) || (term.value || '').toLowerCase().includes(needle);
         })
         .sort((a, b) => a.label.localeCompare(b.label));
+    const selectedSupportFeatureTerms = filteredSupportFeatureTerms.filter((term) => supportSelectedSet.has(term.id));
+    const unselectedSupportFeatureTerms = filteredSupportFeatureTerms.filter((term) => !supportSelectedSet.has(term.id));
+    const featureStatusByTermId = new Map(featureAssignments.map((row) => [row.termId, row.status]));
 
     const updateFeatureStatus = (termId: string, status: FeatureStatus | '') => {
         setFeatureAssignments((prev) => {
@@ -1380,32 +1383,80 @@ export default function CatalogItemDetail() {
 
                                                 <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
                                                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">Features</h3>
-                                                    {workspace && workspace.supportedFeatures.length > 0 ? workspace.supportedFeatures.map((feature) => {
-                                                        const status = featureAssignments.find((row) => row.termId === feature.id)?.status || '';
-                                                        return (
-                                                            <div
-                                                                key={`pkg-feature-${row.catalogItemId}-${feature.id}`}
-                                                                className="rounded-md border border-slate-200 bg-slate-50 p-2 flex flex-col gap-2"
-                                                            >
-                                                                <div className="min-w-0">
-                                                                    <p className="text-sm font-semibold text-slate-900">{feature.label}</p>
-                                                                    {feature.value && <p className="text-[11px] text-slate-500 font-mono">{feature.value}</p>}
-                                                                </div>
-                                                                <div className="w-full">
-                                                                    <select
-                                                                        value={status}
-                                                                        onChange={(e) => updateFeatureStatus(feature.id, e.target.value as FeatureStatus | '')}
-                                                                        className="h-8 w-full min-w-0 max-w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
-                                                                    >
-                                                                        <option value="">Not Included</option>
-                                                                        <option value="REQUIRED">Required</option>
-                                                                        <option value="STANDARD">Standard</option>
-                                                                        <option value="OPTIONAL">Optional</option>
-                                                                    </select>
-                                                                </div>
+                                                    {workspace && workspace.supportedFeatures.length > 0 ? (
+                                                        <>
+                                                            <div className="space-y-2">
+                                                                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                                                                    Selected ({workspace.supportedFeatures.filter((feature) => Boolean(featureStatusByTermId.get(feature.id))).length})
+                                                                </p>
+                                                                {workspace.supportedFeatures
+                                                                    .filter((feature) => Boolean(featureStatusByTermId.get(feature.id)))
+                                                                    .map((feature) => {
+                                                                        const status = featureStatusByTermId.get(feature.id) || '';
+                                                                        return (
+                                                                            <div
+                                                                                key={`pkg-feature-selected-${row.catalogItemId}-${feature.id}`}
+                                                                                className="rounded-md border border-emerald-200 bg-emerald-50 p-2 flex flex-col gap-2"
+                                                                            >
+                                                                                <div className="min-w-0">
+                                                                                    <p className="text-sm font-semibold text-slate-900">{feature.label}</p>
+                                                                                    {feature.value && <p className="text-[11px] text-slate-500 font-mono">{feature.value}</p>}
+                                                                                </div>
+                                                                                <div className="w-full">
+                                                                                    <select
+                                                                                        value={status}
+                                                                                        onChange={(e) => updateFeatureStatus(feature.id, e.target.value as FeatureStatus | '')}
+                                                                                        className="h-8 w-full min-w-0 max-w-full rounded-md border border-emerald-200 bg-white px-2 text-xs"
+                                                                                    >
+                                                                                        <option value="">Not Included</option>
+                                                                                        <option value="REQUIRED">Required</option>
+                                                                                        <option value="STANDARD">Standard</option>
+                                                                                        <option value="OPTIONAL">Optional</option>
+                                                                                    </select>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                {workspace.supportedFeatures.filter((feature) => Boolean(featureStatusByTermId.get(feature.id))).length === 0 && (
+                                                                    <p className="text-xs text-slate-500">No features selected in this package service yet.</p>
+                                                                )}
                                                             </div>
-                                                        );
-                                                    }) : (
+
+                                                            <div className="space-y-2">
+                                                                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                                                    Unselected ({workspace.supportedFeatures.filter((feature) => !featureStatusByTermId.get(feature.id)).length})
+                                                                </p>
+                                                                {workspace.supportedFeatures
+                                                                    .filter((feature) => !featureStatusByTermId.get(feature.id))
+                                                                    .map((feature) => {
+                                                                        const status = featureStatusByTermId.get(feature.id) || '';
+                                                                        return (
+                                                                            <div
+                                                                                key={`pkg-feature-unselected-${row.catalogItemId}-${feature.id}`}
+                                                                                className="rounded-md border border-slate-200 bg-slate-50 p-2 flex flex-col gap-2"
+                                                                            >
+                                                                                <div className="min-w-0">
+                                                                                    <p className="text-sm font-semibold text-slate-900">{feature.label}</p>
+                                                                                    {feature.value && <p className="text-[11px] text-slate-500 font-mono">{feature.value}</p>}
+                                                                                </div>
+                                                                                <div className="w-full">
+                                                                                    <select
+                                                                                        value={status}
+                                                                                        onChange={(e) => updateFeatureStatus(feature.id, e.target.value as FeatureStatus | '')}
+                                                                                        className="h-8 w-full min-w-0 max-w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
+                                                                                    >
+                                                                                        <option value="">Not Included</option>
+                                                                                        <option value="REQUIRED">Required</option>
+                                                                                        <option value="STANDARD">Standard</option>
+                                                                                        <option value="OPTIONAL">Optional</option>
+                                                                                    </select>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                            </div>
+                                                        </>
+                                                    ) : (
                                                         <p className="text-xs text-slate-500">No supported features available from this service.</p>
                                                     )}
                                                 </div>
@@ -1520,20 +1571,52 @@ export default function CatalogItemDetail() {
                                 className="h-8 text-xs bg-white"
                             />
                             <div className="max-h-80 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2 space-y-2">
-                                {filteredSupportFeatureTerms.map((term) => (
-                                    <label key={`support-${term.id}`} className="flex items-start gap-3 rounded-md border border-slate-200 bg-white p-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={supportSelectedSet.has(term.id)}
-                                            onChange={(e) => toggleSupportedFeature(term.id, e.target.checked)}
-                                            className="mt-0.5"
-                                        />
-                                        <span className="min-w-0">
-                                            <span className="block text-sm font-semibold text-slate-900">{term.label}</span>
-                                            {term.value && <span className="block text-[11px] text-slate-500 font-mono">{term.value}</span>}
-                                        </span>
-                                    </label>
-                                ))}
+                                <div className="space-y-2">
+                                    <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                                        Selected ({selectedSupportFeatureTerms.length})
+                                    </p>
+                                    {selectedSupportFeatureTerms.map((term) => (
+                                        <label key={`support-selected-${term.id}`} className="flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-2">
+                                            <input
+                                                type="checkbox"
+                                                checked
+                                                onChange={(e) => toggleSupportedFeature(term.id, e.target.checked)}
+                                                className="mt-0.5"
+                                            />
+                                            <span className="min-w-0">
+                                                <span className="block text-sm font-semibold text-slate-900">{term.label}</span>
+                                                {term.value && <span className="block text-[11px] text-slate-500 font-mono">{term.value}</span>}
+                                            </span>
+                                        </label>
+                                    ))}
+                                    {selectedSupportFeatureTerms.length === 0 && (
+                                        <p className="text-xs text-slate-500 px-2 py-1">No selected features match your search.</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                                        Unselected ({unselectedSupportFeatureTerms.length})
+                                    </p>
+                                    {unselectedSupportFeatureTerms.map((term) => (
+                                        <label key={`support-unselected-${term.id}`} className="flex items-start gap-3 rounded-md border border-slate-200 bg-white p-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={false}
+                                                onChange={(e) => toggleSupportedFeature(term.id, e.target.checked)}
+                                                className="mt-0.5"
+                                            />
+                                            <span className="min-w-0">
+                                                <span className="block text-sm font-semibold text-slate-900">{term.label}</span>
+                                                {term.value && <span className="block text-[11px] text-slate-500 font-mono">{term.value}</span>}
+                                            </span>
+                                        </label>
+                                    ))}
+                                    {unselectedSupportFeatureTerms.length === 0 && (
+                                        <p className="text-xs text-slate-500 px-2 py-1">No unselected features match your search.</p>
+                                    )}
+                                </div>
+
                                 {filteredSupportFeatureTerms.length === 0 && (
                                     <p className="text-xs text-slate-500 px-2 py-3">No features found.</p>
                                 )}
