@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ZippyLogo } from "@/components/ZippyLogo";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -38,13 +39,34 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-900 px-4">
-      <div className="w-full max-w-md space-y-8 rounded-3xl border border-slate-200 bg-white/80 p-10 shadow-2xl backdrop-blur-xl">
+    <div
+      className="flex min-h-screen items-center justify-center px-4"
+      style={{
+        background: "linear-gradient(135deg, #1B2A4A 0%, #0d1829 60%, #111e38 100%)",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Speed-line background pattern */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `
+            repeating-linear-gradient(-55deg, transparent, transparent 40px, rgba(101,183,65,0.04) 40px, rgba(101,183,65,0.04) 41px),
+            repeating-linear-gradient(-55deg, transparent, transparent 80px, rgba(0,188,212,0.03) 80px, rgba(0,188,212,0.03) 81px)
+          `,
+        }}
+      />
+
+      <div className="relative w-full max-w-md space-y-8 rounded-3xl border border-white/10 bg-white/95 p-10 shadow-2xl backdrop-blur-xl">
+        {/* Logo */}
+        <div className="flex justify-center">
+          <ZippyLogo size="lg" showText={true} variant="dark" />
+        </div>
+
         <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight">
-            Sign In to <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Zippy</span>
-          </h1>
-          <p className="mt-2 text-slate-600">Demo Login - No password required</p>
+          <h1 className="text-2xl font-bold tracking-tight text-zippy-navy">Welcome back</h1>
+          <p className="mt-1 text-sm text-slate-500">Demo Login — No password required</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
@@ -59,7 +81,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="bg-slate-50 border-slate-200"
+              className="rounded-xl border-slate-200"
             />
           </div>
 
@@ -73,7 +95,7 @@ export default function LoginPage() {
               placeholder="John Doe"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="bg-slate-50 border-slate-200"
+              className="rounded-xl border-slate-200"
             />
           </div>
 
@@ -83,24 +105,25 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setRole("SA")}
-                className={`flex items-center justify-center rounded-xl border p-4 transition-all ${
+                className={`flex flex-col items-center justify-center rounded-xl border p-4 transition-all ${
                   role === "SA"
-                    ? "border-blue-500 bg-blue-500/10 text-blue-400"
-                    : "border-slate-200 bg-slate-50/50 text-slate-500 hover:bg-slate-100"
+                    ? "border-zippy-green bg-zippy-green/7 text-zippy-green font-semibold"
+                    : "border-slate-200 bg-slate-50/50 text-slate-500 hover:border-slate-300 hover:bg-slate-100"
                 }`}
               >
-                Solution Architect
+                <span className="text-sm">Solution</span>
+                <span className="text-sm">Architect</span>
               </button>
               <button
                 type="button"
                 onClick={() => setRole("ADMIN")}
-                className={`flex items-center justify-center rounded-xl border p-4 transition-all ${
+                className={`flex flex-col items-center justify-center rounded-xl border p-4 transition-all ${
                   role === "ADMIN"
-                    ? "border-purple-500 bg-purple-500/10 text-purple-400"
-                    : "border-slate-200 bg-slate-50/50 text-slate-500 hover:bg-slate-100"
+                    ? "border-zippy-cyan bg-zippy-cyan/7 text-zippy-cyan font-semibold"
+                    : "border-slate-200 bg-slate-50/50 text-slate-500 hover:border-slate-300 hover:bg-slate-100"
                 }`}
               >
-                Admin
+                <span className="text-sm">Admin</span>
               </button>
             </div>
           </div>
@@ -108,9 +131,9 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="w-full h-12 rounded-xl bg-white text-slate-900 hover:bg-zinc-200"
+            className="w-full h-12 rounded-xl"
           >
-            {isLoading ? "Signing In..." : "Continue"}
+            {isLoading ? "Signing In..." : "Continue →"}
           </Button>
         </form>
       </div>

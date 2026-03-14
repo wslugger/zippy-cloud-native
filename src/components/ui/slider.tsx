@@ -49,7 +49,7 @@ function Slider({
         setInternal(next);
         onValueChange?.([next]);
       }}
-      className={cn("w-full accent-blue-600", className)}
+      className={cn("w-full accent-zippy-green", className)}
     />
   );
 }

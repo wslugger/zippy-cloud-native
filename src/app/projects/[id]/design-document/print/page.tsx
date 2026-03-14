@@ -45,7 +45,7 @@ export default function ProjectDesignDocumentPrintPage({ params }: { params: Pro
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-blue-500" size={28} />
+        <Loader2 className="animate-spin text-zippy-green" size={28} />
       </div>
     );
   }

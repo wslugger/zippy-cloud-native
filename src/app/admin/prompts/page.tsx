@@ -164,7 +164,7 @@ export default function PromptsPage() {
     if (loading) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
-                <Loader2 className="animate-spin text-blue-500" size={32} />
+                <Loader2 className="animate-spin text-zippy-green" size={32} />
             </div>
         );
     }
@@ -230,7 +230,7 @@ export default function PromptsPage() {
                                             Primary Gemini Model
                                         </label>
                                         <select
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm font-mono text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm font-mono text-slate-700 focus:outline-none focus:ring-1 focus:ring-zippy-green/50 transition-all"
                                             value={selectedPrompt.value}
                                             onChange={(e) => setSelectedPrompt({ ...selectedPrompt, value: e.target.value })}
                                         >
@@ -248,7 +248,7 @@ export default function PromptsPage() {
                                             System Message Content
                                         </label>
                                         <textarea
-                                            className="w-full h-80 bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm font-mono leading-relaxed text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all resize-none shadow-inner"
+                                            className="w-full h-80 bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm font-mono leading-relaxed text-slate-700 focus:outline-none focus:ring-1 focus:ring-zippy-green/50 transition-all resize-none shadow-inner"
                                             value={selectedPrompt.value}
                                             onChange={(e) => setSelectedPrompt({ ...selectedPrompt, value: e.target.value })}
                                             placeholder="Enter system prompt instructions here..."
@@ -271,7 +271,7 @@ export default function PromptsPage() {
                                 <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                                            <FlaskConical size={16} className="text-blue-500" />
+                                            <FlaskConical size={16} className="text-zippy-green" />
                                             Prompt Test Bench
                                         </h3>
                                         <Button
@@ -289,7 +289,7 @@ export default function PromptsPage() {
                                             Test Model
                                         </label>
                                         <select
-                                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-mono text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all"
+                                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-mono text-slate-700 focus:outline-none focus:ring-1 focus:ring-zippy-green/50 transition-all"
                                             value={testModel}
                                             onChange={(e) => setTestModel(e.target.value)}
                                         >
@@ -304,7 +304,7 @@ export default function PromptsPage() {
                                             Test Prompt Text
                                         </label>
                                         <textarea
-                                            className="w-full h-36 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono leading-relaxed text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all resize-y"
+                                            className="w-full h-36 bg-white border border-slate-200 rounded-lg p-3 text-xs font-mono leading-relaxed text-slate-700 focus:outline-none focus:ring-1 focus:ring-zippy-green/50 transition-all resize-y"
                                             value={testPrompt}
                                             onChange={(e) => setTestPrompt(e.target.value)}
                                             placeholder="Edit prompt text for this test run..."
@@ -316,7 +316,7 @@ export default function PromptsPage() {
                                             Test Input Text
                                         </label>
                                         <textarea
-                                            className="w-full h-24 bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all resize-y"
+                                            className="w-full h-24 bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-zippy-green/50 transition-all resize-y"
                                             value={testInputText}
                                             onChange={(e) => setTestInputText(e.target.value)}
                                             placeholder="Paste customer requirements or scenario text..."

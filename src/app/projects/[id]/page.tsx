@@ -388,7 +388,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-blue-500" size={32} />
+        <Loader2 className="animate-spin text-zippy-green" size={32} />
       </div>
     );
   }
@@ -432,7 +432,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         <div className="xl:col-span-3 space-y-6">
           <div className="bg-white/50 border border-slate-200 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-4 text-blue-400">
+            <div className="flex items-center gap-3 mb-4 text-zippy-green">
               <FileText size={24} />
               <h2 className="text-xl font-bold text-slate-900">Step 1: Project Kickoff Requirements</h2>
             </div>
@@ -483,7 +483,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <p className="text-[11px] text-slate-500">Use this for extra context that is not in uploaded files.</p>
             </div>
             <textarea
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[220px] text-slate-700 placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono text-sm resize-y"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[220px] text-slate-700 placeholder:text-slate-600 focus:outline-none focus:border-zippy-green/50 focus:ring-1 focus:ring-zippy-green/50 transition-all font-mono text-sm resize-y"
               placeholder="Add clarifications, assumptions, constraints, or priorities for the SA-bot..."
               value={requirements}
               onChange={(e) => setRequirements(e.target.value)}
@@ -493,7 +493,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               <Button
                 onClick={saveAndAnalyze}
                 disabled={!canAnalyze || analyzing}
-                className="bg-blue-600 hover:bg-blue-500 text-slate-900 border-none gap-2"
+                className="gap-2"
               >
                 {analyzing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                 Analyze Requirements
@@ -502,7 +502,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           </div>
 
           <div className="bg-white/50 border border-slate-200 rounded-2xl p-6 space-y-4">
-            <h3 className="font-bold flex items-center gap-2 text-blue-500">
+            <h3 className="font-bold flex items-center gap-2 text-zippy-green">
               <Sparkles size={18} /> AI Recommended Services / Packages
             </h3>
             {suggestions.length === 0 ? (
@@ -624,7 +624,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <Button
               onClick={continueToStep2}
               disabled={project.items.length === 0 || savingStep}
-              className="bg-blue-600 hover:bg-blue-500 text-white"
+              className=""
             >
               {savingStep ? <Loader2 size={14} className="animate-spin" /> : null}
               Save Step 1 & Continue

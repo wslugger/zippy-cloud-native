@@ -140,7 +140,7 @@ export function ServiceSelector({
                         key={service.id}
                         className={`border rounded-xl p-4 transition-all ${
                             isSelected
-                                ? 'border-blue-500/40 bg-blue-500/5'
+                                ? 'border-zippy-green/40 bg-blue-500/5'
                                 : 'border-slate-200 bg-slate-50/50 hover:border-slate-300'
                         }`}
                     >

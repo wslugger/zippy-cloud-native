@@ -293,7 +293,7 @@ export function FeaturesWorkspace(props: FeaturesWorkspaceProps) {
                                     type="button"
                                     onClick={() => startEditFeature(feature)}
                                     className={`w-full text-left rounded-lg border p-3 transition-colors ${editingFeatureId === feature.id
-                                        ? 'border-blue-500 bg-blue-50'
+                                        ? 'border-zippy-green bg-zippy-green-light'
                                         : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
                                         }`}
                                 >

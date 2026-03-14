@@ -17,7 +17,7 @@ export default async function AdminDashboard() {
     ]);
 
     const stats = [
-        { name: 'Total Catalog items', value: itemsCount, icon: Layers, color: 'text-blue-500' },
+        { name: 'Total Catalog items', value: itemsCount, icon: Layers, color: 'text-zippy-green' },
         { name: 'Active Packages', value: packageCount, icon: Package, color: 'text-emerald-500' },
         { name: 'BOM Dependency Rules', value: dependencyCount, icon: null, color: 'text-purple-500' },
         { name: 'Managed AI Prompts', value: promptCount, icon: Activity, color: 'text-orange-500' },
@@ -90,7 +90,7 @@ export default async function AdminDashboard() {
                         </div>
                         <div className="flex items-center justify-between text-sm">
                             <span className="text-slate-600">Environment</span>
-                            <span className="text-blue-600 font-medium px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
+                            <span className="text-zippy-cyan font-medium px-2 py-0.5 rounded bg-zippy-cyan/10 border border-zippy-cyan/20">
                                 Production Standalone
                             </span>
                         </div>

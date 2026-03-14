@@ -79,7 +79,7 @@ export default function AnalyticsOverviewPage() {
     if (loading) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                <Loader2 className="h-8 w-8 animate-spin text-zippy-green" />
             </div>
         );
     }
@@ -108,7 +108,7 @@ export default function AnalyticsOverviewPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-                        <BarChart3 className="h-7 w-7 text-blue-500" />
+                        <BarChart3 className="h-7 w-7 text-zippy-green" />
                         Project Analytics
                     </h2>
                     <p className="text-slate-600">Requirements and service-picking funnel metrics across all users.</p>

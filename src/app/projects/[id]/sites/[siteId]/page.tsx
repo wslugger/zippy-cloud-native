@@ -111,7 +111,7 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
     if (loading || !site) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
-                <Loader2 className="animate-spin text-blue-500" size={32} />
+                <Loader2 className="animate-spin text-zippy-green" size={32} />
             </div>
         );
     }
@@ -125,7 +125,7 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="bg-white p-3 rounded-xl border border-slate-200">
-                            <Building2 size={20} className="text-blue-500" />
+                            <Building2 size={20} className="text-zippy-green" />
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-slate-900">{site.name}</h1>
@@ -157,7 +157,7 @@ export default function SiteConfigPage({ params }: { params: Promise<{ id: strin
                 <div className="lg:col-span-2 space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-sm font-bold text-slate-900">Live BOM Preview</h2>
-                        {bomLoading && <Loader2 size={14} className="animate-spin text-blue-400" />}
+                        {bomLoading && <Loader2 size={14} className="animate-spin text-zippy-green" />}
                         {!bomLoading && bom && (
                             <button onClick={calculateBOM} className="text-slate-600 hover:text-slate-300">
                                 <RefreshCw size={14} />

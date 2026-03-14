@@ -53,7 +53,7 @@ export default function BomBuilderPlaceholderPage({ params }: { params: Promise<
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-blue-500" size={32} />
+        <Loader2 className="animate-spin text-zippy-green" size={32} />
       </div>
     );
   }
@@ -87,7 +87,7 @@ export default function BomBuilderPlaceholderPage({ params }: { params: Promise<
       />
 
       <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-        <PackageCheck size={24} className="mx-auto text-blue-500 mb-3" />
+        <PackageCheck size={24} className="mx-auto text-zippy-green mb-3" />
         <h2 className="text-xl font-bold text-slate-900">Step 3: BOM Builder</h2>
         <p className="text-sm text-slate-600 mt-2">Placeholder only. Implementation intentionally deferred.</p>
       </div>
@@ -96,7 +96,7 @@ export default function BomBuilderPlaceholderPage({ params }: { params: Promise<
         <Link href={`/projects/${id}/service-configuration`}>
           <Button variant="outline">Back to Step 2</Button>
         </Link>
-        <Button onClick={() => router.push(`/projects/${id}/high-level-design`)} className="bg-blue-600 hover:bg-blue-500 text-white">
+        <Button onClick={() => router.push(`/projects/${id}/high-level-design`)} className="bg-zippy-green hover:bg-zippy-green/90 text-white">
           Save Step 3 & Continue
         </Button>
       </div>

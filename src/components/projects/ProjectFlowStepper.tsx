@@ -35,7 +35,7 @@ export function ProjectFlowStepper({ currentStep, steps }: ProjectFlowStepperPro
                     className={cn(
                       'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border',
                       isCurrent
-                        ? 'bg-blue-600 text-white border-blue-600'
+                        ? 'bg-zippy-green text-white border-zippy-green'
                         : isComplete
                           ? 'bg-emerald-500 text-white border-emerald-500'
                           : 'bg-slate-100 text-slate-600 border-slate-300'

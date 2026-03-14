@@ -96,7 +96,7 @@ export default function ServiceConfigurationPage({ params }: { params: Promise<{
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-blue-500" size={32} />
+        <Loader2 className="animate-spin text-zippy-green" size={32} />
       </div>
     );
   }
@@ -141,7 +141,7 @@ export default function ServiceConfigurationPage({ params }: { params: Promise<{
           <h2 className="text-xl font-bold text-slate-900">Step 2: Service Configuration</h2>
           <Button
             onClick={() => setShowWizard((prev) => !prev)}
-            className="gap-2 bg-blue-600 hover:bg-blue-500 text-white"
+            className="gap-2"
             disabled={!hasSelections}
           >
             <Compass size={16} />
@@ -184,7 +184,7 @@ export default function ServiceConfigurationPage({ params }: { params: Promise<{
         <Button
           onClick={saveStep2CheckpointAndContinue}
           disabled={!hasSelections || showWizard || savingStep}
-          className="bg-blue-600 hover:bg-blue-500 text-white gap-2"
+          className="gap-2"
         >
           {savingStep ? <Loader2 size={14} className="animate-spin" /> : <Settings2 size={14} />}
           Save Step 2 & Continue

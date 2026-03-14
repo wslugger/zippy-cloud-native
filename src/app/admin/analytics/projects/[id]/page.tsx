@@ -110,7 +110,7 @@ export default function AdminProjectDetailPage({ params }: { params: Promise<{ i
     if (loading) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                <Loader2 className="h-8 w-8 animate-spin text-zippy-green" />
             </div>
         );
     }

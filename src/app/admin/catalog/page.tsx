@@ -149,7 +149,7 @@ export default function CatalogPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <Input
                         placeholder="Search by SKU or name..."
-                        className="pl-10 bg-white border-slate-200 focus:ring-blue-500/20"
+                        className="pl-10 bg-white border-slate-200 focus:ring-zippy-green/20"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
@@ -204,7 +204,7 @@ export default function CatalogPage() {
                     items.map((item) => (
                         <div
                             key={item.id}
-                            className="bg-white/50 border border-slate-200 rounded-[24px] p-6 hover:border-blue-500/30 transition-all group relative flex flex-col min-h-[220px]"
+                            className="bg-white/50 border border-slate-200 rounded-[24px] p-6 hover:border-zippy-green/30 transition-all group relative flex flex-col min-h-[220px]"
                         >
                             {/* Header Section */}
                             <div className="flex items-center justify-between mb-4">
@@ -228,7 +228,7 @@ export default function CatalogPage() {
                                 <h3 className="text-xl font-bold line-clamp-1">
                                     <Link
                                         href={`/admin/catalog/${item.id}`}
-                                        className="text-slate-900 hover:text-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60 rounded-sm"
+                                        className="text-slate-900 hover:text-blue-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zippy-green/60 rounded-sm"
                                         title={`Open settings for ${item.name}`}
                                     >
                                         {item.name}
@@ -263,7 +263,7 @@ export default function CatalogPage() {
                             </div>
 
                             {/* Decorative background glow */}
-                            <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-blue-600/[0.03] rounded-full blur-3xl group-hover:bg-blue-600/[0.06] transition-all pointer-events-none -z-10" />
+                            <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-zippy-green/3 rounded-full blur-3xl group-hover:bg-zippy-green/5 transition-all pointer-events-none -z-10" />
                         </div>
                     ))
                 ) : (

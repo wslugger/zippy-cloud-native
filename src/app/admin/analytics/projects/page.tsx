@@ -156,7 +156,7 @@ export default function AnalyticsProjectsPage() {
                 </div>
                 {loading ? (
                     <div className="flex h-56 items-center justify-center">
-                        <Loader2 className="h-7 w-7 animate-spin text-blue-500" />
+                        <Loader2 className="h-7 w-7 animate-spin text-zippy-green" />
                     </div>
                 ) : error ? (
                     <div className="px-4 py-8 text-sm text-red-600">{error}</div>
