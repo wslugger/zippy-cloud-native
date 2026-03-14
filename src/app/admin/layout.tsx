@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LayoutDashboard, Database, MessageSquare, Settings, Workflow, FolderKanban } from 'lucide-react';
+import { LayoutDashboard, Database, MessageSquare, Settings, Workflow, FolderKanban, BarChart3 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
 import { getSession } from '@/lib/auth';
 
@@ -32,6 +32,13 @@ export default async function AdminLayout({
                     >
                         <FolderKanban size={20} />
                         Projects
+                    </Link>
+                    <Link
+                        href="/admin/analytics"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors text-slate-700 hover:text-slate-900"
+                    >
+                        <BarChart3 size={20} />
+                        Analytics
                     </Link>
                     <Link
                         href="/admin/catalog"

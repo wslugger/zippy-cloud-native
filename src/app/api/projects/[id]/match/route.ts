@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { assertProjectOwnership } from "@/lib/project-ownership";
+import { advanceProjectWorkflowStage, getProjectWorkflowStage, recordProjectEvent } from "@/lib/project-analytics";
 import { parseRequirementSignals, isFeasibleBySignals } from "@/lib/requirement-signals";
 import { ItemType, Prisma } from "@prisma/client";
 import {
@@ -43,7 +44,7 @@ export async function POST(
       manualRequirements = "";
     }
 
-    let project: { id: string; rawRequirements?: string | null };
+    let project: { id: string; rawRequirements?: string | null; manualNotes?: string | null };
     try {
       project = await assertProjectOwnership(projectId, session.userId);
     } catch (error) {
@@ -51,18 +52,18 @@ export async function POST(
       const isSchemaError = isMissingTableOrColumnError(error);
       if (!isOwnershipError && !isSchemaError) throw error;
 
-      let fallback: { id: string; rawRequirements: string | null } | null = null;
+      let fallback: { id: string; rawRequirements: string | null; manualNotes: string | null } | null = null;
       try {
         fallback = await prisma.project.findFirst({
           where: { id: projectId, OR: [{ userId: session.userId }, { userId: null }] },
-          select: { id: true, rawRequirements: true },
+          select: { id: true, rawRequirements: true, manualNotes: true },
         });
       } catch (innerError) {
         if (!isMissingTableOrColumnError(innerError)) throw innerError;
         try {
           fallback = await prisma.project.findFirst({
             where: { id: projectId },
-            select: { id: true, rawRequirements: true },
+            select: { id: true, rawRequirements: true, manualNotes: true },
           });
         } catch (secondInnerError) {
           if (!isMissingTableOrColumnError(secondInnerError)) throw secondInnerError;
@@ -70,7 +71,7 @@ export async function POST(
             where: { id: projectId },
             select: { id: true },
           });
-          fallback = minimalFallback ? { id: minimalFallback.id, rawRequirements: null } : null;
+          fallback = minimalFallback ? { id: minimalFallback.id, rawRequirements: null, manualNotes: null } : null;
         }
       }
 
@@ -91,14 +92,12 @@ export async function POST(
       docs = [];
     }
 
-    const combinedRequirements = [
-      manualRequirements,
-      project.rawRequirements ?? "",
-      ...docs.map((doc) => doc.extractedText ?? ""),
-    ]
-      .filter(Boolean)
-      .join("\n\n")
-      .trim();
+    const combinedRequirements = manualRequirements
+      ? manualRequirements
+      : [project.manualNotes ?? "", project.rawRequirements ?? "", ...docs.map((doc) => doc.extractedText ?? "")]
+          .filter(Boolean)
+          .join("\n\n")
+          .trim();
 
     if (!combinedRequirements) {
       return NextResponse.json(
@@ -172,7 +171,35 @@ export async function POST(
 
     // --- Persist recommendations ---
     try {
-      const recommendations = await prisma.$transaction(async (tx) => {
+      const { recommendations, runId } = await prisma.$transaction(async (tx) => {
+        const run = await tx.projectRecommendationRun.create({
+          data: {
+            projectId,
+            userId: session.userId,
+            sourceModel: modelUsed,
+            recommendationCount: trimmed.length,
+          },
+        });
+
+        if (trimmed.length > 0) {
+          await tx.projectRecommendationRunItem.createMany({
+            data: trimmed.map((row, index) => ({
+              runId: run.id,
+              catalogItemId: row.id,
+              rank: index + 1,
+              score: row.score,
+              certaintyPercent: row.certaintyPercent,
+              reason: row.reason,
+              shortReason: row.shortReason,
+              requiredIncluded: row.requiredIncluded,
+              optionalRecommended: row.optionalRecommended,
+              matchedCharacteristics: row.matchedCharacteristics,
+              coverageAreas: row.coverageAreas,
+              riskFactors: row.riskFactors,
+            })),
+          });
+        }
+
         await tx.projectRecommendation.deleteMany({ where: { projectId } });
 
         if (trimmed.length > 0) {
@@ -190,11 +217,41 @@ export async function POST(
           });
         }
 
-        return tx.projectRecommendation.findMany({
+        const recommendations = await tx.projectRecommendation.findMany({
           where: { projectId },
           include: { catalogItem: { include: { collaterals: true } } },
           orderBy: [{ score: "desc" }, { createdAt: "asc" }],
         });
+
+        if (trimmed.length > 0) {
+          const workflowStage = await advanceProjectWorkflowStage(tx, projectId, "RECOMMENDATIONS_READY");
+          await recordProjectEvent(tx, {
+            projectId,
+            userId: session.userId,
+            eventType: "RECOMMENDATIONS_GENERATED",
+            workflowStage: workflowStage ?? "RECOMMENDATIONS_READY",
+            metadata: {
+              runId: run.id,
+              recommendationCount: trimmed.length,
+              modelUsed,
+            },
+          });
+        } else {
+          const workflowStage = await getProjectWorkflowStage(tx, projectId);
+          await recordProjectEvent(tx, {
+            projectId,
+            userId: session.userId,
+            eventType: "RECOMMENDATIONS_GENERATED",
+            workflowStage,
+            metadata: {
+              runId: run.id,
+              recommendationCount: 0,
+              modelUsed,
+            },
+          });
+        }
+
+        return { recommendations, runId: run.id };
       });
 
       const lookup = new Map(trimmed.map((row) => [row.id, row]));
@@ -211,6 +268,7 @@ export async function POST(
           };
         }),
         signals,
+        runId,
       });
     } catch (error) {
       if (!isMissingTableOrColumnError(error)) {

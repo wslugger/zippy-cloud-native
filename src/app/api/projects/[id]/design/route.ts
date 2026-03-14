@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { evaluatePackageSelections } from "@/lib/package-policy-engine";
+import { advanceProjectWorkflowStage, recordProjectEvent } from "@/lib/project-analytics";
 
 export async function POST(
     request: NextRequest,
@@ -129,6 +130,20 @@ export async function POST(
                     }))
                 });
             }
+
+            const workflowStage = await advanceProjectWorkflowStage(tx, projectId, "SERVICE_SELECTED");
+            await recordProjectEvent(tx, {
+                projectId,
+                userId: session.userId,
+                eventType: "SERVICE_MANUALLY_ADDED",
+                workflowStage: workflowStage ?? "SERVICE_SELECTED",
+                catalogItemId: baseId,
+                metadata: {
+                    source: "guided_flow",
+                    selectedCount: currentItemIds.length,
+                    selectedCatalogItemIds: currentItemIds,
+                },
+            });
 
             return { createdItems, currentItemIds };
         });

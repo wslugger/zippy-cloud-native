@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { advanceProjectWorkflowStage, recordProjectEvent } from "@/lib/project-analytics";
 
 export async function POST(
     request: NextRequest,
@@ -27,15 +28,29 @@ export async function POST(
             return NextResponse.json({ error: "catalogItemId is required" }, { status: 400 });
         }
 
-        const projectItem = await prisma.projectItem.create({
-            data: {
+        const projectItem = await prisma.$transaction(async (tx) => {
+            const created = await tx.projectItem.create({
+                data: {
+                    projectId: id,
+                    catalogItemId,
+                    quantity: quantity ?? 1
+                },
+                include: {
+                    catalogItem: true
+                }
+            });
+
+            const workflowStage = await advanceProjectWorkflowStage(tx, id, "SERVICE_SELECTED");
+            await recordProjectEvent(tx, {
                 projectId: id,
+                userId: session.userId,
+                eventType: "SERVICE_MANUALLY_ADDED",
+                workflowStage: workflowStage ?? "SERVICE_SELECTED",
                 catalogItemId,
-                quantity: quantity ?? 1
-            },
-            include: {
-                catalogItem: true
-            }
+                metadata: { quantity: quantity ?? 1 }
+            });
+
+            return created;
         });
 
         return NextResponse.json(projectItem, { status: 201 });

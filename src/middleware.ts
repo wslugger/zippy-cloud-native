@@ -65,6 +65,6 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     // Cover all page routes and /api/admin/* API routes
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico|mockups/).*)",
   ],
 };

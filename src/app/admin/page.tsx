@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import {
     Package,
-    FileCheck,
     Layers,
     Activity,
     ArrowUpRight
@@ -64,6 +63,13 @@ export default async function AdminDashboard() {
                                 <ArrowUpRight className="h-4 w-4 transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                             </div>
                             <p className="text-xs text-slate-500 mt-1">Refine the logic used for automated BOM generation.</p>
+                        </Link>
+                        <Link href="/admin/analytics" className="group p-4 rounded-lg bg-slate-100/50 hover:bg-slate-100 border border-slate-300/50 border-dashed transition-all">
+                            <div className="flex items-center justify-between">
+                                <span className="font-medium">Project Analytics</span>
+                                <ArrowUpRight className="h-4 w-4 transform group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">View funnel metrics, project stages, and service adoption trends.</p>
                         </Link>
                     </div>
                 </div>
