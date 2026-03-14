@@ -2,29 +2,36 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 
-function runCommand(command, { capture = false } = {}) {
-  if (capture) {
-    return execSync(command, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+function runPrisma(args) {
+  const result = spawnSync("npx", ["prisma", ...args], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  const stdout = result.stdout ?? "";
+  const stderr = result.stderr ?? "";
+  const output = `${stdout}${stderr}`;
+
+  if (result.error) {
+    const message = result.error instanceof Error ? result.error.message : String(result.error);
+    return { ok: false, output: `${output}\n${message}` };
   }
-  execSync(command, { stdio: "inherit" });
-  return "";
+
+  return { ok: result.status === 0, output };
 }
 
 function tryMigrateDeploy() {
-  try {
-    runCommand("npx prisma migrate deploy");
-    return { ok: true, output: "" };
-  } catch (error) {
-    const stdout = typeof error.stdout === "string" ? error.stdout : "";
-    const stderr = typeof error.stderr === "string" ? error.stderr : "";
-    return { ok: false, output: `${stdout}\n${stderr}` };
-  }
+  return runPrisma(["migrate", "deploy"]);
 }
 
 function resolveAllMigrationsAsApplied() {
   const migrationsDir = path.resolve("prisma/migrations");
+  if (!fs.existsSync(migrationsDir)) {
+    throw new Error(`Migrations directory not found: ${migrationsDir}`);
+  }
+
   const migrationNames = fs
     .readdirSync(migrationsDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
@@ -32,21 +39,11 @@ function resolveAllMigrationsAsApplied() {
     .sort();
 
   for (const migrationName of migrationNames) {
-    const command = `npx prisma migrate resolve --applied "${migrationName}"`;
-    const result = (() => {
-      try {
-        runCommand(command, { capture: true });
-        return { ok: true, output: "" };
-      } catch (error) {
-        const stdout = typeof error.stdout === "string" ? error.stdout : "";
-        const stderr = typeof error.stderr === "string" ? error.stderr : "";
-        return { ok: false, output: `${stdout}\n${stderr}` };
-      }
-    })();
+    const result = runPrisma(["migrate", "resolve", "--applied", migrationName]);
 
     if (!result.ok) {
       const normalized = result.output.toLowerCase();
-      if (!normalized.includes("already")) {
+      if (!normalized.includes("already") || !normalized.includes("applied")) {
         process.stderr.write(result.output);
         process.exit(1);
       }
@@ -59,7 +56,7 @@ if (firstAttempt.ok) {
   process.exit(0);
 }
 
-if (!firstAttempt.output.includes("P3005")) {
+if (!/P3005/i.test(firstAttempt.output)) {
   process.stderr.write(firstAttempt.output);
   process.exit(1);
 }

@@ -90,20 +90,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
-          attempt=1
-          max_attempts=5
-
-          until node scripts/prisma-migrate-with-baseline.mjs; do
-            if [ "$attempt" -ge "$max_attempts" ]; then
-              echo "Prisma migrate failed after ${max_attempts} attempts."
-              exit 1
-            fi
-
-            sleep_seconds=$((attempt * 15))
-            echo "Prisma migrate attempt ${attempt} failed. Retrying in ${sleep_seconds}s..."
-            sleep "$sleep_seconds"
-            attempt=$((attempt + 1))
-          done
+          node scripts/prisma-migrate-with-baseline.mjs
 
       - name: Show Deployed App URL
         run: echo "Successfully deployed to ${{ steps.deploy.outputs.url }}"
