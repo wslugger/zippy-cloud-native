@@ -1096,7 +1096,7 @@ export default function CatalogItemDetail() {
                     <Button 
                         onClick={handleSave} 
                         disabled={saving}
-                        className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg shadow-blue-600/20"
+                        className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg shadow-zippy-green/20"
                     >
                         {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                         Save Changes

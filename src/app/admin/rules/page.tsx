@@ -78,7 +78,7 @@ export default function RulesPage() {
     if (loading) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
-                <Loader2 className="animate-spin text-blue-500" size={32} />
+                <Loader2 className="animate-spin text-zippy-green" size={32} />
             </div>
         );
     }
@@ -102,7 +102,7 @@ export default function RulesPage() {
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Parent Item (Trigger)</label>
                             <select
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:ring-1 focus:ring-zippy-green outline-none"
                                 value={parentId}
                                 onChange={(e) => setParentId(e.target.value)}
                             >
@@ -120,7 +120,7 @@ export default function RulesPage() {
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Child Item (Effect)</label>
                             <select
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:ring-1 focus:ring-zippy-green outline-none"
                                 value={childId}
                                 onChange={(e) => setChildId(e.target.value)}
                             >
@@ -177,7 +177,7 @@ export default function RulesPage() {
                             <div key={rule.id} className="bg-white/50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between group hover:border-slate-300 transition-all">
                                 <div className="flex items-center gap-6">
                                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                                        <Workflow size={20} className="text-blue-500" />
+                                        <Workflow size={20} className="text-zippy-green" />
                                     </div>
 
                                     <div className="flex items-center gap-4">

@@ -33,7 +33,7 @@ export function ConfigFormRenderer({ schema, values, onChange }: ConfigFormRende
                             <select
                                 value={value}
                                 onChange={e => set(key, e.target.value)}
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm text-slate-700 focus:ring-1 focus:ring-zippy-green outline-none"
                             >
                                 <option value="">Select...</option>
                                 {prop.enum.map((v: string, i: number) => (

@@ -53,7 +53,7 @@ function Select({ value, onValueChange, children }: SelectRootProps) {
       <select
         value={value ?? ""}
         onChange={(event) => onValueChange?.(event.target.value)}
-        className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-zippy-green/30"
       >
         {placeholder && <option value="">{placeholder}</option>}
         {options.map((option) => (

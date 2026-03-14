@@ -169,7 +169,7 @@ export function TermsWorkspace({
                             key={category}
                             onClick={() => setActiveCategory(category)}
                             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${activeCategory === category
-                                ? 'bg-blue-600 text-white'
+                                ? 'bg-zippy-green text-white'
                                 : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-600'
                                 }`}
                         >

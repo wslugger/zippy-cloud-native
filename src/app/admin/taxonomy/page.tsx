@@ -23,7 +23,7 @@ export default function TaxonomyPage() {
                         <button
                             onClick={() => setWorkspaceTab('design-options')}
                             className={`px-3 py-2 rounded-lg text-sm font-semibold border ${workspaceTab === 'design-options'
-                                ? 'bg-blue-600 text-white border-blue-600'
+                                ? 'bg-zippy-green text-white border-zippy-green'
                                 : 'bg-white text-slate-600 border-slate-200'
                                 }`}
                         >
@@ -32,7 +32,7 @@ export default function TaxonomyPage() {
                         <button
                             onClick={() => setWorkspaceTab('terms')}
                             className={`px-3 py-2 rounded-lg text-sm font-semibold border ${workspaceTab === 'terms'
-                                ? 'bg-blue-600 text-white border-blue-600'
+                                ? 'bg-zippy-green text-white border-zippy-green'
                                 : 'bg-white text-slate-600 border-slate-200'
                                 }`}
                         >
@@ -41,7 +41,7 @@ export default function TaxonomyPage() {
                         <button
                             onClick={() => setWorkspaceTab('features')}
                             className={`px-3 py-2 rounded-lg text-sm font-semibold border ${workspaceTab === 'features'
-                                ? 'bg-blue-600 text-white border-blue-600'
+                                ? 'bg-zippy-green text-white border-zippy-green'
                                 : 'bg-white text-slate-600 border-slate-200'
                                 }`}
                         >

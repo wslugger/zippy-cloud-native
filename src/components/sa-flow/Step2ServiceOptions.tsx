@@ -43,21 +43,21 @@ export function Step2ServiceOptions({ parentItem, onSelect, selectedId }: Step2S
                     key={item.id}
                     onClick={() => onSelect(item)}
                     className={`text-left p-6 border-2 rounded-2xl transition-all group ${
-                        selectedId === item.id 
-                            ? 'border-blue-500 bg-blue-50/10' 
+                        selectedId === item.id
+                            ? 'border-zippy-green bg-zippy-green-light/10'
                             : 'border-slate-100 hover:border-slate-300 bg-white'
                     }`}
                 >
                     <div className="flex items-start gap-4">
                         <div className={`p-3 rounded-xl border ${
                             selectedId === item.id 
-                                ? 'bg-blue-600 border-blue-500 text-white' 
-                                : 'bg-slate-50 border-slate-100 text-slate-400 group-hover:text-blue-500 transition-colors'
+                                ? 'bg-zippy-green border-zippy-green text-white'
+                                : 'bg-slate-50 border-slate-100 text-slate-400 group-hover:text-zippy-green transition-colors'
                         }`}>
                             {item.type === 'MANAGED_SERVICE' ? <Shield size={24} /> : <Settings2 size={24} />}
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                            <h3 className="font-bold text-slate-900 group-hover:text-zippy-green transition-colors">
                                 {item.name}
                             </h3>
                             <p className="text-xs text-slate-500 mt-1 line-clamp-2">

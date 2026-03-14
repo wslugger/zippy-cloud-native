@@ -29,7 +29,7 @@ const STATUS_COLORS: Record<string, string> = {
     DRAFT: 'bg-slate-100 border-slate-300 text-slate-600',
     IN_REVIEW: 'bg-amber-500/10 border-amber-500/20 text-amber-600',
     APPROVED: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600',
-    ORDERED: 'bg-blue-500/10 border-blue-500/20 text-blue-600',
+    ORDERED: 'bg-zippy-cyan/10 border-zippy-cyan/20 text-zippy-cyan',
     ARCHIVED: 'bg-slate-900 border-slate-200 text-slate-50',
 };
 
@@ -68,7 +68,7 @@ export default function ProjectsPage() {
     if (loading) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
-                <Loader2 className="animate-spin text-blue-500" size={32} />
+                <Loader2 className="animate-spin text-zippy-green" size={32} />
             </div>
         );
     }
@@ -113,7 +113,7 @@ export default function ProjectsPage() {
                             <Link
                                 key={project.id}
                                 href={`/projects/${project.id}`}
-                                className="group bg-white/50 border border-slate-200 rounded-2xl p-5 hover:border-blue-500/30 transition-all relative overflow-hidden"
+                                className="group bg-white/50 border border-slate-200 rounded-2xl p-5 hover:border-zippy-green/30 transition-all relative overflow-hidden"
                             >
                                 <div className="flex items-start justify-between mb-4">
                                     <div className={`text-[9px] font-bold px-2 py-0.5 rounded border ${STATUS_COLORS[project.status] ?? STATUS_COLORS.DRAFT}`}>
@@ -122,7 +122,7 @@ export default function ProjectsPage() {
                                 </div>
 
                                 <div className="mb-4">
-                                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-400 transition-colors">{project.name}</h3>
+                                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-zippy-green transition-colors">{project.name}</h3>
                                     {project.customerName && (
                                         <p className="text-xs text-slate-500">{project.customerName}</p>
                                     )}
@@ -135,8 +135,8 @@ export default function ProjectsPage() {
                                     </div>
                                 </div>
 
-                                <ChevronRight size={16} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700 group-hover:text-blue-500 transition-colors" />
-                                <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-blue-600/5 rounded-full blur-2xl group-hover:bg-blue-600/10 transition-all pointer-events-none" />
+                                <ChevronRight size={16} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700 group-hover:text-zippy-green transition-colors" />
+                                <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-zippy-green/5 rounded-full blur-2xl group-hover:bg-zippy-green/10 transition-all pointer-events-none" />
                             </Link>
                         );
                     })}

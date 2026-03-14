@@ -480,7 +480,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                 className={cn(
                   'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all',
                   step === index
-                    ? 'bg-blue-600 text-white ring-4 ring-blue-500/10'
+                    ? 'bg-zippy-green text-white ring-4 ring-zippy-green/10'
                     : step > index
                       ? 'bg-emerald-500 text-white'
                       : 'bg-slate-200 text-slate-500'
@@ -524,7 +524,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                     }}
                     className={cn(
                       'text-left p-5 rounded-2xl border-2 transition-all',
-                      selected ? 'border-blue-500 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300 bg-white',
+                      selected ? 'border-zippy-green bg-zippy-green-light/20' : 'border-slate-200 hover:border-slate-300 bg-white',
                       scopeIsLockedToProjectSelection ? 'cursor-default' : ''
                     )}
                   >
@@ -534,7 +534,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                         <p className="text-xs text-slate-500 font-mono mt-0.5">{item.sku}</p>
                         <p className="text-sm text-slate-600 mt-2">{item.shortDescription || 'No short description.'}</p>
                       </div>
-                      <span className={cn('text-[10px] font-semibold px-2 py-1 rounded', selected ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700')}>
+                      <span className={cn('text-[10px] font-semibold px-2 py-1 rounded', selected ? 'bg-zippy-green text-white' : 'bg-slate-200 text-slate-700')}>
                         {selected ? 'Selected' : item.type}
                       </span>
                     </div>
@@ -834,7 +834,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
               (step === 1 && !canContinueFromStep1) ||
               (step === 2 && !canContinueFromStep2)
             }
-            className="gap-2 h-11 px-6 bg-blue-600 hover:bg-blue-500"
+            className="gap-2 h-11 px-6"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Settings2 size={16} />}
             {step === 3 ? 'Save Design' : 'Continue'}

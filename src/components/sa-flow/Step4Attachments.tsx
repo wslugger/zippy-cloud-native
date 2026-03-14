@@ -123,9 +123,9 @@ export function Step4Attachments({
                                 <p className="text-xs text-slate-400 italic">No hardware included for this service tier.</p>
                             ) : (
                                 autoIncluded.map((item: any) => (
-                                    <div key={item.id} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl group hover:border-blue-200 transition-all">
+                                    <div key={item.id} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl group hover:border-zippy-green/20 transition-all">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 border border-slate-100 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                                            <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 border border-slate-100 group-hover:bg-zippy-green-light group-hover:text-zippy-green transition-colors">
                                                 <Box size={20} />
                                             </div>
                                             <div>
@@ -158,12 +158,12 @@ export function Step4Attachments({
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <div className={`p-4 rounded-2xl border-2 transition-all relative ${
-                                                        isSelected ? 'border-blue-500 bg-blue-50/10' : 'border-slate-100 bg-white hover:border-slate-200'
+                                                        isSelected ? 'border-zippy-green bg-zippy-green-light/10' : 'border-slate-100 bg-white hover:border-slate-200'
                                                     }`}>
                                                         <div className="flex items-start justify-between">
                                                             <div className="flex items-start gap-4">
                                                                 <div className={`p-2 rounded-lg border transition-all ${
-                                                                    isSelected ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'
+                                                                    isSelected ? 'bg-zippy-green text-white' : 'bg-slate-50 text-slate-400'
                                                                 }`}>
                                                                     <Paperclip size={18} />
                                                                 </div>
@@ -176,7 +176,7 @@ export function Step4Attachments({
                                                                 size="sm" 
                                                                 variant={isSelected ? "default" : "outline"}
                                                                 onClick={() => onToggleAttachment(item)}
-                                                                className={`h-8 w-8 p-0 rounded-full ${isSelected ? 'bg-blue-600' : 'hover:bg-blue-50 text-blue-600'}`}
+                                                                className={`h-8 w-8 p-0 rounded-full ${isSelected ? 'bg-zippy-green' : 'hover:bg-zippy-green-light text-zippy-green'}`}
                                                             >
                                                                 {isSelected ? <Check size={14} /> : <Plus size={14} />}
                                                             </Button>
