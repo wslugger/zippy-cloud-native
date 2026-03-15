@@ -22,7 +22,7 @@
       "id": "d669c621-25f8-4a92-b38d-e19946aa80db",
       "category": "CLASSIFICATION",
       "value": "MANAGED_SERVICE",
-      "label": "Managed Service",
+      "label": "Services",
       "assumptions": [],
       "constraints": [],
       "description": null
@@ -32,15 +32,6 @@
       "category": "CLASSIFICATION",
       "value": "PACKAGE",
       "label": "Design Package",
-      "assumptions": [],
-      "constraints": [],
-      "description": null
-    },
-    {
-      "id": "2b908038-d3a0-4656-86d7-8f22e872223d",
-      "category": "CLASSIFICATION",
-      "value": "SERVICE_FAMILY",
-      "label": "Service Family",
       "assumptions": [],
       "constraints": [],
       "description": null
@@ -1727,8 +1718,8 @@
     {
       "id": "f00a692d-b38a-4514-8f3e-04adc6bea04a",
       "category": "PANEL_SERVICE_OPTIONS",
-      "value": "SERVICE_FAMILY",
-      "label": "Service Family",
+      "value": "MANAGED_SERVICE",
+      "label": "Services",
       "assumptions": [],
       "constraints": [],
       "description": null

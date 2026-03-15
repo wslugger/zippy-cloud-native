@@ -132,9 +132,7 @@ interface PackageServiceWorkspace {
     error?: string;
 }
 
-const PANEL_VISIBILITY_VALUE_ALIASES: Record<string, string> = {
-    SERVICE_FAMILY: 'MANAGED_SERVICE',
-};
+const PANEL_VISIBILITY_VALUE_ALIASES: Record<string, string> = {};
 
 const DEPENDENCY_TYPE_OPTIONS = [
     { value: 'OPTIONAL_ATTACHMENT', label: 'OPTIONAL_ATTACHMENT' },
@@ -1564,7 +1562,7 @@ export default function CatalogItemDetail() {
                                                             STANDARD: 'bg-emerald-500',
                                                             OPTIONAL: 'bg-blue-400',
                                                         };
-                                                        const renderFeatureRow = (feature: { id: string; label: string; value?: string }, key: string) => {
+                                                        const renderFeatureRow = (feature: { id: string; label: string; value?: string | null }, key: string) => {
                                                             const status = featureStatusByTermId.get(feature.id) || '';
                                                             const isSelected = Boolean(status);
                                                             return (
