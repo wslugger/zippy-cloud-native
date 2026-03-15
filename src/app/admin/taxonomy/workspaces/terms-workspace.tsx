@@ -54,6 +54,7 @@ export function TermsWorkspace({
 
     const displayedError = localError ?? termsError;
     const tableLoading = termsLoading || taxonomyDeleting;
+    const isPanelCategory = PANEL_CATEGORIES.includes(taxonomyForm.category as (typeof PANEL_CATEGORIES)[number]);
 
     function beginNewTaxonomyTerm() {
         setEditingTaxonomyId('new');
@@ -81,19 +82,58 @@ export function TermsWorkspace({
     }
 
     async function saveTaxonomyTerm() {
-        if (!taxonomyForm.category.trim() || !taxonomyForm.label.trim() || !taxonomyForm.value.trim()) {
-            setLocalError('Category, label, and value are required.');
+        if (!taxonomyForm.category.trim() || !taxonomyForm.value.trim()) {
+            setLocalError('Category and value are required.');
+            return;
+        }
+
+        if (isPanelCategory && !ITEM_TYPES.includes(taxonomyForm.value as (typeof ITEM_TYPES)[number])) {
+            setLocalError('Panel visibility terms must use a valid catalog item type value.');
             return;
         }
 
         setTaxonomySaving(true);
         setLocalError(null);
         try {
+            const normalizedCategory = taxonomyForm.category.trim();
+            const normalizedValue = taxonomyForm.value.trim();
+            const duplicateTerm = terms.find((term) =>
+                term.category === normalizedCategory &&
+                term.value === normalizedValue &&
+                term.id !== (editingTaxonomyId && editingTaxonomyId !== 'new' ? editingTaxonomyId : '')
+            );
+
+            if (duplicateTerm) {
+                setEditingTaxonomyId(duplicateTerm.id);
+                setTaxonomyForm({
+                    id: duplicateTerm.id,
+                    category: duplicateTerm.category,
+                    label: duplicateTerm.label,
+                    value: duplicateTerm.value,
+                    description: duplicateTerm.description ?? '',
+                    constraintsText: '',
+                    assumptionsText: '',
+                });
+                setLocalError('A rule for this category and item type already exists. The existing rule was opened for editing.');
+                setTaxonomySaving(false);
+                return;
+            }
+
+            const normalizedLabel = isPanelCategory
+                ? `${normalizedCategory.replace('PANEL_', '').replaceAll('_', ' ')} for ${normalizedValue.replaceAll('_', ' ')}`
+                : taxonomyForm.label.trim();
+
+            if (!normalizedLabel) {
+                setLocalError('Label is required.');
+                setTaxonomySaving(false);
+                return;
+            }
+
             const payload = {
                 ...(editingTaxonomyId && editingTaxonomyId !== 'new' ? { id: editingTaxonomyId } : {}),
-                category: taxonomyForm.category.trim(),
-                label: taxonomyForm.label.trim(),
-                value: taxonomyForm.value.trim(),
+                category: normalizedCategory,
+                label: normalizedLabel,
+                value: normalizedValue,
                 description: taxonomyForm.description.trim() || null,
             };
 
@@ -105,7 +145,20 @@ export function TermsWorkspace({
 
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                throw new Error((data as { error?: string }).error || 'Failed to save taxonomy term');
+                const errorMessage = (data as { error?: string }).error || 'Failed to save taxonomy term';
+                if (errorMessage.toLowerCase().includes('duplicate')) {
+                    const currentDuplicate = terms.find((term) =>
+                        term.category === normalizedCategory &&
+                        term.value === normalizedValue
+                    );
+                    if (currentDuplicate) {
+                        beginEditTaxonomyTerm(currentDuplicate);
+                    }
+                    setLocalError('A rule for this category and item type already exists. Edit or delete the existing one instead.');
+                    setTaxonomySaving(false);
+                    return;
+                }
+                throw new Error(errorMessage);
             }
 
             await reloadTerms();
@@ -146,6 +199,9 @@ export function TermsWorkspace({
                 <div>
                     <h3 className="text-2xl font-bold tracking-tight">Taxonomy Terms</h3>
                     <p className="text-slate-600 font-medium">Lookup terms and panel visibility metadata.</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                        For `PANEL_*` categories: value must be the item type (`MANAGED_SERVICE`, `CONNECTIVITY`, etc.). Add term to show panel; delete term to hide panel.
+                    </p>
                 </div>
                 <Button onClick={beginNewTaxonomyTerm} className="gap-2 bg-slate-900 hover:bg-slate-800">
                     <Plus size={16} /> New Term
@@ -207,7 +263,7 @@ export function TermsWorkspace({
                         </div>
                         <div className="space-y-2">
                             <label className="text-xs font-semibold text-slate-600">Value</label>
-                            {PANEL_CATEGORIES.includes(taxonomyForm.category as (typeof PANEL_CATEGORIES)[number]) ? (
+                            {isPanelCategory ? (
                                 <select
                                     value={taxonomyForm.value}
                                     onChange={(event) => setTaxonomyForm((previous) => ({ ...previous, value: event.target.value }))}
@@ -231,7 +287,8 @@ export function TermsWorkspace({
                             <Input
                                 value={taxonomyForm.label}
                                 onChange={(event) => setTaxonomyForm((previous) => ({ ...previous, label: event.target.value }))}
-                                placeholder="Display label"
+                                placeholder={isPanelCategory ? 'Auto-generated for panel visibility terms' : 'Display label'}
+                                disabled={isPanelCategory}
                             />
                         </div>
                         <div className="space-y-2">

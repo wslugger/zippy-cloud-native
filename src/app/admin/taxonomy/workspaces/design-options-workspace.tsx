@@ -12,21 +12,13 @@ import {
     type DesignOptionValue,
     type DesignOptionsResponse,
     type DesignOptionsWorkspaceProps,
-    type ServiceDesignOptionRow,
-    type ServiceDesignOptionsResponse,
     type WorkspaceStatus,
 } from '../types';
 import { normalizeDesignOptionKey, parseList, sanitizeList } from '../utils';
 import { InlineNotice } from '../components/inline-notice';
-import { ServiceSelector } from '../components/service-selector';
 
 export function DesignOptionsWorkspace({
     isActive,
-    services,
-    selectedServiceId,
-    setSelectedServiceId,
-    servicesLoading,
-    servicesError,
 }: DesignOptionsWorkspaceProps) {
     const [designOptions, setDesignOptions] = useState<DesignOptionDefinition[]>([]);
     const [designSearchTerm, setDesignSearchTerm] = useState('');
@@ -38,11 +30,6 @@ export function DesignOptionsWorkspace({
     const [designOptionForm, setDesignOptionForm] = useState<DesignOptionFormState>(EMPTY_DESIGN_OPTION_FORM);
     const [autoGenerateKey, setAutoGenerateKey] = useState(true);
 
-    const [serviceDesignOptions, setServiceDesignOptions] = useState<ServiceDesignOptionRow[]>([]);
-    const [assignmentLoading, setAssignmentLoading] = useState(false);
-    const [assignmentSaving, setAssignmentSaving] = useState(false);
-    const [assignmentStatus, setAssignmentStatus] = useState<WorkspaceStatus | null>(null);
-
     const filteredDesignOptions = useMemo(() => {
         const needle = designSearchTerm.trim().toLowerCase();
         if (!needle) return designOptions;
@@ -51,27 +38,9 @@ export function DesignOptionsWorkspace({
         );
     }, [designOptions, designSearchTerm]);
 
-    function getCurrentOptionAssignmentIndex() {
-        if (!editingDesignOptionId) return -1;
-        return serviceDesignOptions.findIndex((row) => row.designOptionId === editingDesignOptionId);
-    }
-
-    const currentOptionAssignmentIndex = getCurrentOptionAssignmentIndex();
-    const currentOptionAssignment = currentOptionAssignmentIndex >= 0
-        ? serviceDesignOptions[currentOptionAssignmentIndex]
-        : null;
-
     useEffect(() => {
         void fetchDesignOptions();
     }, []);
-
-    useEffect(() => {
-        if (!selectedServiceId) {
-            setServiceDesignOptions([]);
-            return;
-        }
-        void fetchServiceDesignOptions(selectedServiceId);
-    }, [selectedServiceId]);
 
     async function fetchDesignOptions() {
         setDesignLoading(true);
@@ -224,136 +193,13 @@ export function DesignOptionsWorkspace({
         }
     }
 
-    async function fetchServiceDesignOptions(catalogItemId: string) {
-        setAssignmentLoading(true);
-        setAssignmentStatus(null);
-        try {
-            const res = await fetch(`/api/admin/catalog/${catalogItemId}/design-options`);
-            const data = (await res.json().catch(() => ({}))) as Partial<ServiceDesignOptionsResponse> & { error?: string };
-            if (!res.ok) {
-                throw new Error(data.error || 'Failed to load service design options');
-            }
-
-            const rows = (data.options ?? []).map((row) => ({
-                designOptionId: row.designOptionId,
-                isRequired: row.isRequired,
-                allowMulti: row.allowMulti,
-                defaultValueId: row.defaultValueId,
-                allowedValueIds: row.allowedValues?.map((entry) => entry.designOptionValueId) ?? [],
-            }));
-            setServiceDesignOptions(rows);
-        } catch (error) {
-            console.error(error);
-            setAssignmentStatus({
-                type: 'error',
-                message: error instanceof Error ? error.message : 'Failed to load service assignments',
-            });
-            setServiceDesignOptions([]);
-        } finally {
-            setAssignmentLoading(false);
-        }
-    }
-
-    function getDefinitionValues(designOptionId: string): DesignOptionValue[] {
-        return designOptions.find((definition) => definition.id === designOptionId)?.values ?? [];
-    }
-
-    function updateServiceDesignOptionRow(index: number, patch: Partial<ServiceDesignOptionRow>) {
-        setServiceDesignOptions((previous) =>
-            previous.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row))
-        );
-    }
-
-    function assignCurrentOptionToSelectedService() {
-        if (!editingDesignOptionId) return;
-        const existingIndex = getCurrentOptionAssignmentIndex();
-        if (existingIndex !== -1) return;
-        setServiceDesignOptions((previous) => [
-            ...previous,
-            {
-                designOptionId: editingDesignOptionId,
-                isRequired: false,
-                allowMulti: false,
-                defaultValueId: null,
-                allowedValueIds: [],
-            },
-        ]);
-    }
-
-    function unassignCurrentOptionFromSelectedService() {
-        if (!editingDesignOptionId) return;
-        setServiceDesignOptions((previous) => previous.filter((row) => row.designOptionId !== editingDesignOptionId));
-    }
-
-    async function saveServiceAssignments() {
-        if (!selectedServiceId) {
-            setAssignmentStatus({ type: 'error', message: 'Select a service before saving.' });
-            return;
-        }
-
-        const normalizedRows = serviceDesignOptions.map((row) => ({
-            ...row,
-            defaultValueId: row.defaultValueId || null,
-            allowedValueIds: Array.from(new Set(row.allowedValueIds.filter(Boolean))),
-        }));
-
-        const seen = new Set<string>();
-        for (const row of normalizedRows) {
-            if (seen.has(row.designOptionId)) {
-                setAssignmentStatus({ type: 'error', message: 'Duplicate design options are not allowed on one service.' });
-                return;
-            }
-            seen.add(row.designOptionId);
-
-            const option = designOptions.find((definition) => definition.id === row.designOptionId);
-            if (!option) {
-                setAssignmentStatus({ type: 'error', message: `Unknown design option '${row.designOptionId}'. Refresh and try again.` });
-                return;
-            }
-
-            const optionLabel = option.label || option.key;
-            if (row.defaultValueId && !row.allowedValueIds.includes(row.defaultValueId)) {
-                setAssignmentStatus({
-                    type: 'error',
-                    message: `Default value must be included in allowed values for '${optionLabel}'.`,
-                });
-                return;
-            }
-        }
-
-        setAssignmentSaving(true);
-        setAssignmentStatus(null);
-        try {
-            const res = await fetch(`/api/admin/catalog/${selectedServiceId}/design-options`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ options: normalizedRows }),
-            });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                throw new Error((data as { error?: string }).error || 'Failed to save service design options');
-            }
-
-            setAssignmentStatus({ type: 'success', message: 'Service design options saved.' });
-            await fetchServiceDesignOptions(selectedServiceId);
-        } catch (error) {
-            console.error(error);
-            setAssignmentStatus({
-                type: 'error',
-                message: error instanceof Error ? error.message : 'Failed to save service design options',
-            });
-        } finally {
-            setAssignmentSaving(false);
-        }
-    }
-
     if (!isActive) return null;
 
     return (
         <section className="space-y-6">
             <div>
-                <h3 className="text-2xl font-bold tracking-tight">Design Option Builder</h3>
-                <p className="text-slate-600 font-medium">Select an option on the left, then edit identity, values, and service assignment on the right.</p>
+                <h3 className="text-2xl font-bold tracking-tight">Design Option Definitions</h3>
+                <p className="text-slate-600 font-medium">Create and maintain reusable design option definitions and values.</p>
             </div>
 
             {designStatus && <InlineNotice variant={designStatus.type} size="md" message={designStatus.message} />}
@@ -526,133 +372,11 @@ export function DesignOptionsWorkspace({
                         ))}
                     </div>
 
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-3">
-                        <div className="flex items-center justify-between">
-                            <p className="text-xs font-semibold text-slate-700">Assign This Design Option to Services</p>
-                            <div className="flex items-center gap-2">
-                                {editingDesignOptionId && currentOptionAssignment ? (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={unassignCurrentOptionFromSelectedService}
-                                        className="h-7 text-rose-600 border-rose-200"
-                                    >
-                                        Unassign
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={assignCurrentOptionToSelectedService}
-                                        disabled={!editingDesignOptionId || !selectedServiceId}
-                                        className="h-7"
-                                    >
-                                        Assign
-                                    </Button>
-                                )}
-                                <Button
-                                    size="sm"
-                                    onClick={saveServiceAssignments}
-                                    disabled={assignmentSaving || !selectedServiceId || !editingDesignOptionId}
-                                    className="h-7"
-                                >
-                                    {assignmentSaving ? <Loader2 size={12} className="mr-1 animate-spin" /> : <Save size={12} className="mr-1" />}
-                                    Save Assignment
-                                </Button>
-                            </div>
-                        </div>
-
-                        {assignmentStatus && <InlineNotice variant={assignmentStatus.type} message={assignmentStatus.message} />}
-
-                        <ServiceSelector
-                            services={services}
-                            selectedServiceId={selectedServiceId}
-                            setSelectedServiceId={setSelectedServiceId}
-                            loading={servicesLoading}
-                            error={servicesError}
-                            showSelectionCaption
-                        />
-
-                        {assignmentLoading ? (
-                            <p className="text-xs text-slate-500">
-                                <Loader2 size={12} className="inline mr-1 animate-spin" /> Loading service assignments...
-                            </p>
-                        ) : !editingDesignOptionId ? (
-                            <p className="text-xs text-slate-500">Select a design option definition to manage assignment.</p>
-                        ) : !currentOptionAssignment ? (
-                            <p className="text-xs text-slate-500">This design option is not assigned to the selected service.</p>
-                        ) : (
-                            <div className="space-y-2">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <label className="text-xs text-slate-700 flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={currentOptionAssignment.isRequired}
-                                            onChange={(event) => updateServiceDesignOptionRow(currentOptionAssignmentIndex, { isRequired: event.target.checked })}
-                                        />
-                                        Required
-                                    </label>
-                                    <label className="text-xs text-slate-700 flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            checked={currentOptionAssignment.allowMulti}
-                                            onChange={(event) => updateServiceDesignOptionRow(currentOptionAssignmentIndex, { allowMulti: event.target.checked })}
-                                        />
-                                        Allow Multi
-                                    </label>
-                                </div>
-
-                                <select
-                                    value={currentOptionAssignment.defaultValueId ?? ''}
-                                    onChange={(event) => updateServiceDesignOptionRow(currentOptionAssignmentIndex, { defaultValueId: event.target.value || null })}
-                                    className="w-full h-9 rounded-md border border-slate-200 bg-white px-2 text-xs"
-                                >
-                                    <option value="">No default value</option>
-                                    {getDefinitionValues(editingDesignOptionId).map((value) => (
-                                        <option key={value.id} value={value.id}>
-                                            {value.label} ({value.value})
-                                        </option>
-                                    ))}
-                                </select>
-
-                                <div className="rounded-md border border-slate-200 bg-white p-2">
-                                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Allowed Values</p>
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {getDefinitionValues(editingDesignOptionId).map((value) => (
-                                            <div key={value.id} className="rounded border border-slate-100 p-2">
-                                                <label className="text-xs text-slate-700 flex items-center gap-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={currentOptionAssignment.allowedValueIds.includes(value.id || '')}
-                                                        onChange={(event) => {
-                                                            const valueId = value.id || '';
-                                                            const next = event.target.checked
-                                                                ? [...currentOptionAssignment.allowedValueIds, valueId]
-                                                                : currentOptionAssignment.allowedValueIds.filter((id) => id !== valueId);
-                                                            updateServiceDesignOptionRow(currentOptionAssignmentIndex, {
-                                                                allowedValueIds: Array.from(new Set(next.filter(Boolean))),
-                                                            });
-                                                        }}
-                                                    />
-                                                    {value.label} ({value.value})
-                                                </label>
-                                                {(value.description || (value.constraints?.length ?? 0) > 0 || (value.assumptions?.length ?? 0) > 0) && (
-                                                    <div className="ml-5 mt-1 text-[11px] text-slate-500 space-y-1">
-                                                        {value.description && <p>{value.description}</p>}
-                                                        {(value.constraints?.length ?? 0) > 0 && (
-                                                            <p><span className="font-semibold">Constraints:</span> {value.constraints?.join('; ')}</p>
-                                                        )}
-                                                        {(value.assumptions?.length ?? 0) > 0 && (
-                                                            <p><span className="font-semibold">Assumptions:</span> {value.assumptions?.join('; ')}</p>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+                        <p className="text-xs font-semibold text-amber-800">Assignments now live on catalog items</p>
+                        <p className="text-xs text-amber-700">
+                            Define options here, then assign them from <span className="font-semibold">Admin &gt; Catalog &gt; open item &gt; Design Options for This Item</span>.
+                        </p>
                     </div>
 
                     <Button onClick={saveDesignOptionDefinition} disabled={designSaving} className="w-full gap-2">

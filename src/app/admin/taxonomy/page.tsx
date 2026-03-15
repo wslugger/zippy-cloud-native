@@ -16,8 +16,8 @@ export default function TaxonomyPage() {
             <section className="space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4">
                     <div>
-                        <h2 className="text-3xl font-bold tracking-tight">Taxonomy Manager</h2>
-                        <p className="text-slate-600 font-medium">Manage taxonomy terms and design option builder from one place.</p>
+                        <h2 className="text-3xl font-bold tracking-tight">Definitions</h2>
+                        <p className="text-slate-600 font-medium">Manage shared taxonomy, design option, and feature definitions.</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <button
@@ -27,7 +27,7 @@ export default function TaxonomyPage() {
                                 : 'bg-white text-slate-600 border-slate-200'
                                 }`}
                         >
-                            Design Options Builder
+                            Design Option Definitions
                         </button>
                         <button
                             onClick={() => setWorkspaceTab('terms')}
@@ -45,7 +45,7 @@ export default function TaxonomyPage() {
                                 : 'bg-white text-slate-600 border-slate-200'
                                 }`}
                         >
-                            Features Builder
+                            Feature Definitions
                         </button>
                     </div>
                 </div>
@@ -62,11 +62,6 @@ export default function TaxonomyPage() {
 
             <DesignOptionsWorkspace
                 isActive={workspaceTab === 'design-options'}
-                services={shared.services}
-                selectedServiceId={shared.selectedServiceId}
-                setSelectedServiceId={shared.setSelectedServiceId}
-                servicesLoading={shared.servicesLoading}
-                servicesError={shared.servicesError}
             />
 
             <FeaturesWorkspace

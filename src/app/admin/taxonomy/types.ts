@@ -151,11 +151,6 @@ export interface TermsWorkspaceProps {
 
 export interface DesignOptionsWorkspaceProps {
     isActive: boolean;
-    services: ServiceCatalogItem[];
-    selectedServiceId: string;
-    setSelectedServiceId: Dispatch<SetStateAction<string>>;
-    servicesLoading: boolean;
-    servicesError: string | null;
 }
 
 export interface FeaturesWorkspaceProps {

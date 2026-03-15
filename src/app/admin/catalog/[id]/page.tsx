@@ -111,6 +111,10 @@ interface PackageServiceWorkspace {
     error?: string;
 }
 
+const PANEL_VISIBILITY_VALUE_ALIASES: Record<string, string> = {
+    SERVICE_FAMILY: 'MANAGED_SERVICE',
+};
+
 function newTempId(prefix: string): string {
     return `temp-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -1048,7 +1052,10 @@ export default function CatalogItemDetail() {
     // --- Visibility Logic ---
     const getVisibilityRules = (panelName: string) => {
         const terms = taxonomyTerms.filter(t => t.category === `PANEL_${panelName}`);
-        return terms.map(t => t.value).filter((v): v is string => !!v);
+        return terms
+            .map((t) => t.value)
+            .filter((v): v is string => !!v)
+            .map((value) => PANEL_VISIBILITY_VALUE_ALIASES[value] ?? value);
     };
 
     const isPanelVisible = (panelName: string) => {
@@ -1478,7 +1485,7 @@ export default function CatalogItemDetail() {
                     {(item.type === 'MANAGED_SERVICE' || item.type === 'SERVICE_OPTION' || item.type === 'CONNECTIVITY') && (
                         <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
                             <div className="flex items-center justify-between">
-                                <h2 className="font-bold text-slate-900">Design Options</h2>
+                                <h2 className="font-bold text-slate-900">Design Options for This Item</h2>
                                 <Button
                                     size="sm"
                                     variant="outline"
@@ -1492,6 +1499,9 @@ export default function CatalogItemDetail() {
                             {designOptionDefinitions.length === 0 && (
                                 <p className="text-xs text-amber-600">Create design option definitions in Taxonomy before assigning item design options.</p>
                             )}
+                            <p className="text-xs text-slate-500">
+                                Assign which design options apply to this catalog item and which values are allowed.
+                            </p>
                             <div className="space-y-3">
                                 {itemDesignOptionRows.map((row, index) => {
                                     const values = getDefinitionValues(row.designOptionId);
@@ -1541,7 +1551,7 @@ export default function CatalogItemDetail() {
                             </div>
                             <Button onClick={saveItemDesignOptions} disabled={advancedSaving} className="w-full gap-2">
                                 {advancedSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                                Save Design Options
+                                Save Item Design Options
                             </Button>
                             {advancedStatus && (
                                 <p className={`text-xs ${advancedStatus.type === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -1669,10 +1679,10 @@ export default function CatalogItemDetail() {
                     {/* Pricing */}
                     {isPanelVisible('PRICING') && (
                         <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-                            <h2 className="font-bold text-slate-900 border-b border-slate-100 pb-2">Technical Cost Profile</h2>
+                            <h2 className="font-bold text-slate-900 border-b border-slate-100 pb-2">Pricing</h2>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cost (NRC)</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Non-Recurring Cost (NRC)</label>
                                     <Input 
                                         type="number"
                                         value={item.pricing[0]?.costNrc || 0}
@@ -1684,7 +1694,7 @@ export default function CatalogItemDetail() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cost (MRC)</label>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Monthly Recurring Cost (MRC)</label>
                                     <Input 
                                         type="number"
                                         value={item.pricing[0]?.costMrc || 0}
@@ -1703,8 +1713,11 @@ export default function CatalogItemDetail() {
                     {isPanelVisible('SERVICE_OPTIONS') && item.type !== 'PACKAGE' && (
                         <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                                <h2 className="font-bold text-slate-900">Included Services</h2>
+                                <h2 className="font-bold text-slate-900">Related Service Options</h2>
                             </div>
+                            <p className="text-xs text-slate-500">
+                                Add required or optional related services and transports for this catalog item.
+                            </p>
                             
                             {/* Search for new dependency */}
                             <div className="relative">
@@ -1712,7 +1725,7 @@ export default function CatalogItemDetail() {
                                     <Input 
                                         value={searchQuery}
                                         onChange={(e) => searchItems(e.target.value)}
-                                        placeholder="Search..."
+                                        placeholder="Search catalog items..."
                                         className="text-xs h-8 bg-slate-50"
                                     />
                                 </div>
@@ -1768,15 +1781,18 @@ export default function CatalogItemDetail() {
                         </section>
                     )}
 
-                    {/* Collateral */}
+                    {/* Attachments */}
                     {isPanelVisible('ATTACHMENTS') && (
                         <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                                <h2 className="font-bold text-slate-900">Collateral</h2>
+                                <h2 className="font-bold text-slate-900">Service Attachments</h2>
                                 <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={addCollateral}>
                                     <Plus size={16} />
                                 </Button>
                             </div>
+                            <p className="text-xs text-slate-500">
+                                Add documents and links (datasheets, implementation notes, or related references) for this item.
+                            </p>
                             <div className="space-y-3">
                                 {item.collaterals.map((c, i) => (
                                     <div key={c.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
@@ -1816,7 +1832,7 @@ export default function CatalogItemDetail() {
                                     </div>
                                 ))}
                                 {item.collaterals.length === 0 && (
-                                    <p className="text-xs text-slate-400 italic py-2 text-center">No documents linked.</p>
+                                    <p className="text-xs text-slate-400 italic py-2 text-center">No attachments linked.</p>
                                 )}
                             </div>
                         </section>
