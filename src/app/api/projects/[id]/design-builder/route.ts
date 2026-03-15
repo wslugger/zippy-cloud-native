@@ -56,32 +56,56 @@ async function expandRequiredDependencies(initialSelections: SelectionInput[]): 
     const itemIds = Array.from(selectionMap.keys());
     if (itemIds.length === 0) break;
 
-    const deps = await prisma.itemDependency.findMany({
-      where: {
-        parentId: { in: itemIds },
-        type: {
-          in: [DependencyType.INCLUDES, DependencyType.REQUIRES, DependencyType.MANDATORY_ATTACHMENT],
-        },
-      },
-      select: {
-        parentItem: {
-          select: {
-            type: true,
-            name: true,
+    const [deps, optionalPackageMembers] = await Promise.all([
+      prisma.itemDependency.findMany({
+        where: {
+          parentId: { in: itemIds },
+          type: {
+            in: [DependencyType.INCLUDES, DependencyType.REQUIRES, DependencyType.MANDATORY_ATTACHMENT],
           },
         },
-        childItem: {
-          select: {
-            type: true,
-            name: true,
-            sku: true,
+        select: {
+          parentId: true,
+          parentItem: {
+            select: {
+              type: true,
+              name: true,
+            },
           },
+          childItem: {
+            select: {
+              type: true,
+              name: true,
+              sku: true,
+            },
+          },
+          childId: true,
         },
-        childId: true,
-      },
-    });
+      }),
+      prisma.packageCompositionItem.findMany({
+        where: {
+          packageId: { in: itemIds },
+          role: "OPTIONAL",
+        },
+        select: {
+          packageId: true,
+          catalogItemId: true,
+        },
+      }),
+    ]);
+
+    const optionalPackageMemberPairs = new Set(
+      optionalPackageMembers.map((row) => `${row.packageId}:${row.catalogItemId}`)
+    );
 
     for (const dep of deps) {
+      if (
+        dep.parentItem.type === ItemType.PACKAGE &&
+        optionalPackageMemberPairs.has(`${dep.parentId}:${dep.childId}`)
+      ) {
+        continue;
+      }
+
       const parentRole = classifyCoreServiceRoleByIdentity(dep.parentItem);
       const childIsManagedTier = isManagedTierOptionByIdentity(dep.childItem);
       const childIsConnectivity = dep.childItem.type === ItemType.CONNECTIVITY;
