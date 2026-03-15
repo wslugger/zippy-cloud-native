@@ -113,7 +113,7 @@ interface ServiceDesignOptionWorkspace {
 interface ServiceFeatureWorkspace {
     id: string;
     label: string;
-    value: string | null;
+    value?: string;
 }
 
 interface AddOnWorkspaceOption {
@@ -596,7 +596,7 @@ export default function CatalogItemDetail() {
             const supportedIds = new Set((featureData.supportedFeatureTermIds || []) as string[]);
             const supportedFeatures: ServiceFeatureWorkspace[] = (featureData.featureTerms || [])
                 .filter((term: any) => supportedIds.has(term.id))
-                .map((term: any) => ({ id: term.id, label: term.label, value: term.value || null }));
+                .map((term: any) => ({ id: term.id, label: term.label, value: term.value || undefined }));
 
             const designOptions: ServiceDesignOptionWorkspace[] = (designData.options || []).map((row: any) => {
                 const fromAllowed = (row.allowedValues || []).map((av: any) => av.designOptionValue);
@@ -1562,7 +1562,7 @@ export default function CatalogItemDetail() {
                                                             STANDARD: 'bg-emerald-500',
                                                             OPTIONAL: 'bg-blue-400',
                                                         };
-                                                        const renderFeatureRow = (feature: { id: string; label: string; value?: string | null }, key: string) => {
+                                                        const renderFeatureRow = (feature: { id: string; label: string; value?: string }, key: string) => {
                                                             const status = featureStatusByTermId.get(feature.id) || '';
                                                             const isSelected = Boolean(status);
                                                             return (
