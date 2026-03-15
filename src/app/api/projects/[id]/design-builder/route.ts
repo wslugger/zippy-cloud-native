@@ -3,6 +3,12 @@ import { DependencyType, ItemType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { evaluatePackageSelections, type SelectionInput } from "@/lib/package-policy-engine";
+import { validateServiceCoverageForSelection } from "@/lib/service-coverage-policy";
+import {
+  classifyCoreServiceRoleByIdentity,
+  isManagedTierOptionByIdentity,
+  parsePackageDependencyAllowlist,
+} from "@/lib/package-dependency-allowlist";
 
 interface SaveSelectionPayload {
   catalogItemId: string;
@@ -58,11 +64,37 @@ async function expandRequiredDependencies(initialSelections: SelectionInput[]): 
         },
       },
       select: {
+        parentItem: {
+          select: {
+            type: true,
+            name: true,
+          },
+        },
+        childItem: {
+          select: {
+            type: true,
+            name: true,
+            sku: true,
+          },
+        },
         childId: true,
       },
     });
 
     for (const dep of deps) {
+      const parentRole = classifyCoreServiceRoleByIdentity(dep.parentItem);
+      const childIsManagedTier = isManagedTierOptionByIdentity(dep.childItem);
+      const childIsConnectivity = dep.childItem.type === ItemType.CONNECTIVITY;
+
+      // SDWAN/LAN/WLAN require user choice for tiers; SDWAN also requires connectivity choice.
+      // Do not auto-add these children even when dependency rows are marked as mandatory.
+      if (
+        (parentRole === "SDWAN" || parentRole === "LAN" || parentRole === "WLAN") &&
+        (childIsManagedTier || (parentRole === "SDWAN" && childIsConnectivity))
+      ) {
+        continue;
+      }
+
       if (!selectionMap.has(dep.childId)) {
         selectionMap.set(dep.childId, {
           catalogItemId: dep.childId,
@@ -76,6 +108,100 @@ async function expandRequiredDependencies(initialSelections: SelectionInput[]): 
   }
 
   return Array.from(selectionMap.values());
+}
+
+interface PackageAllowlistViolation {
+  code: "PACKAGE_OPTION_NOT_ALLOWED";
+  message: string;
+  packageId: string;
+  itemId: string;
+  parentId: string;
+  blocking: true;
+}
+
+async function validatePackageDependencyAllowlists(input: {
+  selectedItemIds: string[];
+  selectedPackageIds: string[];
+}): Promise<PackageAllowlistViolation[]> {
+  const { selectedItemIds, selectedPackageIds } = input;
+  if (selectedPackageIds.length === 0 || selectedItemIds.length === 0) return [];
+
+  const selectedIds = new Set(selectedItemIds);
+  const packages = await prisma.catalogItem.findMany({
+    where: { id: { in: selectedPackageIds }, type: ItemType.PACKAGE },
+    select: { id: true, configSchema: true },
+  });
+
+  const packageAllowlists = packages
+    .map((pkg) => ({ packageId: pkg.id, allowlist: parsePackageDependencyAllowlist(pkg.configSchema) }))
+    .filter((row) => Object.keys(row.allowlist).length > 0);
+  if (packageAllowlists.length === 0) return [];
+
+  const parentIds = Array.from(
+    new Set(
+      packageAllowlists.flatMap((row) => Object.keys(row.allowlist)).filter((parentId) => selectedIds.has(parentId))
+    )
+  );
+  if (parentIds.length === 0) return [];
+
+  const deps = await prisma.itemDependency.findMany({
+    where: {
+      parentId: { in: parentIds },
+      childId: { in: selectedItemIds },
+      type: {
+        in: [
+          DependencyType.OPTIONAL_ATTACHMENT,
+          DependencyType.MANDATORY_ATTACHMENT,
+          DependencyType.REQUIRES,
+          DependencyType.INCLUDES,
+        ],
+      },
+    },
+    include: {
+      childItem: {
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          type: true,
+        },
+      },
+    },
+  });
+
+  const violations: PackageAllowlistViolation[] = [];
+
+  for (const { packageId, allowlist } of packageAllowlists) {
+    for (const dep of deps) {
+      const entry = allowlist[dep.parentId];
+      if (!entry) continue;
+      if (!selectedIds.has(dep.childId)) continue;
+
+      const childIsManagedTier = isManagedTierOptionByIdentity(dep.childItem);
+      const childIsConnectivity = dep.childItem.type === ItemType.CONNECTIVITY;
+      if (!childIsManagedTier && !childIsConnectivity) continue;
+
+      const allowedIds = childIsManagedTier ? entry.managedTierIds : entry.connectivityIds;
+      if (!allowedIds.includes(dep.childId)) {
+        violations.push({
+          code: "PACKAGE_OPTION_NOT_ALLOWED",
+          message: `${dep.childItem.name} is not allowed by package option scope.`,
+          packageId,
+          itemId: dep.childId,
+          parentId: dep.parentId,
+          blocking: true,
+        });
+      }
+    }
+  }
+
+  const deduped = new Map<string, PackageAllowlistViolation>();
+  for (const violation of violations) {
+    const key = `${violation.packageId}:${violation.parentId}:${violation.itemId}`;
+    if (!deduped.has(key)) deduped.set(key, violation);
+  }
+
+  return Array.from(deduped.values());
 }
 
 export async function GET(
@@ -285,6 +411,19 @@ export async function PUT(
 
     let effectiveSelections = await expandRequiredDependencies(Array.from(uniqueSelectionMap.values()));
 
+    const coverageViolations = await validateServiceCoverageForSelection(
+      effectiveSelections.map((selection) => selection.catalogItemId)
+    );
+    if (coverageViolations.some((violation) => violation.blocking)) {
+      return NextResponse.json(
+        {
+          error: "Service coverage validation failed",
+          violations: coverageViolations,
+        },
+        { status: 422 }
+      );
+    }
+
     const selectedCatalogItems = await prisma.catalogItem.findMany({
       where: { id: { in: effectiveSelections.map((selection) => selection.catalogItemId) } },
       select: { id: true, type: true },
@@ -293,6 +432,20 @@ export async function PUT(
     const selectedPackageIds = selectedCatalogItems
       .filter((item) => item.type === ItemType.PACKAGE)
       .map((item) => item.id);
+
+    const packageAllowlistViolations = await validatePackageDependencyAllowlists({
+      selectedItemIds: effectiveSelections.map((selection) => selection.catalogItemId),
+      selectedPackageIds,
+    });
+    if (packageAllowlistViolations.some((violation) => violation.blocking)) {
+      return NextResponse.json(
+        {
+          error: "Package option scope validation failed",
+          violations: packageAllowlistViolations,
+        },
+        { status: 422 }
+      );
+    }
 
     const mergedForcedConfig: Record<string, Record<string, string | string[]>> = {};
 

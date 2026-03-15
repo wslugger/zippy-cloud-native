@@ -4,6 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, ChevronLeft, ChevronRight, Loader2, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  classifyCoreServiceRoleByIdentity,
+  isManagedTierOptionByIdentity,
+  parsePackageDependencyAllowlist,
+  type PackageDependencyAllowlist,
+  type CoreServiceRole,
+} from '@/lib/package-dependency-allowlist';
 
 interface GuidedFlowWizardProps {
   projectId: string;
@@ -280,6 +287,14 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
     [selectedTopLevelItems]
   );
 
+  const packageDependencyAllowlists = useMemo(() => {
+    const byPackageId: Record<string, PackageDependencyAllowlist> = {};
+    for (const pkg of selectedPackages) {
+      byPackageId[pkg.id] = parsePackageDependencyAllowlist(pkg.configSchema);
+    }
+    return byPackageId;
+  }, [selectedPackages]);
+
   const topLevelSelectionCount = selectedTopLevelItems.length;
 
   const packageMemberRows = useMemo(() => {
@@ -449,6 +464,30 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
       } else {
         delete next[itemId];
       }
+      return next;
+    });
+  };
+
+  const selectExclusiveDependency = (itemId: string, selected: boolean, peerIds: string[]) => {
+    setSelections((previous) => {
+      const next = { ...previous };
+      if (!selected) {
+        delete next[itemId];
+        return next;
+      }
+
+      for (const peerId of peerIds) {
+        if (peerId !== itemId) {
+          delete next[peerId];
+        }
+      }
+
+      next[itemId] = next[itemId] ?? {
+        catalogItemId: itemId,
+        quantity: 1,
+        configValues: {},
+        designOptionValues: {},
+      };
       return next;
     });
   };
@@ -638,14 +677,31 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                       {(() => {
                         const { item, packageId } = activeServiceConfigItem;
                         const selection = selections[item.id];
+                        const serviceRole: CoreServiceRole = classifyCoreServiceRoleByIdentity(item);
+                        const packageAllowlistEntry = packageId
+                          ? packageDependencyAllowlists[packageId]?.[item.id]
+                          : null;
+                        const allowedManagedTierIds = packageAllowlistEntry ? packageAllowlistEntry.managedTierIds : null;
+                        const allowedConnectivityIds = packageAllowlistEntry ? packageAllowlistEntry.connectivityIds : null;
                         const dependencyRows = (item.childDependencies ?? [])
                           .filter((dep) => dep.childItem.type === 'SERVICE_OPTION' || dep.childItem.type === 'CONNECTIVITY')
                           .filter((dep) => OPTIONAL_DEPENDENCY_TYPES.has(dep.type) || MANDATORY_DEPENDENCY_TYPES.has(dep.type))
                           .map((dep) => ({
                             dep,
                             mandatory: MANDATORY_DEPENDENCY_TYPES.has(dep.type),
-                            selected: MANDATORY_DEPENDENCY_TYPES.has(dep.type) || Boolean(selections[dep.childId]),
+                            selected: Boolean(selections[dep.childId]),
                           }));
+                        const managedTierRows = dependencyRows
+                          .filter((row) => isManagedTierOptionByIdentity(row.dep.childItem))
+                          .filter((row) => !allowedManagedTierIds || allowedManagedTierIds.includes(row.dep.childId));
+                        const transportRows = dependencyRows
+                          .filter((row) => row.dep.childItem.type === 'CONNECTIVITY')
+                          .filter((row) => !allowedConnectivityIds || allowedConnectivityIds.includes(row.dep.childId));
+                        const otherAddonRows = dependencyRows.filter(
+                          (row) => !isManagedTierOptionByIdentity(row.dep.childItem) && row.dep.childItem.type !== 'CONNECTIVITY'
+                        );
+                        const tierPeerIds = managedTierRows.map((row) => row.dep.childId);
+                        const requiresTier = serviceRole === 'SDWAN' || serviceRole === 'LAN' || serviceRole === 'WLAN';
 
                         return (
                           <>
@@ -665,25 +721,94 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                             {dependencyRows.length > 0 && (
                               <div>
                                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">Add-on Services</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                  {dependencyRows.map(({ dep, mandatory, selected }) => (
-                                    <label key={`${item.id}-${dep.childId}`} className="flex items-start gap-2 rounded border border-slate-200 bg-slate-50 p-2">
-                                      <input
-                                        type="checkbox"
-                                        checked={selected}
-                                        disabled={mandatory}
-                                        onChange={(event) => toggleOptionalDependency(dep.childId, event.target.checked)}
-                                        className="mt-1"
-                                      />
-                                      <span>
-                                        <span className="text-sm font-semibold text-slate-900 block">{dep.childItem.name}</span>
-                                        <span className="text-[11px] text-slate-500">
-                                          {mandatory ? 'Included by catalog dependency' : 'Optional add-on'}
-                                        </span>
-                                      </span>
-                                    </label>
-                                  ))}
-                                </div>
+                                {packageAllowlistEntry && (
+                                  <p className="text-[11px] text-slate-500 mb-2">
+                                    Package scope is limiting add-on choices for this service.
+                                  </p>
+                                )}
+
+                                {managedTierRows.length > 0 && (
+                                  <div className="mb-3">
+                                    <p className="text-[11px] font-semibold text-slate-700 mb-2">
+                                      Managed Service Tier {requiresTier ? '(select one required)' : '(optional)'}
+                                    </p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                      {managedTierRows.map(({ dep, mandatory, selected }) => (
+                                        <label key={`${item.id}-${dep.childId}`} className="flex items-start gap-2 rounded border border-slate-200 bg-slate-50 p-2">
+                                          <input
+                                            type="checkbox"
+                                            checked={selected}
+                                            disabled={false}
+                                            onChange={(event) => selectExclusiveDependency(dep.childId, event.target.checked, tierPeerIds)}
+                                            className="mt-1"
+                                          />
+                                          <span>
+                                            <span className="text-sm font-semibold text-slate-900 block">{dep.childItem.name}</span>
+                                            <span className="text-[11px] text-slate-500">
+                                              {mandatory ? 'Select one tier only (overrides mandatory include)' : 'Selecting one tier replaces other tiers'}
+                                            </span>
+                                          </span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {transportRows.length > 0 && (
+                                  <div className="mb-3">
+                                    <p className="text-[11px] font-semibold text-slate-700 mb-2">
+                                      Connectivity Services {serviceRole === 'SDWAN' ? '(select at least one)' : '(optional)'}
+                                    </p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                      {transportRows.map(({ dep, mandatory, selected }) => (
+                                        <label key={`${item.id}-${dep.childId}`} className="flex items-start gap-2 rounded border border-slate-200 bg-slate-50 p-2">
+                                          <input
+                                            type="checkbox"
+                                            checked={selected}
+                                            disabled={serviceRole === 'SDWAN' ? false : mandatory}
+                                            onChange={(event) => toggleOptionalDependency(dep.childId, event.target.checked)}
+                                            className="mt-1"
+                                          />
+                                          <span>
+                                            <span className="text-sm font-semibold text-slate-900 block">{dep.childItem.name}</span>
+                                            <span className="text-[11px] text-slate-500">
+                                              {serviceRole === 'SDWAN' && mandatory
+                                                ? 'Choose one or more connectivity services'
+                                                : mandatory
+                                                  ? 'Included by catalog dependency'
+                                                  : 'Optional connectivity add-on'}
+                                            </span>
+                                          </span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {otherAddonRows.length > 0 && (
+                                  <div>
+                                    <p className="text-[11px] font-semibold text-slate-700 mb-2">Other Add-ons</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                      {otherAddonRows.map(({ dep, mandatory, selected }) => (
+                                        <label key={`${item.id}-${dep.childId}`} className="flex items-start gap-2 rounded border border-slate-200 bg-slate-50 p-2">
+                                          <input
+                                            type="checkbox"
+                                            checked={selected}
+                                            disabled={mandatory}
+                                            onChange={(event) => toggleOptionalDependency(dep.childId, event.target.checked)}
+                                            className="mt-1"
+                                          />
+                                          <span>
+                                            <span className="text-sm font-semibold text-slate-900 block">{dep.childItem.name}</span>
+                                            <span className="text-[11px] text-slate-500">
+                                              {mandatory ? 'Included by catalog dependency' : 'Optional add-on'}
+                                            </span>
+                                          </span>
+                                        </label>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
 

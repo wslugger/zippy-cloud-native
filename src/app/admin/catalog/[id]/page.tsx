@@ -7,6 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { CATALOG_ITEM_TYPES, normalizeCatalogItemType } from '@/lib/catalog-item-types';
 import {
+    isManagedTierOptionByIdentity,
+    parsePackageDependencyAllowlist,
+    type PackageDependencyAllowlist,
+} from '@/lib/package-dependency-allowlist';
+import {
     HARDWARE_LIFECYCLE_STATUSES,
     isHardwareLifecycleStatus,
     lifecycleStatusLabel,
@@ -30,6 +35,7 @@ interface CatalogItem {
     name: string;
     shortDescription: string | null;
     detailedDescription: string | null;
+    configSchema?: Record<string, unknown> | null;
     type: string;
     lifecycleStatus: LifecycleStatus;
     constraints: { id: string; description: string }[];
@@ -110,10 +116,18 @@ interface ServiceFeatureWorkspace {
     value: string | null;
 }
 
+interface AddOnWorkspaceOption {
+    id: string;
+    sku: string;
+    name: string;
+}
+
 interface PackageServiceWorkspace {
     catalogItemId: string;
     designOptions: ServiceDesignOptionWorkspace[];
     supportedFeatures: ServiceFeatureWorkspace[];
+    managedTierOptions: AddOnWorkspaceOption[];
+    connectivityOptions: AddOnWorkspaceOption[];
     loading: boolean;
     error?: string;
 }
@@ -121,6 +135,13 @@ interface PackageServiceWorkspace {
 const PANEL_VISIBILITY_VALUE_ALIASES: Record<string, string> = {
     SERVICE_FAMILY: 'MANAGED_SERVICE',
 };
+
+const DEPENDENCY_TYPE_OPTIONS = [
+    { value: 'OPTIONAL_ATTACHMENT', label: 'OPTIONAL_ATTACHMENT' },
+    { value: 'MANDATORY_ATTACHMENT', label: 'MANDATORY_ATTACHMENT' },
+    { value: 'REQUIRES', label: 'REQUIRES' },
+    { value: 'INCLUDES', label: 'INCLUDES' },
+];
 
 function newTempId(prefix: string): string {
     return `temp-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -135,6 +156,10 @@ function toNumber(value: unknown): number {
     return 0;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function createEmptyCatalogItem(): CatalogItem {
     return {
         id: '',
@@ -142,6 +167,7 @@ function createEmptyCatalogItem(): CatalogItem {
         name: '',
         shortDescription: '',
         detailedDescription: '',
+        configSchema: null,
         type: 'MANAGED_SERVICE',
         lifecycleStatus: 'SUPPORTED',
         constraints: [],
@@ -244,6 +270,9 @@ function normalizeCatalogItem(raw: unknown): CatalogItem {
         name: typeof input.name === 'string' ? input.name : fallback.name,
         shortDescription: typeof input.shortDescription === 'string' ? input.shortDescription : fallback.shortDescription,
         detailedDescription: typeof input.detailedDescription === 'string' ? input.detailedDescription : fallback.detailedDescription,
+        configSchema: (input.configSchema && typeof input.configSchema === 'object' && !Array.isArray(input.configSchema))
+            ? (input.configSchema as Record<string, unknown>)
+            : null,
         type: normalizeCatalogItemType(typeof input.type === 'string' ? input.type : null) || fallback.type,
         lifecycleStatus: typeof input.lifecycleStatus === 'string' && isHardwareLifecycleStatus(input.lifecycleStatus)
             ? input.lifecycleStatus
@@ -267,6 +296,7 @@ export default function CatalogItemDetail() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<{id: string, name: string, sku: string, type: string}[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [dependencyTypeSelection, setDependencyTypeSelection] = useState('OPTIONAL_ATTACHMENT');
 
     const [taxonomyTerms, setTaxonomyTerms] = useState<{id: string, label: string, category: string, value: string | null}[]>([]);
     const [compositionRows, setCompositionRows] = useState<CompositionRow[]>([]);
@@ -284,6 +314,7 @@ export default function CatalogItemDetail() {
     const [featureSearch, setFeatureSearch] = useState('');
     const [packageServiceWorkspaces, setPackageServiceWorkspaces] = useState<Record<string, PackageServiceWorkspace>>({});
     const [packageDesignSelections, setPackageDesignSelections] = useState<PackageDesignOptionSelection[]>([]);
+    const [packageDependencyAllowlist, setPackageDependencyAllowlist] = useState<PackageDependencyAllowlist>({});
 
     useEffect(() => {
         if (id !== 'new') {
@@ -368,6 +399,7 @@ export default function CatalogItemDetail() {
                         status: row.status,
                     }));
                     setFeatureAssignments(assignments);
+                    setPackageDependencyAllowlist(parsePackageDependencyAllowlist(currentItem.configSchema));
 
                     const compositionMemberIds = Array.from(new Set(nextCompositionRows.map((row) => row.catalogItemId)));
                     if (compositionMemberIds.length === 0) {
@@ -413,12 +445,14 @@ export default function CatalogItemDetail() {
                     setFeatureAssignments(assignments);
                     setPackageServiceWorkspaces({});
                     setPackageDesignSelections([]);
+                    setPackageDependencyAllowlist({});
                 } else {
                     setSupportedFeatureTermIds([]);
                     setAvailableFeatureTermIds([]);
                     setFeatureAssignments([]);
                     setPackageServiceWorkspaces({});
                     setPackageDesignSelections([]);
+                    setPackageDependencyAllowlist({});
                 }
             } catch (error) {
                 const message = error instanceof Error ? error.message : 'Failed to load advanced editor data';
@@ -434,6 +468,18 @@ export default function CatalogItemDetail() {
 
         const memberIds = new Set(compositionRows.map((row) => row.catalogItemId));
         setPackageServiceWorkspaces((prev) => {
+            const filtered = Object.fromEntries(
+                Object.entries(prev).filter(([catalogItemId]) => memberIds.has(catalogItemId))
+            );
+            if (Object.keys(filtered).length === Object.keys(prev).length) return prev;
+            return filtered;
+        });
+    }, [compositionRows, item?.type]);
+
+    useEffect(() => {
+        if (!item || item.type !== 'PACKAGE') return;
+        const memberIds = new Set(compositionRows.map((row) => row.catalogItemId));
+        setPackageDependencyAllowlist((prev) => {
             const filtered = Object.fromEntries(
                 Object.entries(prev).filter(([catalogItemId]) => memberIds.has(catalogItemId))
             );
@@ -533,18 +579,21 @@ export default function CatalogItemDetail() {
 
     async function fetchPackageServiceWorkspace(catalogItemId: string): Promise<PackageServiceWorkspace> {
         try {
-            const [designRes, featureRes] = await Promise.all([
+            const [designRes, featureRes, catalogRes] = await Promise.all([
                 fetch(`/api/admin/catalog/${catalogItemId}/design-options`),
                 fetch(`/api/admin/catalog/${catalogItemId}/features`),
+                fetch(`/api/admin/catalog/${catalogItemId}`),
             ]);
-            if (!designRes.ok || !featureRes.ok) {
+            if (!designRes.ok || !featureRes.ok || !catalogRes.ok) {
                 const designError = !designRes.ok ? await designRes.json().catch(() => ({})) : null;
                 const featureError = !featureRes.ok ? await featureRes.json().catch(() => ({})) : null;
-                throw new Error(designError?.error || featureError?.error || 'Failed to load service design workspace');
+                const catalogError = !catalogRes.ok ? await catalogRes.json().catch(() => ({})) : null;
+                throw new Error(designError?.error || featureError?.error || catalogError?.error || 'Failed to load service design workspace');
             }
 
             const designData = await designRes.json();
             const featureData = await featureRes.json();
+            const catalogData = await catalogRes.json();
             const supportedIds = new Set((featureData.supportedFeatureTermIds || []) as string[]);
             const supportedFeatures: ServiceFeatureWorkspace[] = (featureData.featureTerms || [])
                 .filter((term: any) => supportedIds.has(term.id))
@@ -567,10 +616,27 @@ export default function CatalogItemDetail() {
                 };
             });
 
+            const dependencyCandidates = Array.isArray(catalogData.childDependencies) ? catalogData.childDependencies : [];
+            const managedTierOptions: AddOnWorkspaceOption[] = [];
+            const connectivityOptions: AddOnWorkspaceOption[] = [];
+            for (const dep of dependencyCandidates) {
+                const child = dep?.childItem;
+                if (!child?.id || !child?.name || !child?.sku || !child?.type) continue;
+                if (isManagedTierOptionByIdentity(child)) {
+                    managedTierOptions.push({ id: child.id, name: child.name, sku: child.sku });
+                    continue;
+                }
+                if (child.type === 'CONNECTIVITY') {
+                    connectivityOptions.push({ id: child.id, name: child.name, sku: child.sku });
+                }
+            }
+
             return {
                 catalogItemId,
                 designOptions,
                 supportedFeatures,
+                managedTierOptions: Array.from(new Map(managedTierOptions.map((row) => [row.id, row])).values()),
+                connectivityOptions: Array.from(new Map(connectivityOptions.map((row) => [row.id, row])).values()),
                 loading: false,
             };
         } catch (error) {
@@ -578,6 +644,8 @@ export default function CatalogItemDetail() {
                 catalogItemId,
                 designOptions: [],
                 supportedFeatures: [],
+                managedTierOptions: [],
+                connectivityOptions: [],
                 loading: false,
                 error: error instanceof Error ? error.message : 'Failed to load workspace',
             };
@@ -715,6 +783,46 @@ export default function CatalogItemDetail() {
             if (!featureWriteRes.ok) {
                 throw new Error(featureWriteData.error || 'Failed to save package feature statuses');
             }
+            const compositionMemberIds: string[] = Array.from(
+                new Set(
+                    ((compData.items || []) as Array<{ catalogItemId?: string }>)
+                        .map((row) => row.catalogItemId)
+                        .filter((catalogItemId): catalogItemId is string => Boolean(catalogItemId))
+                )
+            );
+
+            const normalizedDependencyAllowlist = Object.fromEntries(
+                Object.entries(packageDependencyAllowlist)
+                    .filter(([catalogItemId]) => compositionMemberIds.includes(catalogItemId))
+                    .map(([catalogItemId, entry]) => [
+                        catalogItemId,
+                        {
+                            managedTierIds: Array.from(new Set(entry.managedTierIds)),
+                            connectivityIds: Array.from(new Set(entry.connectivityIds)),
+                        },
+                    ])
+            );
+
+            const baseConfigSchema = isRecord(item.configSchema) ? item.configSchema : {};
+            const nextConfigSchema: Record<string, unknown> = {
+                ...baseConfigSchema,
+            };
+            if (Object.keys(normalizedDependencyAllowlist).length > 0) {
+                nextConfigSchema.packageDependencyAllowlist = normalizedDependencyAllowlist;
+            } else {
+                delete nextConfigSchema.packageDependencyAllowlist;
+            }
+
+            const configRes = await fetch(`/api/admin/catalog/${item.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ configSchema: nextConfigSchema }),
+            });
+            const configData = await configRes.json().catch(() => ({}));
+            if (!configRes.ok) {
+                throw new Error(configData.error || 'Failed to save package option scope');
+            }
+
             setCompositionRows((compData.items || []).map((row: any) => ({
                 catalogItemId: row.catalogItemId,
                 role: row.role,
@@ -738,13 +846,8 @@ export default function CatalogItemDetail() {
                 termId: row.termId,
                 status: row.status,
             })));
-            const compositionMemberIds: string[] = Array.from(
-                new Set(
-                    ((compData.items || []) as Array<{ catalogItemId?: string }>)
-                        .map((row) => row.catalogItemId)
-                        .filter((catalogItemId): catalogItemId is string => Boolean(catalogItemId))
-                )
-            );
+            setPackageDependencyAllowlist(normalizedDependencyAllowlist);
+            setItem((current) => current ? { ...current, configSchema: nextConfigSchema } : current);
             const workspaces = await Promise.all(
                 compositionMemberIds.map((catalogItemId) => fetchPackageServiceWorkspace(catalogItemId))
             );
@@ -967,6 +1070,42 @@ export default function CatalogItemDetail() {
                     valueIds: nextMode === 'NONE' ? [] : nextValues,
                 };
             });
+        });
+    };
+
+    const updatePackageDependencyAllowlistSelection = (
+        catalogItemId: string,
+        kind: 'managedTierIds' | 'connectivityIds',
+        optionId: string,
+        checked: boolean,
+        availableManagedTierIds: string[],
+        availableConnectivityIds: string[]
+    ) => {
+        setPackageDependencyAllowlist((prev) => {
+            const existing = prev[catalogItemId] || {
+                managedTierIds: [...availableManagedTierIds],
+                connectivityIds: [...availableConnectivityIds],
+            };
+            const currentValues = kind === 'managedTierIds' ? existing.managedTierIds : existing.connectivityIds;
+            const nextValues = checked
+                ? Array.from(new Set([...currentValues, optionId]))
+                : currentValues.filter((id) => id !== optionId);
+            const nextEntry = {
+                managedTierIds: kind === 'managedTierIds' ? nextValues : existing.managedTierIds,
+                connectivityIds: kind === 'connectivityIds' ? nextValues : existing.connectivityIds,
+            };
+            return {
+                ...prev,
+                [catalogItemId]: nextEntry,
+            };
+        });
+    };
+
+    const resetPackageDependencyAllowlistForService = (catalogItemId: string) => {
+        setPackageDependencyAllowlist((prev) => {
+            const next = { ...prev };
+            delete next[catalogItemId];
+            return next;
         });
     };
 
@@ -1278,6 +1417,11 @@ export default function CatalogItemDetail() {
                                 {compositionRowsByOrder.map(({ row, index }) => {
                                     const itemMeta = catalogLookup.find((catalog) => catalog.id === row.catalogItemId);
                                     const workspace = packageServiceWorkspaces[row.catalogItemId];
+                                    const dependencyScope = packageDependencyAllowlist[row.catalogItemId];
+                                    const managedTierOptionIds = workspace?.managedTierOptions.map((option) => option.id) || [];
+                                    const connectivityOptionIds = workspace?.connectivityOptions.map((option) => option.id) || [];
+                                    const selectedManagedTierIds = dependencyScope?.managedTierIds || managedTierOptionIds;
+                                    const selectedConnectivityIds = dependencyScope?.connectivityIds || connectivityOptionIds;
                                     return (
                                         <div key={`package-service-${index}-${row.catalogItemId}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-4">
                                             <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
@@ -1477,6 +1621,77 @@ export default function CatalogItemDetail() {
                                                     ) : (
                                                         <p className="text-xs text-slate-500">No supported features available from this service.</p>
                                                     )}
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">Package Add-on Option Scope</h3>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-7 px-2 text-[11px]"
+                                                        onClick={() => resetPackageDependencyAllowlistForService(row.catalogItemId)}
+                                                    >
+                                                        Reset to All
+                                                    </Button>
+                                                </div>
+                                                <p className="text-[11px] text-slate-500">
+                                                    Limit which managed tiers and connectivity options are selectable when this service is used in this package.
+                                                </p>
+
+                                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                                                    <div className="rounded-md border border-slate-200 bg-slate-50 p-2 space-y-2">
+                                                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Managed Service Tiers</p>
+                                                        {workspace && workspace.managedTierOptions.length > 0 ? (
+                                                            workspace.managedTierOptions.map((option) => (
+                                                                <label key={`pkg-tier-${row.catalogItemId}-${option.id}`} className="text-xs text-slate-700 flex items-center gap-2">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selectedManagedTierIds.includes(option.id)}
+                                                                        onChange={(e) => updatePackageDependencyAllowlistSelection(
+                                                                            row.catalogItemId,
+                                                                            'managedTierIds',
+                                                                            option.id,
+                                                                            e.target.checked,
+                                                                            managedTierOptionIds,
+                                                                            connectivityOptionIds
+                                                                        )}
+                                                                    />
+                                                                    <span className="font-mono text-[10px] text-slate-500">{option.sku}</span>
+                                                                    <span>{option.name}</span>
+                                                                </label>
+                                                            ))
+                                                        ) : (
+                                                            <p className="text-[11px] text-slate-500">No managed tier options found from this service dependencies.</p>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="rounded-md border border-slate-200 bg-slate-50 p-2 space-y-2">
+                                                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Connectivity Options</p>
+                                                        {workspace && workspace.connectivityOptions.length > 0 ? (
+                                                            workspace.connectivityOptions.map((option) => (
+                                                                <label key={`pkg-conn-${row.catalogItemId}-${option.id}`} className="text-xs text-slate-700 flex items-center gap-2">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selectedConnectivityIds.includes(option.id)}
+                                                                        onChange={(e) => updatePackageDependencyAllowlistSelection(
+                                                                            row.catalogItemId,
+                                                                            'connectivityIds',
+                                                                            option.id,
+                                                                            e.target.checked,
+                                                                            managedTierOptionIds,
+                                                                            connectivityOptionIds
+                                                                        )}
+                                                                    />
+                                                                    <span className="font-mono text-[10px] text-slate-500">{option.sku}</span>
+                                                                    <span>{option.name}</span>
+                                                                </label>
+                                                            ))
+                                                        ) : (
+                                                            <p className="text-[11px] text-slate-500">No connectivity options found from this service dependencies.</p>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1749,6 +1964,17 @@ export default function CatalogItemDetail() {
                             {/* Search for new dependency */}
                             <div className="relative">
                                 <div className="flex gap-2 mb-3">
+                                    <select
+                                        value={dependencyTypeSelection}
+                                        onChange={(e) => setDependencyTypeSelection(e.target.value)}
+                                        className="h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-[11px] font-semibold text-slate-700"
+                                    >
+                                        {DEPENDENCY_TYPE_OPTIONS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                     <Input 
                                         value={searchQuery}
                                         onChange={(e) => searchItems(e.target.value)}
@@ -1762,7 +1988,7 @@ export default function CatalogItemDetail() {
                                         {searchResults.map(res => (
                                             <button 
                                                 key={res.id}
-                                                onClick={() => addDependency(res, 'INCLUDES')}
+                                                onClick={() => addDependency(res, dependencyTypeSelection)}
                                                 className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center justify-between group transition-colors rounded-lg"
                                             >
                                                 <div className="min-w-0">
@@ -1781,12 +2007,12 @@ export default function CatalogItemDetail() {
                             <div className="space-y-2">
                                 {item.childDependencies
                                     .map((d, i) => {
-                                        if (d.type !== 'INCLUDES') return null;
                                         return (
                                             <div key={d.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50 border-dashed">
                                                 <div className="min-w-0">
                                                     <p className="text-[10px] font-mono text-slate-400">{d.childItem.sku}</p>
                                                     <p className="text-xs font-bold text-slate-700 truncate">{d.childItem.name}</p>
+                                                    <p className="text-[10px] font-semibold text-slate-500">{d.type}</p>
                                                 </div>
                                                 <Button 
                                                     size="sm" 
@@ -1799,7 +2025,7 @@ export default function CatalogItemDetail() {
                                             </div>
                                         );
                                     })}
-                                {item.childDependencies.filter(d => d.type === 'INCLUDES').length === 0 && (
+                                {item.childDependencies.length === 0 && (
                                     <p className="text-xs text-slate-400 italic py-2 text-center text-balance">
                                         No services linked.
                                     </p>
