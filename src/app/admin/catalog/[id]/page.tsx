@@ -315,6 +315,7 @@ export default function CatalogItemDetail() {
     const [packageServiceWorkspaces, setPackageServiceWorkspaces] = useState<Record<string, PackageServiceWorkspace>>({});
     const [packageDesignSelections, setPackageDesignSelections] = useState<PackageDesignOptionSelection[]>([]);
     const [packageDependencyAllowlist, setPackageDependencyAllowlist] = useState<PackageDependencyAllowlist>({});
+    const [expandedNotIncluded, setExpandedNotIncluded] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         if (id !== 'new') {
@@ -1225,7 +1226,7 @@ export default function CatalogItemDetail() {
     if (!item) return <div>Item not found</div>;
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 pb-20">
+        <div className="max-w-[1600px] space-y-8 pb-20">
             {/* Header */}
             <div className="flex items-center justify-between sticky top-0 bg-slate-50/80 backdrop-blur-md py-4 z-10 border-b border-slate-200 -mx-4 px-4">
                 <div className="flex items-center gap-4">
@@ -1261,9 +1262,9 @@ export default function CatalogItemDetail() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
                 {/* Main Content */}
-                <div className="lg:col-span-2 space-y-8">
+                <div className="space-y-8">
                     {/* Basic Info */}
                     <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
@@ -1543,82 +1544,76 @@ export default function CatalogItemDetail() {
                                                     )}
                                                 </div>
 
-                                                <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-3">
+                                                <div className="rounded-lg border border-slate-200 bg-white p-3 space-y-2">
                                                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">Features</h3>
-                                                    {workspace && workspace.supportedFeatures.length > 0 ? (
-                                                        <>
-                                                            <div className="space-y-2">
-                                                                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                                                                    Selected ({workspace.supportedFeatures.filter((feature) => Boolean(featureStatusByTermId.get(feature.id))).length})
-                                                                </p>
-                                                                {workspace.supportedFeatures
-                                                                    .filter((feature) => Boolean(featureStatusByTermId.get(feature.id)))
-                                                                    .map((feature) => {
-                                                                        const status = featureStatusByTermId.get(feature.id) || '';
-                                                                        return (
-                                                                            <div
-                                                                                key={`pkg-feature-selected-${row.catalogItemId}-${feature.id}`}
-                                                                                className="rounded-md border border-emerald-200 bg-emerald-50 p-2 flex flex-col gap-2"
-                                                                            >
-                                                                                <div className="min-w-0">
-                                                                                    <p className="text-sm font-semibold text-slate-900">{feature.label}</p>
-                                                                                    {feature.value && <p className="text-[11px] text-slate-500 font-mono">{feature.value}</p>}
-                                                                                </div>
-                                                                                <div className="w-full">
-                                                                                    <select
-                                                                                        value={status}
-                                                                                        onChange={(e) => updateFeatureStatus(feature.id, e.target.value as FeatureStatus | '')}
-                                                                                        className="h-8 w-full min-w-0 max-w-full rounded-md border border-emerald-200 bg-white px-2 text-xs"
-                                                                                    >
-                                                                                        <option value="">Not Included</option>
-                                                                                        <option value="REQUIRED">Required</option>
-                                                                                        <option value="STANDARD">Standard</option>
-                                                                                        <option value="OPTIONAL">Optional</option>
-                                                                                    </select>
-                                                                                </div>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                {workspace.supportedFeatures.filter((feature) => Boolean(featureStatusByTermId.get(feature.id))).length === 0 && (
-                                                                    <p className="text-xs text-slate-500">No features selected in this package service yet.</p>
+                                                    {workspace && workspace.supportedFeatures.length > 0 ? (() => {
+                                                        const statusOrder: Record<string, number> = { REQUIRED: 0, STANDARD: 1, OPTIONAL: 2 };
+                                                        const included = workspace.supportedFeatures
+                                                            .filter((f) => Boolean(featureStatusByTermId.get(f.id)))
+                                                            .sort((a, b) => (statusOrder[featureStatusByTermId.get(a.id) || ''] ?? 3) - (statusOrder[featureStatusByTermId.get(b.id) || ''] ?? 3));
+                                                        const notIncluded = workspace.supportedFeatures
+                                                            .filter((f) => !featureStatusByTermId.get(f.id));
+                                                        const showNotIncluded = expandedNotIncluded.has(row.catalogItemId);
+                                                        const statusStyle: Record<string, string> = {
+                                                            REQUIRED: 'border-rose-200 bg-rose-50 text-rose-800',
+                                                            STANDARD: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+                                                            OPTIONAL: 'border-blue-200 bg-blue-50 text-blue-800',
+                                                        };
+                                                        const dotStyle: Record<string, string> = {
+                                                            REQUIRED: 'bg-rose-500',
+                                                            STANDARD: 'bg-emerald-500',
+                                                            OPTIONAL: 'bg-blue-400',
+                                                        };
+                                                        const renderFeatureRow = (feature: { id: string; label: string; value?: string }, key: string) => {
+                                                            const status = featureStatusByTermId.get(feature.id) || '';
+                                                            const isSelected = Boolean(status);
+                                                            return (
+                                                                <div key={key} className="flex items-center justify-between gap-3 py-1.5">
+                                                                    <div className="flex items-center gap-2 min-w-0">
+                                                                        <span className={`shrink-0 h-1.5 w-1.5 rounded-full ${isSelected ? (dotStyle[status] || 'bg-emerald-500') : 'bg-slate-300'}`} />
+                                                                        <span className="text-xs font-medium text-slate-800 truncate">{feature.label}</span>
+                                                                        {feature.value && <span className="text-[10px] text-slate-400 font-mono shrink-0">{feature.value}</span>}
+                                                                    </div>
+                                                                    <select
+                                                                        value={status}
+                                                                        onChange={(e) => updateFeatureStatus(feature.id, e.target.value as FeatureStatus | '')}
+                                                                        className={`h-6 rounded border px-1.5 text-[11px] font-medium shrink-0 ${isSelected ? (statusStyle[status] || 'border-emerald-200 bg-emerald-50 text-emerald-800') : 'border-slate-200 bg-slate-50 text-slate-500'}`}
+                                                                    >
+                                                                        <option value="">Not Included</option>
+                                                                        <option value="REQUIRED">Required</option>
+                                                                        <option value="STANDARD">Standard</option>
+                                                                        <option value="OPTIONAL">Optional</option>
+                                                                    </select>
+                                                                </div>
+                                                            );
+                                                        };
+                                                        return (
+                                                            <div className="divide-y divide-slate-100">
+                                                                {included.map((f) => renderFeatureRow(f, `pkg-feature-${row.catalogItemId}-${f.id}`))}
+                                                                {included.length === 0 && (
+                                                                    <p className="text-xs text-slate-400 italic py-1">No features included yet.</p>
+                                                                )}
+                                                                {notIncluded.length > 0 && (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setExpandedNotIncluded((prev) => {
+                                                                                const next = new Set(prev);
+                                                                                if (next.has(row.catalogItemId)) next.delete(row.catalogItemId);
+                                                                                else next.add(row.catalogItemId);
+                                                                                return next;
+                                                                            })}
+                                                                            className="w-full flex items-center gap-1.5 py-1.5 text-[11px] font-semibold text-slate-400 hover:text-slate-600 transition-colors"
+                                                                        >
+                                                                            <span className={`transition-transform ${showNotIncluded ? 'rotate-90' : ''}`}>▶</span>
+                                                                            Not Included ({notIncluded.length})
+                                                                        </button>
+                                                                        {showNotIncluded && notIncluded.map((f) => renderFeatureRow(f, `pkg-feature-ni-${row.catalogItemId}-${f.id}`))}
+                                                                    </>
                                                                 )}
                                                             </div>
-
-                                                            <div className="space-y-2">
-                                                                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                                                                    Unselected ({workspace.supportedFeatures.filter((feature) => !featureStatusByTermId.get(feature.id)).length})
-                                                                </p>
-                                                                {workspace.supportedFeatures
-                                                                    .filter((feature) => !featureStatusByTermId.get(feature.id))
-                                                                    .map((feature) => {
-                                                                        const status = featureStatusByTermId.get(feature.id) || '';
-                                                                        return (
-                                                                            <div
-                                                                                key={`pkg-feature-unselected-${row.catalogItemId}-${feature.id}`}
-                                                                                className="rounded-md border border-slate-200 bg-slate-50 p-2 flex flex-col gap-2"
-                                                                            >
-                                                                                <div className="min-w-0">
-                                                                                    <p className="text-sm font-semibold text-slate-900">{feature.label}</p>
-                                                                                    {feature.value && <p className="text-[11px] text-slate-500 font-mono">{feature.value}</p>}
-                                                                                </div>
-                                                                                <div className="w-full">
-                                                                                    <select
-                                                                                        value={status}
-                                                                                        onChange={(e) => updateFeatureStatus(feature.id, e.target.value as FeatureStatus | '')}
-                                                                                        className="h-8 w-full min-w-0 max-w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
-                                                                                    >
-                                                                                        <option value="">Not Included</option>
-                                                                                        <option value="REQUIRED">Required</option>
-                                                                                        <option value="STANDARD">Standard</option>
-                                                                                        <option value="OPTIONAL">Optional</option>
-                                                                                    </select>
-                                                                                </div>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                            </div>
-                                                        </>
-                                                    ) : (
+                                                        );
+                                                    })() : (
                                                         <p className="text-xs text-slate-500">No supported features available from this service.</p>
                                                     )}
                                                 </div>
@@ -1874,7 +1869,7 @@ export default function CatalogItemDetail() {
                 </div>
 
                 {/* Sidebar */}
-                <div className="space-y-6">
+                <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
                     {/* Item Type & Metadata */}
                     <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
                         <div className="space-y-2">
