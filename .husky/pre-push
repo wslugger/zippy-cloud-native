@@ -5,6 +5,11 @@ set -e
 echo "Running pre-push checks..."
 npm test
 
+if [ "$SKIP_BUILD_ON_PUSH" != "1" ]; then
+  echo "Running production build gate..."
+  DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy" npm run build
+fi
+
 if [ "$RUN_LINT_ON_PUSH" = "1" ]; then
   echo "RUN_LINT_ON_PUSH=1 detected; linting changed files..."
   npm run lint:changed

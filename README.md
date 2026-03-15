@@ -63,7 +63,11 @@ GitHub CI still validates `main` with lint, tests, and build in `.github/workflo
 
 ## Local Automation
 
-- Husky pre-push hook runs `npm test` automatically.
+- Husky pre-push hook runs `npm test` and `npm run build` automatically.
+- Build uses a dummy DB URL to mirror CI behavior:
+  - `DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy npm run build`
+- Emergency bypass for local build gate:
+  - `SKIP_BUILD_ON_PUSH=1 git push`
 - Optional changed-file lint on push:
   - `RUN_LINT_ON_PUSH=1 git push`
 
