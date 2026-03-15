@@ -3,6 +3,8 @@ import { chromium } from "playwright";
 import { getSession } from "@/lib/auth";
 import { buildDesignDocumentModel, type DesignDocumentModel } from "@/lib/design-document";
 
+const FEATURE_CATEGORY_STATUSES = new Set(["REQUIRED", "STANDARD", "OPTIONAL"] as const);
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -13,13 +15,36 @@ function escapeHtml(value: string): string {
 }
 
 function renderDocumentHtml(model: DesignDocumentModel): string {
+  const renderCategorizedFeatures = (features: DesignDocumentModel["sections"][number]["features"]) => {
+    const categorized = features.filter((feature) => FEATURE_CATEGORY_STATUSES.has(feature.status as "REQUIRED" | "STANDARD" | "OPTIONAL"));
+
+    const required = categorized
+      .filter((feature) => feature.status === "REQUIRED")
+      .map((feature) => `<li>${escapeHtml(feature.label)}</li>`)
+      .join("");
+    const standard = categorized
+      .filter((feature) => feature.status === "STANDARD")
+      .map((feature) => `<li>${escapeHtml(feature.label)}</li>`)
+      .join("");
+    const optional = categorized
+      .filter((feature) => feature.status === "OPTIONAL")
+      .map((feature) => `<li>${escapeHtml(feature.label)}</li>`)
+      .join("");
+
+    if (!required && !standard && !optional) {
+      return "<ul><li>None</li></ul>";
+    }
+
+    return `
+      ${required ? `<h5>Required</h5><ul>${required}</ul>` : ""}
+      ${standard ? `<h5>Standard</h5><ul>${standard}</ul>` : ""}
+      ${optional ? `<h5>Optional</h5><ul>${optional}</ul>` : ""}
+    `;
+  };
+
   const sectionHtml = model.sections
     .map((section) => {
       if (section.kind === "PACKAGE") {
-        const packageFeatures = section.features
-          .map((feature) => `<li><strong>${escapeHtml(feature.label)}:</strong> ${escapeHtml(feature.status)}</li>`)
-          .join("");
-
         const serviceHtml = section.services
           .map((service) => {
             const serviceOptions = service.serviceOptions
@@ -31,9 +56,7 @@ function renderDocumentHtml(model: DesignDocumentModel): string {
                 return `<li><strong>${escapeHtml(option.label)}:</strong> ${escapeHtml(selected)}</li>`;
               })
               .join("");
-            const features = service.features
-              .map((feature) => `<li><strong>${escapeHtml(feature.label)}:</strong> ${escapeHtml(feature.status)}</li>`)
-              .join("");
+            const features = renderCategorizedFeatures(service.features);
 
             return `
               <article class="service">
@@ -45,7 +68,7 @@ function renderDocumentHtml(model: DesignDocumentModel): string {
                 <h5>Design Options</h5>
                 <ul>${designOptions || "<li>None</li>"}</ul>
                 <h5>Features</h5>
-                <ul>${features || "<li>None</li>"}</ul>
+                ${features}
               </article>
             `;
           })
@@ -56,8 +79,6 @@ function renderDocumentHtml(model: DesignDocumentModel): string {
             <h2>${escapeHtml(section.name)} (Package)</h2>
             <p>${escapeHtml(section.description ?? "No detailed description available.")}</p>
             <p class="meta">SKU: ${escapeHtml(section.sku)}</p>
-            <h3>Package Feature Status</h3>
-            <ul>${packageFeatures || "<li>None</li>"}</ul>
             <h3>Services</h3>
             ${serviceHtml || "<p>No services available.</p>"}
           </section>
@@ -73,9 +94,7 @@ function renderDocumentHtml(model: DesignDocumentModel): string {
           return `<li><strong>${escapeHtml(option.label)}:</strong> ${escapeHtml(selected)}</li>`;
         })
         .join("");
-      const features = section.features
-        .map((feature) => `<li><strong>${escapeHtml(feature.label)}:</strong> ${escapeHtml(feature.status)}</li>`)
-        .join("");
+      const features = renderCategorizedFeatures(section.features);
 
       return `
         <section>
@@ -87,7 +106,7 @@ function renderDocumentHtml(model: DesignDocumentModel): string {
           <h3>Design Options</h3>
           <ul>${designOptions || "<li>None</li>"}</ul>
           <h3>Features</h3>
-          <ul>${features || "<li>None</li>"}</ul>
+          ${features}
         </section>
       `;
     })

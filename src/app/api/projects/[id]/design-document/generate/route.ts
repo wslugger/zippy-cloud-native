@@ -10,16 +10,22 @@ import { getSystemConfigValue, normalizeGeminiJson } from "@/lib/recommendation-
 type GenerationTarget = "executiveSummary" | "conclusions";
 
 const DEFAULT_EXECUTIVE_PROMPT = [
-  "Write an executive summary for a technical design document.",
+  "Write the executive summary for this telecom/network design document in paragraph form.",
+  "Reference the project name and customer by name.",
+  "Enumerate selected packages and their key service composition.",
+  "Highlight significant design option selections and architecture intent in business terms.",
   "Tone: clear, concise, business-oriented, and implementation-aware.",
-  "Include: architecture intent, key selected service/package choices, major design option decisions, and what this means for delivery.",
+  "Length: 150-220 words.",
   "Do not invent facts that are not in context.",
 ].join(" ");
 
 const DEFAULT_CONCLUSIONS_PROMPT = [
-  "Write the conclusions section for a technical design document.",
+  "Write the conclusions section for this telecom/network design document in paragraph form.",
+  "Assess design completeness based on feature coverage.",
+  "Explicitly note any feature gaps where status is NOT_AVAILABLE.",
+  "State readiness for BOM/commercial validation and recommend clear next steps.",
   "Tone: direct and actionable.",
-  "Include: readiness status, main implementation considerations, and next-step focus for BOM/commercialization.",
+  "Length: 100-160 words.",
   "Do not invent facts that are not in context.",
 ].join(" ");
 
@@ -174,8 +180,8 @@ export async function POST(
     "Context:",
     context,
     "Output requirements:",
-    "- executiveSummary: 120-220 words.",
-    "- conclusions: 80-160 words.",
+    "- executiveSummary: 150-220 words.",
+    "- conclusions: 100-160 words.",
     "- Keep wording grounded in context only.",
   ].join("\n\n");
 

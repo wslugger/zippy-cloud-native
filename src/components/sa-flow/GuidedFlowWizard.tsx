@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, ChevronLeft, ChevronRight, Loader2, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Step3DesignDocument } from './Step3DesignDocument';
 import {
   classifyCoreServiceRoleByIdentity,
   isManagedTierOptionByIdentity,
@@ -209,6 +210,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
   const [step, setStep] = useState<WizardStep>(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [designSaved, setDesignSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [activeServiceId, setActiveServiceId] = useState<string | null>(null);
@@ -254,6 +256,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
       }
 
       setSelections(initialSelections);
+      setDesignSaved(false);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load design builder');
     } finally {
@@ -409,13 +412,13 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
       }
 
       setStatus('Design selections saved.');
-      onComplete();
+      setDesignSaved(true);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Failed to save design selections');
     } finally {
       setSaving(false);
     }
-  }, [projectId, selections, onComplete]);
+  }, [projectId, selections]);
 
   const toggleTopLevelItem = (item: TopLevelItem) => {
     setSelections((previous) => {
@@ -952,24 +955,30 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
 
         {step === 3 && (
           <>
-            <div>
-              <h2 className="text-3xl font-bold text-slate-900">Review and Commit</h2>
-              <p className="text-slate-500 text-lg mt-2">Save the design selections, then proceed to the Design Document editor for final summary and conclusions.</p>
-            </div>
+            {!designSaved ? (
+              <>
+                <div>
+                  <h2 className="text-3xl font-bold text-slate-900">Review and Commit</h2>
+                  <p className="text-slate-500 text-lg mt-2">Save the design selections, then proceed to the Design Document editor for final summary and conclusions.</p>
+                </div>
 
-            <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4 space-y-3">
-              <p className="text-sm font-semibold text-slate-900">Selection Summary</p>
-              <p className="text-sm text-slate-700">Top-level selections: {selectedTopLevelItems.length}</p>
-              <p className="text-sm text-slate-700">Configurable services in scope: {serviceConfigItems.length}</p>
-              <p className="text-sm text-slate-700">Total explicit selected items: {Object.keys(selections).length}</p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {selectedTopLevelItems.map((item) => (
-                  <span key={item.id} className="text-xs px-2 py-1 rounded border border-slate-300 bg-white text-slate-700">
-                    {item.name}
-                  </span>
-                ))}
-              </div>
-            </div>
+                <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4 space-y-3">
+                  <p className="text-sm font-semibold text-slate-900">Selection Summary</p>
+                  <p className="text-sm text-slate-700">Top-level selections: {selectedTopLevelItems.length}</p>
+                  <p className="text-sm text-slate-700">Configurable services in scope: {serviceConfigItems.length}</p>
+                  <p className="text-sm text-slate-700">Total explicit selected items: {Object.keys(selections).length}</p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {selectedTopLevelItems.map((item) => (
+                      <span key={item.id} className="text-xs px-2 py-1 rounded border border-slate-300 bg-white text-slate-700">
+                        {item.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <Step3DesignDocument projectId={projectId} onDone={onComplete} />
+            )}
           </>
         )}
       </div>
@@ -990,35 +999,37 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
           <Button
             variant="ghost"
             onClick={() => setStep((previous) => Math.max(minStep, previous - 1) as WizardStep)}
-            disabled={step === minStep || saving}
+            disabled={step === minStep || saving || (designSaved && step === 3)}
             className="gap-2 h-11 px-5"
           >
             <ChevronLeft size={16} /> Back
           </Button>
 
-          <Button
-            onClick={() => {
-              if (step === 1) {
-                setStep(2);
-                return;
+          {!(designSaved && step === 3) && (
+            <Button
+              onClick={() => {
+                if (step === 1) {
+                  setStep(2);
+                  return;
+                }
+                if (step === 2) {
+                  setStep(3);
+                  return;
+                }
+                void saveSelections();
+              }}
+              disabled={
+                saving ||
+                (step === 1 && !canContinueFromStep1) ||
+                (step === 2 && !canContinueFromStep2)
               }
-              if (step === 2) {
-                setStep(3);
-                return;
-              }
-              void saveSelections();
-            }}
-            disabled={
-              saving ||
-              (step === 1 && !canContinueFromStep1) ||
-              (step === 2 && !canContinueFromStep2)
-            }
-            className="gap-2 h-11 px-6"
-          >
-            {saving ? <Loader2 size={16} className="animate-spin" /> : <Settings2 size={16} />}
-            {step === 3 ? 'Save Design' : 'Continue'}
-            {step !== 3 && <ChevronRight size={16} />}
-          </Button>
+              className="gap-2 h-11 px-6"
+            >
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Settings2 size={16} />}
+              {step === 3 ? 'Save Design' : 'Continue'}
+              {step !== 3 && <ChevronRight size={16} />}
+            </Button>
+          )}
         </div>
       </div>
     </div>

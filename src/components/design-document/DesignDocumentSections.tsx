@@ -63,7 +63,21 @@ export interface DesignDocumentSectionsModel {
   appendix: AppendixEntry[];
 }
 
+function getCategorizedFeatures(features: FeatureRow[]) {
+  return {
+    required: features.filter((feature) => feature.status === 'REQUIRED'),
+    standard: features.filter((feature) => feature.status === 'STANDARD'),
+    optional: features.filter((feature) => feature.status === 'OPTIONAL'),
+  };
+}
+
 function ServiceBlock({ service, nested }: { service: ServiceSection; nested?: boolean }) {
+  const categorizedFeatures = getCategorizedFeatures(service.features);
+  const hasCategorizedFeatures =
+    categorizedFeatures.required.length > 0 ||
+    categorizedFeatures.standard.length > 0 ||
+    categorizedFeatures.optional.length > 0;
+
   return (
     <article className={`rounded-xl border ${nested ? 'border-slate-200 bg-slate-50' : 'border-slate-300 bg-white'} p-4 space-y-3`}>
       <div className="flex items-start justify-between gap-3">
@@ -118,15 +132,37 @@ function ServiceBlock({ service, nested }: { service: ServiceSection; nested?: b
 
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-1">Features</p>
-        {service.features.length === 0 ? (
-          <p className="text-xs text-slate-500">No features listed.</p>
+        {!hasCategorizedFeatures ? (
+          <p className="text-xs text-slate-500">No categorized features listed.</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {service.features.map((feature) => (
-              <span key={feature.termId} className="text-xs px-2 py-1 rounded border border-slate-300 bg-white text-slate-700">
-                {feature.label}: {feature.status}
-              </span>
-            ))}
+          <div className="space-y-2">
+            {categorizedFeatures.required.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {categorizedFeatures.required.map((feature) => (
+                  <span key={`required-${feature.termId}`} className="text-xs px-2 py-1 rounded border border-rose-200 bg-rose-50 text-rose-700">
+                    REQUIRED: {feature.label}
+                  </span>
+                ))}
+              </div>
+            )}
+            {categorizedFeatures.standard.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {categorizedFeatures.standard.map((feature) => (
+                  <span key={`standard-${feature.termId}`} className="text-xs px-2 py-1 rounded border border-slate-300 bg-slate-50 text-slate-700">
+                    STANDARD: {feature.label}
+                  </span>
+                ))}
+              </div>
+            )}
+            {categorizedFeatures.optional.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {categorizedFeatures.optional.map((feature) => (
+                  <span key={`optional-${feature.termId}`} className="text-xs px-2 py-1 rounded border border-amber-200 bg-amber-50 text-amber-700">
+                    OPTIONAL: {feature.label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -144,21 +180,6 @@ export function DesignDocumentSections({ sections, appendix }: DesignDocumentSec
               <h3 className="text-lg font-bold text-slate-900">{section.name}</h3>
               <p className="text-[11px] text-slate-500 font-mono">{section.sku} · PACKAGE</p>
               {section.description && <p className="text-sm text-slate-700 mt-2">{section.description}</p>}
-            </div>
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-1">Package Feature Status</p>
-              {section.features.length === 0 ? (
-                <p className="text-xs text-slate-500">No package features listed.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {section.features.map((feature) => (
-                    <span key={feature.termId} className="text-xs px-2 py-1 rounded border border-slate-300 bg-slate-100 text-slate-700">
-                      {feature.label}: {feature.status}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="space-y-3">

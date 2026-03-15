@@ -294,10 +294,18 @@ function buildServiceSection(input: {
   catalogItem: ServiceCatalogItem;
   projectItem: ProjectDocumentContext["items"][number] | undefined;
   selectedCatalogItemIds: Set<string>;
-  packageFeatureTermIds?: Map<string, string>;
+  packageFeatureAssignments?: Record<string, PackageFeatureStatus>;
+  packageFeatureLabels?: Map<string, string>;
   isExplicitlySelected: boolean;
 }): DesignDocumentServiceSection {
-  const { catalogItem, projectItem, selectedCatalogItemIds, packageFeatureTermIds, isExplicitlySelected } = input;
+  const {
+    catalogItem,
+    projectItem,
+    selectedCatalogItemIds,
+    packageFeatureAssignments,
+    packageFeatureLabels,
+    isExplicitlySelected,
+  } = input;
 
   const serviceOptions = catalogItem.childDependencies
     .filter((dependency) => SERVICE_OPTION_DEPENDENCY_TYPES.has(dependency.type))
@@ -337,26 +345,35 @@ function buildServiceSection(input: {
     .sort((a, b) => a.label.localeCompare(b.label));
 
   const serviceFeatures = getFeatureTermsFromAttributes(catalogItem.attributes);
-  const serviceFeatureSet = new Set(serviceFeatures.map((feature) => feature.termId));
 
   let features: DesignDocumentFeature[];
-  if (packageFeatureTermIds) {
-    features = Array.from(packageFeatureTermIds.entries())
-      .map(([termId, label]) => {
-        const status: FeatureStatus = serviceFeatureSet.has(termId) ? "AVAILABLE" : "NOT_AVAILABLE";
-        return {
-          termId,
-          label,
-          status,
-        };
-      })
-      .sort((a, b) => a.label.localeCompare(b.label));
+  if (packageFeatureAssignments) {
+    if (serviceFeatures.length > 0) {
+      features = serviceFeatures
+        .map((feature) => ({
+          termId: feature.termId,
+          label: feature.label,
+          status: packageFeatureAssignments[feature.termId] ?? "STANDARD",
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+    } else {
+      // Fallback for packages where feature assignments are configured but member services
+      // do not have explicit feature attributes attached.
+      features = Object.entries(packageFeatureAssignments)
+        .map(([termId, status]) => {
+          const label = packageFeatureLabels?.get(termId);
+          if (!label) return null;
+          return { termId, label, status } as DesignDocumentFeature;
+        })
+        .filter((feature): feature is DesignDocumentFeature => Boolean(feature))
+        .sort((a, b) => a.label.localeCompare(b.label));
+    }
   } else {
     features = serviceFeatures
       .map((feature) => ({
         termId: feature.termId,
         label: feature.label,
-        status: "AVAILABLE" as const,
+        status: "STANDARD" as const,
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }
@@ -566,7 +583,8 @@ export async function buildDesignDocumentModel(params: {
           catalogItem: row.catalogItem,
           projectItem: selectedProjectItem,
           selectedCatalogItemIds,
-          packageFeatureTermIds: packageFeaturesFromMembers,
+          packageFeatureAssignments: featureAssignments,
+          packageFeatureLabels: packageFeaturesFromMembers,
           isExplicitlySelected: row.role !== "OPTIONAL" || Boolean(selectedProjectItem),
         });
       });
