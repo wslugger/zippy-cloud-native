@@ -3,80 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { Prisma } from "@prisma/client";
 import { advanceProjectWorkflowStage, getProjectWorkflowStage, recordProjectEvent } from "@/lib/project-analytics";
-
-function isMissingTableOrColumnError(error: unknown): boolean {
-    if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
-    return error.code === "P2021" || error.code === "P2022";
-}
-
-type ProjectBaseRow = {
-    id: string;
-    name: string;
-    customerName: string | null;
-    status: string;
-    workflowStage: string | null;
-    termMonths: number;
-    createdAt: Date;
-    updatedAt: Date;
-    rawRequirements: string | null;
-    manualNotes: string | null;
-    userId: string | null;
-};
-
-async function loadProjectBase(projectId: string, sessionUserId: string): Promise<ProjectBaseRow | null> {
-    let originalError: unknown = null;
-    try {
-        const project = await prisma.project.findFirst({
-            where: { id: projectId, userId: sessionUserId },
-        });
-        return project as ProjectBaseRow | null;
-    } catch (error) {
-        originalError = error;
-    }
-
-    try {
-        const columns = await prisma.$queryRaw<Array<{ column_name: string }>>`
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_schema = current_schema()
-              AND lower(table_name) = 'project'
-        `;
-
-        const hasUserId = columns.some((column) => column.column_name === "userId");
-        const hasRawRequirements = columns.some((column) => column.column_name === "rawRequirements");
-        const hasManualNotes = columns.some((column) => column.column_name === "manualNotes");
-        const hasWorkflowStage = columns.some((column) => column.column_name === "workflowStage");
-
-        const selectClause = [
-            `"id"`,
-            `"name"`,
-            `"customerName"`,
-            `"status"`,
-            hasWorkflowStage ? `"workflowStage"` : `NULL::text AS "workflowStage"`,
-            `"termMonths"`,
-            `"createdAt"`,
-            `"updatedAt"`,
-            hasRawRequirements ? `"rawRequirements"` : `NULL::text AS "rawRequirements"`,
-            hasManualNotes ? `"manualNotes"` : `NULL::text AS "manualNotes"`,
-            hasUserId ? `"userId"` : `NULL::text AS "userId"`,
-        ].join(", ");
-
-        const sql = hasUserId
-            ? `SELECT ${selectClause} FROM "Project" WHERE "id" = $1 AND ("userId" = $2 OR "userId" IS NULL) LIMIT 1`
-            : `SELECT ${selectClause} FROM "Project" WHERE "id" = $1 LIMIT 1`;
-
-        const rows = hasUserId
-            ? await prisma.$queryRawUnsafe<ProjectBaseRow[]>(sql, projectId, sessionUserId)
-            : await prisma.$queryRawUnsafe<ProjectBaseRow[]>(sql, projectId);
-
-        return rows[0] ?? null;
-    } catch (fallbackError) {
-        if (isMissingTableOrColumnError(fallbackError) || isMissingTableOrColumnError(originalError)) {
-            return null;
-        }
-        throw (fallbackError ?? originalError);
-    }
-}
+import {
+    getProjectDetailBundle,
+    getProjectStatusForUser,
+    isProjectStatusTransitionAllowed,
+} from "@/lib/services/project.service";
 
 // GET /api/projects/[id]
 export async function GET(
@@ -90,117 +21,17 @@ export async function GET(
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const project = await loadProjectBase(id, session.userId);
-
-        if (!project) {
+        const bundle = await getProjectDetailBundle(id, session.userId);
+        if (!bundle) {
             return NextResponse.json({ error: "Project not found" }, { status: 404 });
         }
 
-        let items: unknown[] = [];
-        try {
-            items = await prisma.projectItem.findMany({
-                where: { projectId: id },
-                include: {
-                    catalogItem: {
-                        include: {
-                            collaterals: true,
-                            packageCompositions: {
-                                include: {
-                                    catalogItem: {
-                                        select: {
-                                            id: true,
-                                            sku: true,
-                                            name: true,
-                                            type: true,
-                                        },
-                                    },
-                                },
-                                orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }],
-                            },
-                        },
-                    },
-                    designOptions: {
-                        include: { term: true },
-                    },
-                } as const,
-                orderBy: { createdAt: "asc" },
-            });
-        } catch (error) {
-            console.error("GET /api/projects/[id] items query failed:", error);
-            try {
-                items = await prisma.projectItem.findMany({
-                    where: { projectId: id },
-                    include: {
-                        catalogItem: {
-                            include: { collaterals: true },
-                        },
-                    },
-                    orderBy: { createdAt: "asc" },
-                });
-            } catch (innerError) {
-                console.error("GET /api/projects/[id] items fallback query failed:", innerError);
-                items = [];
-            }
-        }
-
-        let sites: unknown[] = [];
-        try {
-            sites = await prisma.solutionSite.findMany({
-                where: { projectId: id },
-                include: {
-                    primaryService: true,
-                    siteSelections: {
-                        include: {
-                            catalogItem: {
-                                include: {
-                                    pricing: true,
-                                    attributes: { include: { term: true } },
-                                },
-                            },
-                        },
-                    },
-                },
-                orderBy: { createdAt: "asc" },
-            });
-        } catch (error) {
-            console.error("GET /api/projects/[id] sites query failed:", error);
-            sites = [];
-        }
-
-        let requirementDocs: unknown[] = [];
-        try {
-            requirementDocs = await prisma.projectRequirementDocument.findMany({
-                where: { projectId: id },
-                orderBy: { createdAt: "desc" },
-                take: 20,
-            });
-        } catch (error) {
-            console.error("GET /api/projects/[id] requirementDocs query failed:", error);
-            requirementDocs = [];
-        }
-
-        let recommendations: unknown[] = [];
-        try {
-            recommendations = await prisma.projectRecommendation.findMany({
-                where: { projectId: id },
-                include: {
-                    catalogItem: {
-                        include: { collaterals: true },
-                    },
-                },
-                orderBy: [{ score: "desc" }, { createdAt: "asc" }],
-            });
-        } catch (error) {
-            console.error("GET /api/projects/[id] recommendations query failed:", error);
-            recommendations = [];
-        }
-
         return NextResponse.json({
-            ...project,
-            items,
-            sites,
-            requirementDocs,
-            recommendations,
+            ...bundle.project,
+            items: bundle.items,
+            sites: bundle.sites,
+            requirementDocs: bundle.requirementDocs,
+            recommendations: bundle.recommendations,
         });
     } catch (error) {
         console.error("GET /api/projects/[id] failed:", error);
@@ -225,27 +56,13 @@ export async function PUT(
         const { name, customerName, status, termMonths, rawRequirements, manualNotes } = await request.json();
 
         if (status) {
-            const current = await prisma.project.findUnique({
-                where: { id, userId: session.userId },
-                select: { status: true },
-            });
-
-            if (!current) {
+            const currentStatus = await getProjectStatusForUser(id, session.userId);
+            if (!currentStatus) {
                 return NextResponse.json({ error: "Project not found" }, { status: 404 });
             }
-
-            const VALID_TRANSITIONS: Record<string, string[]> = {
-                DRAFT:     ['IN_REVIEW', 'ARCHIVED'],
-                IN_REVIEW: ['DRAFT', 'APPROVED', 'ARCHIVED'],
-                APPROVED:  ['IN_REVIEW', 'ORDERED', 'ARCHIVED'],
-                ORDERED:   ['ARCHIVED'],
-                ARCHIVED:  [],
-            };
-
-            const allowed = VALID_TRANSITIONS[current.status] ?? [];
-            if (!allowed.includes(status)) {
+            if (!isProjectStatusTransitionAllowed(currentStatus, status)) {
                 return NextResponse.json(
-                    { error: `Cannot transition from ${current.status} to ${status}` },
+                    { error: `Cannot transition from ${currentStatus} to ${status}` },
                     { status: 422 }
                 );
             }

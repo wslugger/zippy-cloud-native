@@ -1,8 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { decrypt, SESSION_COOKIE } from "@/lib/auth";
+import {
+  decrypt,
+  encrypt,
+  SESSION_COOKIE,
+  SESSION_DURATION_MS,
+  shouldRefreshSession,
+  type SessionPayload,
+} from "@/lib/auth";
 
 // Public routes that don't require authentication
 const publicRoutes = ["/login", "/api/auth/login", "/"];
+
+async function applySessionRefresh(res: NextResponse, session: SessionPayload) {
+  if (!shouldRefreshSession(session)) {
+    return res;
+  }
+  res.cookies.set({
+    name: SESSION_COOKIE,
+    value: await encrypt(session),
+    httpOnly: true,
+    expires: new Date(Date.now() + SESSION_DURATION_MS),
+  });
+  return res;
+}
 
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
@@ -20,17 +40,8 @@ export async function middleware(req: NextRequest) {
     if (session.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    
-    // Refresh cookie on API requests too
-    const res = NextResponse.next();
-    const { encrypt } = await import("@/lib/auth");
-    res.cookies.set({
-      name: SESSION_COOKIE,
-      value: await encrypt(session),
-      httpOnly: true,
-      expires: new Date(Date.now() + 2 * 60 * 60 * 1000), // bump 2 hours
-    });
-    return res;
+
+    return applySessionRefresh(NextResponse.next(), session);
   }
 
   // 1. Redirect to /login if there's no session and path is not public
@@ -49,17 +60,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/projects", req.nextUrl));
   }
 
-  const res = NextResponse.next();
-  if (session) {
-    const { encrypt } = await import("@/lib/auth");
-    res.cookies.set({
-      name: SESSION_COOKIE,
-      value: await encrypt(session),
-      httpOnly: true,
-      expires: new Date(Date.now() + 2 * 60 * 60 * 1000), // bump 2 hours
-    });
-  }
-  return res;
+  if (!session) return NextResponse.next();
+  return applySessionRefresh(NextResponse.next(), session);
 }
 
 export const config = {

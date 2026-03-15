@@ -1,8 +1,19 @@
 import { SignJWT } from "jose";
 
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "zippy-super-secret-key-for-demo-purposes"
-);
+const JWT_SECRET_MIN_LENGTH = 32;
+
+function loadJwtSecret(): Uint8Array {
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    throw new Error("JWT_SECRET environment variable is required");
+  }
+  if (jwtSecret.length < JWT_SECRET_MIN_LENGTH) {
+    throw new Error(`JWT_SECRET must be at least ${JWT_SECRET_MIN_LENGTH} characters`);
+  }
+  return new TextEncoder().encode(jwtSecret);
+}
+
+const SECRET = loadJwtSecret();
 
 async function main() {
     try {
@@ -39,7 +50,7 @@ async function main() {
         console.log('STATUS:', res.status);
         console.log('RESPONSE:', data);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('DIAGNOSTIC FAILED');
         console.error(error);
     } finally {

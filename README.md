@@ -25,7 +25,7 @@ Built with Next.js 16, React 19, Prisma 7, PostgreSQL, and deployed on Google Cl
 3. Configure environment variables:
    ```bash
    cp .env.example .env
-   # Edit .env with your DATABASE_URL and ADMIN_PASSPHRASE
+   # Edit .env with your DATABASE_URL, ADMIN_PASSPHRASE, and JWT_SECRET (>=32 chars)
    ```
 
 4. Set up the database:
