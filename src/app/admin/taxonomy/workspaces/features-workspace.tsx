@@ -7,13 +7,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus, Save, Search } from 'lucide-react';
 import {
     EMPTY_FEATURE_FORM,
+    FEATURE_AND_OPTION_LIFECYCLE_OPTIONS,
     type FeaturesWorkspaceProps,
+    type LifecycleStatus,
     type TaxonomyFormState,
     type TaxonomyTerm,
     type WorkspaceStatus,
 } from '../types';
 import { normalizeDesignOptionKey, parseList } from '../utils';
 import { InlineNotice } from '../components/inline-notice';
+import { lifecycleStatusLabel } from '@/lib/lifecycle-status';
 
 export function FeaturesWorkspace(props: FeaturesWorkspaceProps) {
     const {
@@ -60,6 +63,12 @@ export function FeaturesWorkspace(props: FeaturesWorkspaceProps) {
         () => services.filter((service) => assignedServiceIdSet.has(service.id)),
         [services, assignedServiceIdSet]
     );
+
+    function toFeatureLifecycleStatus(value: unknown): LifecycleStatus {
+        return FEATURE_AND_OPTION_LIFECYCLE_OPTIONS.includes(value as LifecycleStatus)
+            ? (value as LifecycleStatus)
+            : 'SUPPORTED';
+    }
 
     const fetchFeatureAssignments = useCallback(async (featureId: string) => {
         setServiceFeatureLoading(true);
@@ -126,6 +135,7 @@ export function FeaturesWorkspace(props: FeaturesWorkspaceProps) {
             category: 'FEATURE',
             label: feature.label,
             value: feature.value,
+            lifecycleStatus: toFeatureLifecycleStatus(feature.lifecycleStatus),
             description: feature.description ?? '',
             constraintsText: (feature.constraints ?? []).join('\n'),
             assumptionsText: (feature.assumptions ?? []).join('\n'),
@@ -153,6 +163,7 @@ export function FeaturesWorkspace(props: FeaturesWorkspaceProps) {
                 category: 'FEATURE',
                 label: featureForm.label.trim(),
                 value,
+                lifecycleStatus: featureForm.lifecycleStatus,
                 description: featureForm.description.trim() || null,
                 constraints: parseList(featureForm.constraintsText),
                 assumptions: parseList(featureForm.assumptionsText),
@@ -176,6 +187,7 @@ export function FeaturesWorkspace(props: FeaturesWorkspaceProps) {
                 category: 'FEATURE',
                 label: savedFeature.label,
                 value: savedFeature.value,
+                lifecycleStatus: toFeatureLifecycleStatus(savedFeature.lifecycleStatus),
                 description: savedFeature.description ?? '',
                 constraintsText: (savedFeature.constraints ?? []).join('\n'),
                 assumptionsText: (savedFeature.assumptions ?? []).join('\n'),
@@ -299,6 +311,9 @@ export function FeaturesWorkspace(props: FeaturesWorkspaceProps) {
                                 >
                                     <p className="text-sm font-semibold text-slate-900">{feature.label}</p>
                                     <p className="text-xs text-slate-600">{feature.value}</p>
+                                    <p className="text-[11px] text-slate-500 mt-1">
+                                        {lifecycleStatusLabel(toFeatureLifecycleStatus(feature.lifecycleStatus))}
+                                    </p>
                                 </button>
                             ))
                         )}
@@ -337,6 +352,25 @@ export function FeaturesWorkspace(props: FeaturesWorkspaceProps) {
                                 onChange={(event) => setFeatureForm((previous) => ({ ...previous, value: event.target.value }))}
                                 placeholder="managed_lan"
                             />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                            <label className="text-xs font-semibold text-slate-600">Lifecycle Status</label>
+                            <select
+                                value={featureForm.lifecycleStatus}
+                                onChange={(event) =>
+                                    setFeatureForm((previous) => ({
+                                        ...previous,
+                                        lifecycleStatus: toFeatureLifecycleStatus(event.target.value),
+                                    }))
+                                }
+                                className="w-full h-10 rounded-md border border-slate-200 bg-white px-2 text-sm"
+                            >
+                                {FEATURE_AND_OPTION_LIFECYCLE_OPTIONS.map((status) => (
+                                    <option key={status} value={status}>
+                                        {lifecycleStatusLabel(status)}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 

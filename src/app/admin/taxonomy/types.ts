@@ -1,10 +1,37 @@
 import type { Dispatch, SetStateAction } from 'react';
 
+export type LifecycleStatus =
+    | 'SUPPORTED'
+    | 'IN_DEVELOPMENT'
+    | 'APPROVAL_REQUIRED'
+    | 'DEPRECATED'
+    | 'END_OF_SALE'
+    | 'END_OF_SUPPORT'
+    | 'NOT_AVAILABLE';
+
+export const FEATURE_AND_OPTION_LIFECYCLE_OPTIONS: LifecycleStatus[] = [
+    'SUPPORTED',
+    'IN_DEVELOPMENT',
+    'APPROVAL_REQUIRED',
+    'DEPRECATED',
+    'NOT_AVAILABLE',
+];
+
+export const HARDWARE_LIFECYCLE_OPTIONS: LifecycleStatus[] = [
+    'SUPPORTED',
+    'IN_DEVELOPMENT',
+    'APPROVAL_REQUIRED',
+    'END_OF_SALE',
+    'END_OF_SUPPORT',
+    'NOT_AVAILABLE',
+];
+
 export interface TaxonomyTerm {
     id: string;
     category: string;
     label: string;
     value: string;
+    lifecycleStatus: LifecycleStatus;
     description: string | null;
     constraints: string[];
     assumptions: string[];
@@ -15,6 +42,7 @@ export interface TaxonomyFormState {
     category: string;
     label: string;
     value: string;
+    lifecycleStatus: LifecycleStatus;
     description: string;
     constraintsText: string;
     assumptionsText: string;
@@ -36,6 +64,7 @@ export interface DesignOptionDefinition {
     id: string;
     key: string;
     label: string;
+    lifecycleStatus: LifecycleStatus;
     valueType: 'STRING' | 'NUMBER' | 'BOOLEAN';
     isActive: boolean;
     values: DesignOptionValue[];
@@ -44,6 +73,7 @@ export interface DesignOptionDefinition {
 export interface DesignOptionFormState {
     key: string;
     label: string;
+    lifecycleStatus: LifecycleStatus;
     values: DesignOptionValue[];
 }
 
@@ -105,6 +135,7 @@ export const EMPTY_TAXONOMY_FORM: TaxonomyFormState = {
     category: 'CLASSIFICATION',
     label: '',
     value: '',
+    lifecycleStatus: 'SUPPORTED',
     description: '',
     constraintsText: '',
     assumptionsText: '',
@@ -113,6 +144,7 @@ export const EMPTY_TAXONOMY_FORM: TaxonomyFormState = {
 export const EMPTY_DESIGN_OPTION_FORM: DesignOptionFormState = {
     key: '',
     label: '',
+    lifecycleStatus: 'SUPPORTED',
     values: [{ value: '', label: '', autoKey: true, description: '', constraints: [], assumptions: [], sortOrder: 0, isActive: true }],
 };
 
@@ -120,6 +152,7 @@ export const EMPTY_FEATURE_FORM: TaxonomyFormState = {
     category: 'FEATURE',
     label: '',
     value: '',
+    lifecycleStatus: 'SUPPORTED',
     description: '',
     constraintsText: '',
     assumptionsText: '',

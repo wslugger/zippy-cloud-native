@@ -7,15 +7,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus, Save, Search, Trash2 } from 'lucide-react';
 import {
     EMPTY_DESIGN_OPTION_FORM,
+    FEATURE_AND_OPTION_LIFECYCLE_OPTIONS,
     type DesignOptionDefinition,
     type DesignOptionFormState,
     type DesignOptionValue,
     type DesignOptionsResponse,
     type DesignOptionsWorkspaceProps,
+    type LifecycleStatus,
     type WorkspaceStatus,
 } from '../types';
 import { normalizeDesignOptionKey, parseList, sanitizeList } from '../utils';
 import { InlineNotice } from '../components/inline-notice';
+import { lifecycleStatusLabel } from '@/lib/lifecycle-status';
 
 export function DesignOptionsWorkspace({
     isActive,
@@ -37,6 +40,12 @@ export function DesignOptionsWorkspace({
             option.label.toLowerCase().includes(needle) || option.key.toLowerCase().includes(needle)
         );
     }, [designOptions, designSearchTerm]);
+
+    function toDesignOptionLifecycleStatus(value: unknown): LifecycleStatus {
+        return FEATURE_AND_OPTION_LIFECYCLE_OPTIONS.includes(value as LifecycleStatus)
+            ? (value as LifecycleStatus)
+            : 'SUPPORTED';
+    }
 
     useEffect(() => {
         void fetchDesignOptions();
@@ -74,6 +83,7 @@ export function DesignOptionsWorkspace({
         setDesignOptionForm({
             key: option.key,
             label: option.label,
+            lifecycleStatus: toDesignOptionLifecycleStatus(option.lifecycleStatus),
             values:
                 option.values.length > 0
                     ? option.values.map((value, index) => ({
@@ -158,6 +168,7 @@ export function DesignOptionsWorkspace({
                 ...(editingDesignOptionId ? { id: editingDesignOptionId } : {}),
                 key,
                 label,
+                lifecycleStatus: designOptionForm.lifecycleStatus,
                 description: null,
                 constraints: [],
                 assumptions: [],
@@ -246,6 +257,9 @@ export function DesignOptionsWorkspace({
                                     <p className="text-sm font-semibold text-slate-900">{option.label}</p>
                                     <p className="text-xs text-slate-600">{option.key}</p>
                                     <p className="text-[11px] text-slate-500 mt-1">{option.values.length} values</p>
+                                    <p className="text-[11px] text-slate-500">
+                                        {lifecycleStatusLabel(toDesignOptionLifecycleStatus(option.lifecycleStatus))}
+                                    </p>
                                 </button>
                             ))
                         )}
@@ -293,6 +307,23 @@ export function DesignOptionsWorkspace({
                                 }}
                                 placeholder="Topology"
                             />
+                        </div>
+                        <div className="space-y-2 col-span-2">
+                            <label className="text-xs font-semibold text-slate-600">Lifecycle Status</label>
+                            <select
+                                value={designOptionForm.lifecycleStatus}
+                                onChange={(event) => setDesignOptionForm((previous) => ({
+                                    ...previous,
+                                    lifecycleStatus: toDesignOptionLifecycleStatus(event.target.value),
+                                }))}
+                                className="w-full h-10 rounded-md border border-slate-200 bg-white px-2 text-sm"
+                            >
+                                {FEATURE_AND_OPTION_LIFECYCLE_OPTIONS.map((status) => (
+                                    <option key={status} value={status}>
+                                        {lifecycleStatusLabel(status)}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                     {!editingDesignOptionId && autoGenerateKey && (

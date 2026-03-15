@@ -1,6 +1,11 @@
 
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { normalizeCatalogItemType } from "@/lib/catalog-item-types";
+import {
+    isHardwareLifecycleStatus,
+    normalizeLifecycleStatus,
+} from "@/lib/lifecycle-status";
 
 export async function GET(
     request: Request,
@@ -50,13 +55,30 @@ export async function PATCH(
         const body = await request.json();
         
         const item = await prisma.$transaction(async (tx) => {
+            const existingItem = await tx.catalogItem.findUnique({
+                where: { id },
+                select: { type: true, lifecycleStatus: true },
+            });
+            if (!existingItem) {
+                throw new Error("Catalog item not found");
+            }
+
+            const resolvedType = normalizeCatalogItemType(body.type) ?? normalizeCatalogItemType(existingItem.type) ?? 'MANAGED_SERVICE';
+            const normalizedLifecycleStatus = normalizeLifecycleStatus(body.lifecycleStatus)
+                ?? normalizeLifecycleStatus(existingItem.lifecycleStatus)
+                ?? 'SUPPORTED';
+            const resolvedLifecycleStatus = resolvedType === 'HARDWARE'
+                ? (isHardwareLifecycleStatus(normalizedLifecycleStatus) ? normalizedLifecycleStatus : 'SUPPORTED')
+                : 'SUPPORTED';
+
             // Update base fields
             const updated = await (tx.catalogItem as any).update({
                 where: { id },
                 data: {
                     name: body.name,
                     sku: body.sku,
-                    type: body.type,
+                    type: resolvedType,
+                    lifecycleStatus: resolvedLifecycleStatus,
                     shortDescription: body.shortDescription,
                     detailedDescription: body.detailedDescription,
                 }

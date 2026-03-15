@@ -11,6 +11,7 @@ model TaxonomyTerm {
   category          String
   value             String
   label             String
+  lifecycleStatus   LifecycleStatus           @default(SUPPORTED)
   assumptions       String[]
   constraints       String[]
   description       String?
@@ -26,6 +27,7 @@ model CatalogItem {
   sku                 String                      @unique
   name                String
   type                ItemType
+  lifecycleStatus     LifecycleStatus             @default(SUPPORTED)
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
   configSchema        Json?
@@ -267,6 +269,7 @@ model DesignOptionDefinition {
   id          String                      @id @default(uuid())
   key         String                      @unique
   label       String
+  lifecycleStatus LifecycleStatus         @default(SUPPORTED)
   description String?
   constraints String[]                    @default([])
   assumptions String[]                    @default([])
@@ -503,6 +506,16 @@ enum DesignOptionValueType {
   STRING
   NUMBER
   BOOLEAN
+}
+
+enum LifecycleStatus {
+  SUPPORTED
+  IN_DEVELOPMENT
+  APPROVAL_REQUIRED
+  DEPRECATED
+  END_OF_SALE
+  END_OF_SUPPORT
+  NOT_AVAILABLE
 }
 
 enum ProjectStatus {

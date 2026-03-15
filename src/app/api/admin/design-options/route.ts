@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DesignOptionValueType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  isFeatureOrOptionLifecycleStatus,
+  normalizeLifecycleStatus,
+} from "@/lib/lifecycle-status";
 
 function normalizeValueType(valueType?: DesignOptionValueType | "ENUM" | string | null): DesignOptionValueType | null {
   if (!valueType) return null;
@@ -91,6 +95,7 @@ async function loadOptionsViaSqlFallback() {
 
   return definitions.map((definition) => ({
     ...definition,
+    lifecycleStatus: "SUPPORTED" as const,
     constraints: [] as string[],
     assumptions: [] as string[],
     values: valuesByDefinition.get(definition.id) ?? [],
@@ -151,6 +156,7 @@ export async function POST(request: NextRequest) {
       assumptions?: string[];
       valueType?: DesignOptionValueType | "ENUM";
       isActive?: boolean;
+      lifecycleStatus?: string;
       values?: Array<{
         value: string;
         label: string;
@@ -165,6 +171,10 @@ export async function POST(request: NextRequest) {
     const normalizedValueType = normalizeValueType(body.valueType ?? DesignOptionValueType.STRING);
     if (!normalizedValueType) {
       return NextResponse.json({ error: `Invalid valueType '${body.valueType}'` }, { status: 400 });
+    }
+    const normalizedLifecycleStatus = normalizeLifecycleStatus(body.lifecycleStatus) ?? "SUPPORTED";
+    if (!isFeatureOrOptionLifecycleStatus(normalizedLifecycleStatus)) {
+      return NextResponse.json({ error: `Invalid lifecycleStatus '${body.lifecycleStatus}'` }, { status: 400 });
     }
 
     if (!body.key || !body.label) {
@@ -182,6 +192,7 @@ export async function POST(request: NextRequest) {
             assumptions: sanitizeStringList(body.assumptions),
             valueType: normalizedValueType,
             isActive: body.isActive ?? true,
+            lifecycleStatus: normalizedLifecycleStatus,
           },
         });
 
@@ -241,6 +252,7 @@ export async function POST(request: NextRequest) {
             description: body.description,
             valueType: normalizedValueType,
             isActive: body.isActive ?? true,
+            lifecycleStatus: normalizedLifecycleStatus,
           },
         });
 
@@ -296,6 +308,7 @@ export async function PATCH(request: NextRequest) {
       assumptions?: string[];
       valueType?: DesignOptionValueType | "ENUM";
       isActive?: boolean;
+      lifecycleStatus?: string;
       values?: Array<{
         id?: string;
         value: string;
@@ -316,6 +329,15 @@ export async function PATCH(request: NextRequest) {
     if (body.valueType !== undefined && !normalizedValueType) {
       return NextResponse.json({ error: `Invalid valueType '${body.valueType}'` }, { status: 400 });
     }
+    const normalizedLifecycleStatus = body.lifecycleStatus !== undefined
+      ? normalizeLifecycleStatus(body.lifecycleStatus)
+      : undefined;
+    if (body.lifecycleStatus !== undefined && !normalizedLifecycleStatus) {
+      return NextResponse.json({ error: `Invalid lifecycleStatus '${body.lifecycleStatus}'` }, { status: 400 });
+    }
+    if (normalizedLifecycleStatus && !isFeatureOrOptionLifecycleStatus(normalizedLifecycleStatus)) {
+      return NextResponse.json({ error: `Invalid lifecycleStatus '${body.lifecycleStatus}'` }, { status: 400 });
+    }
 
     try {
       const option = await prisma.$transaction(async (tx) => {
@@ -329,6 +351,7 @@ export async function PATCH(request: NextRequest) {
             assumptions: body.assumptions !== undefined ? sanitizeStringList(body.assumptions) : undefined,
             valueType: normalizedValueType ?? undefined,
             isActive: body.isActive,
+            lifecycleStatus: normalizedLifecycleStatus ?? undefined,
           },
         });
 
@@ -391,6 +414,7 @@ export async function PATCH(request: NextRequest) {
             description: body.description,
             valueType: normalizedValueType ?? undefined,
             isActive: body.isActive,
+            lifecycleStatus: normalizedLifecycleStatus ?? undefined,
           },
         });
 

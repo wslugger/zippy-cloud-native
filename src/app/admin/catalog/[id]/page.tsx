@@ -7,6 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { CATALOG_ITEM_TYPES, normalizeCatalogItemType } from '@/lib/catalog-item-types';
 import {
+    HARDWARE_LIFECYCLE_STATUSES,
+    isHardwareLifecycleStatus,
+    lifecycleStatusLabel,
+    type LifecycleStatus,
+} from '@/lib/lifecycle-status';
+import {
     ChevronLeft,
     Save,
     Plus,
@@ -25,6 +31,7 @@ interface CatalogItem {
     shortDescription: string | null;
     detailedDescription: string | null;
     type: string;
+    lifecycleStatus: LifecycleStatus;
     constraints: { id: string; description: string }[];
     assumptions: { id: string; description: string }[];
     collaterals: { id: string; title: string; documentUrl: string; type: string }[];
@@ -136,6 +143,7 @@ function createEmptyCatalogItem(): CatalogItem {
         shortDescription: '',
         detailedDescription: '',
         type: 'MANAGED_SERVICE',
+        lifecycleStatus: 'SUPPORTED',
         constraints: [],
         assumptions: [],
         collaterals: [],
@@ -237,6 +245,9 @@ function normalizeCatalogItem(raw: unknown): CatalogItem {
         shortDescription: typeof input.shortDescription === 'string' ? input.shortDescription : fallback.shortDescription,
         detailedDescription: typeof input.detailedDescription === 'string' ? input.detailedDescription : fallback.detailedDescription,
         type: normalizeCatalogItemType(typeof input.type === 'string' ? input.type : null) || fallback.type,
+        lifecycleStatus: typeof input.lifecycleStatus === 'string' && isHardwareLifecycleStatus(input.lifecycleStatus)
+            ? input.lifecycleStatus
+            : 'SUPPORTED',
         constraints,
         assumptions,
         collaterals,
@@ -1674,6 +1685,22 @@ export default function CatalogItemDetail() {
                                 )}
                             </select>
                         </div>
+                        {item.type === 'HARDWARE' && (
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Hardware Lifecycle</label>
+                                <select
+                                    value={item.lifecycleStatus}
+                                    onChange={(e) => setItem({ ...item, lifecycleStatus: e.target.value as LifecycleStatus })}
+                                    className="w-full h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 font-medium text-slate-900"
+                                >
+                                    {HARDWARE_LIFECYCLE_STATUSES.map((status) => (
+                                        <option key={status} value={status}>
+                                            {lifecycleStatusLabel(status)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </section>
 
                     {/* Pricing */}

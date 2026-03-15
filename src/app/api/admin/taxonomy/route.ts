@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import {
+    isFeatureOrOptionLifecycleStatus,
+    normalizeLifecycleStatus,
+} from "@/lib/lifecycle-status";
 
 // List all taxonomy terms (capped to prevent runaway queries)
 export async function GET() {
@@ -26,10 +30,24 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "'category', 'value', and 'label' are required" }, { status: 400 });
         }
 
+        const normalizedCategory = String(category).trim().toUpperCase();
+        const normalizedLifecycleStatus = normalizeLifecycleStatus(body.lifecycleStatus);
+        const lifecycleStatus = normalizedCategory === "FEATURE"
+            ? (normalizedLifecycleStatus ?? "SUPPORTED")
+            : "SUPPORTED";
+
+        if (normalizedCategory === "FEATURE" && !isFeatureOrOptionLifecycleStatus(lifecycleStatus)) {
+            return NextResponse.json(
+                { error: `Invalid lifecycle status '${body.lifecycleStatus}'.` },
+                { status: 400 }
+            );
+        }
+
         const data = {
-            category,
+            category: normalizedCategory,
             value,
             label,
+            lifecycleStatus,
             description: description ?? null,
             constraints: constraints ?? [],
             assumptions: assumptions ?? [],
@@ -66,8 +84,8 @@ export async function POST(request: Request) {
         if (prismaCode === 'P2002') {
             const target = (prismaMeta as { target?: unknown } | undefined)?.target;
             const fields = Array.isArray(target) ? target : ['category', 'value'];
-            return NextResponse.json({ 
-                error: `Duplicate Entry: A term with this ${fields.join(' and ')} already exists.` 
+            return NextResponse.json({
+                error: `Duplicate Entry: A term with this ${fields.join(' and ')} already exists.`
             }, { status: 400 });
         }
         
