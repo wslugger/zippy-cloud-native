@@ -9,9 +9,7 @@ export const CATALOG_ITEM_TYPES = [
 export type CatalogItemType = (typeof CATALOG_ITEM_TYPES)[number];
 
 const CATALOG_ITEM_TYPE_SET = new Set<string>(CATALOG_ITEM_TYPES);
-const CATALOG_ITEM_TYPE_ALIASES: Record<string, CatalogItemType> = {
-    SERVICE_FAMILY: 'MANAGED_SERVICE',
-};
+const CATALOG_ITEM_TYPE_ALIASES: Record<string, CatalogItemType> = {};
 
 export function normalizeCatalogItemType(type: string | null | undefined): CatalogItemType | null {
     if (typeof type !== 'string') return null;

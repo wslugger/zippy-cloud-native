@@ -188,7 +188,7 @@ export default function CatalogPage() {
                                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                 }`}
                         >
-                            {type === 'MANAGED_SERVICE' ? 'SERVICE' : type === 'SERVICE_OPTION' ? 'OPTION' : type}
+                            {type === 'MANAGED_SERVICE' ? 'SERVICES' : type === 'SERVICE_OPTION' ? 'OPTION' : type}
                         </button>
                     ))}
                 </div>
