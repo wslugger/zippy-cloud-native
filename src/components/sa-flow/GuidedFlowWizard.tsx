@@ -16,6 +16,7 @@ import {
 interface GuidedFlowWizardProps {
   projectId: string;
   onComplete: () => void;
+  onExit?: () => void;
 }
 
 type WizardStep = 1 | 2 | 3;
@@ -206,7 +207,7 @@ async function parseJsonResponse<T>(response: Response): Promise<T | null> {
   }
 }
 
-export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProps) {
+export function GuidedFlowWizard({ projectId, onComplete, onExit }: GuidedFlowWizardProps) {
   const [step, setStep] = useState<WizardStep>(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -385,7 +386,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
     [serviceConfigItems, activeServiceId]
   );
 
-  const saveSelections = useCallback(async () => {
+  const saveSelections = useCallback(async (): Promise<boolean> => {
     setSaving(true);
     setError(null);
     setStatus(null);
@@ -413,8 +414,10 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
 
       setStatus('Design selections saved.');
       setDesignSaved(true);
+      return true;
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Failed to save design selections');
+      return false;
     } finally {
       setSaving(false);
     }
@@ -524,6 +527,7 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
   const canContinueFromStep1 = topLevelSelectionCount > 0;
   const canContinueFromStep2 = serviceConfigItems.length > 0;
   const minStep: WizardStep = scopeIsLockedToProjectSelection ? 2 : 1;
+  const activeSubStep = step === 3 ? 2 : 1;
 
   if (loading) {
     return (
@@ -537,25 +541,49 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
     <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
       <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center justify-between max-w-3xl mx-auto">
-          {[1, 2, 3].map((index) => (
-            <div key={index} className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (step === 3) {
+                  setStep(2);
+                }
+              }}
+              disabled={saving || step !== 3}
+              className="flex items-center gap-2 disabled:cursor-default"
+            >
               <div
                 className={cn(
                   'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all',
-                  step === index
+                  activeSubStep === 1
                     ? 'bg-zippy-green text-white ring-4 ring-zippy-green/10'
-                    : step > index
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-slate-200 text-slate-500'
+                    : 'bg-emerald-500 text-white'
                 )}
               >
-                {step > index ? <Check size={18} /> : index}
+                {activeSubStep > 1 ? <Check size={18} /> : 1}
               </div>
-              {index < 3 && (
-                <div className={cn('h-1 w-12 md:w-24 rounded-full', step > index ? 'bg-emerald-500' : 'bg-slate-200')} />
-              )}
+              <span className={cn('text-xs font-semibold', activeSubStep === 1 ? 'text-slate-900' : 'text-slate-600')}>
+                Service Configuration
+              </span>
+            </button>
+            <div className={cn('h-1 w-12 md:w-24 rounded-full', activeSubStep > 1 ? 'bg-emerald-500' : 'bg-slate-200')} />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div
+                className={cn(
+                  'w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all',
+                  activeSubStep === 2 ? 'bg-zippy-green text-white ring-4 ring-zippy-green/10' : 'bg-slate-200 text-slate-500'
+                )}
+              >
+                2
+              </div>
+              <span className={cn('text-xs font-semibold', activeSubStep === 2 ? 'text-slate-900' : 'text-slate-600')}>
+                Design Document
+              </span>
             </div>
-          ))}
+          </div>
         </div>
       </div>
 
@@ -747,6 +775,9 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                                           />
                                           <span>
                                             <span className="text-sm font-semibold text-slate-900 block">{dep.childItem.name}</span>
+                                            {dep.childItem.shortDescription && (
+                                              <span className="text-[11px] text-slate-600 block">{dep.childItem.shortDescription}</span>
+                                            )}
                                             <span className="text-[11px] text-slate-500">
                                               {mandatory ? 'Select one tier only (overrides mandatory include)' : 'Selecting one tier replaces other tiers'}
                                             </span>
@@ -774,6 +805,9 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                                           />
                                           <span>
                                             <span className="text-sm font-semibold text-slate-900 block">{dep.childItem.name}</span>
+                                            {dep.childItem.shortDescription && (
+                                              <span className="text-[11px] text-slate-600 block">{dep.childItem.shortDescription}</span>
+                                            )}
                                             <span className="text-[11px] text-slate-500">
                                               {serviceRole === 'SDWAN' && mandatory
                                                 ? 'Choose one or more connectivity services'
@@ -803,6 +837,9 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                                           />
                                           <span>
                                             <span className="text-sm font-semibold text-slate-900 block">{dep.childItem.name}</span>
+                                            {dep.childItem.shortDescription && (
+                                              <span className="text-[11px] text-slate-600 block">{dep.childItem.shortDescription}</span>
+                                            )}
                                             <span className="text-[11px] text-slate-500">
                                               {mandatory ? 'Included by catalog dependency' : 'Optional add-on'}
                                             </span>
@@ -955,29 +992,13 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
 
         {step === 3 && (
           <>
-            {!designSaved ? (
-              <>
-                <div>
-                  <h2 className="text-3xl font-bold text-slate-900">Review and Commit</h2>
-                  <p className="text-slate-500 text-lg mt-2">Save the design selections, then proceed to the Design Document editor for final summary and conclusions.</p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-300 bg-slate-50 p-4 space-y-3">
-                  <p className="text-sm font-semibold text-slate-900">Selection Summary</p>
-                  <p className="text-sm text-slate-700">Top-level selections: {selectedTopLevelItems.length}</p>
-                  <p className="text-sm text-slate-700">Configurable services in scope: {serviceConfigItems.length}</p>
-                  <p className="text-sm text-slate-700">Total explicit selected items: {Object.keys(selections).length}</p>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {selectedTopLevelItems.map((item) => (
-                      <span key={item.id} className="text-xs px-2 py-1 rounded border border-slate-300 bg-white text-slate-700">
-                        {item.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </>
-            ) : (
+            {designSaved ? (
               <Step3DesignDocument projectId={projectId} onDone={onComplete} />
+            ) : (
+              <div className="rounded-2xl border border-slate-300 bg-white p-6 flex items-center gap-2 text-slate-600">
+                <Loader2 size={18} className="animate-spin" />
+                Saving design selections...
+              </div>
             )}
           </>
         )}
@@ -998,11 +1019,23 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
-            onClick={() => setStep((previous) => Math.max(minStep, previous - 1) as WizardStep)}
-            disabled={step === minStep || saving || (designSaved && step === 3)}
+            onClick={() => {
+              void (async () => {
+                if (step === minStep) {
+                  if (!onExit) return;
+                  const saved = await saveSelections();
+                  if (saved) {
+                    onExit();
+                  }
+                  return;
+                }
+                setStep((previous) => Math.max(minStep, previous - 1) as WizardStep);
+              })();
+            }}
+            disabled={(step === minStep && !onExit) || saving}
             className="gap-2 h-11 px-5"
           >
-            <ChevronLeft size={16} /> Back
+            <ChevronLeft size={16} /> {step === minStep ? (onExit ? 'Back to Step 1' : 'Close') : 'Back'}
           </Button>
 
           {!(designSaved && step === 3) && (
@@ -1013,7 +1046,12 @@ export function GuidedFlowWizard({ projectId, onComplete }: GuidedFlowWizardProp
                   return;
                 }
                 if (step === 2) {
-                  setStep(3);
+                  void (async () => {
+                    const saved = await saveSelections();
+                    if (saved) {
+                      setStep(3);
+                    }
+                  })();
                   return;
                 }
                 void saveSelections();

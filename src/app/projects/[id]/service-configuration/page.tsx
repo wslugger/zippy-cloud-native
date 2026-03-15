@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ProjectFlowStepper } from '@/components/projects/ProjectFlowStepper';
-import { ArrowLeft, Loader2, Compass, Settings2 } from 'lucide-react';
+import { Loader2, Compass, Settings2 } from 'lucide-react';
 import { GuidedFlowWizard } from '@/components/sa-flow/GuidedFlowWizard';
 
 interface Project {
@@ -118,9 +118,6 @@ export default function ServiceConfigurationPage({ params }: { params: Promise<{
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <Link href={`/projects/${id}`} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 mb-2 transition-colors">
-            <ArrowLeft size={12} /> Back to Step 1
-          </Link>
           <h1 className="text-3xl font-bold text-slate-900">{project.name}</h1>
           {project.customerName && <p className="text-slate-600">{project.customerName}</p>}
         </div>
@@ -158,12 +155,13 @@ export default function ServiceConfigurationPage({ params }: { params: Promise<{
           <p className="font-semibold">No services/packages selected yet.</p>
           <p className="text-sm mt-1">Go back to Step 1 and add at least one package or managed service.</p>
           <Link href={`/projects/${id}`}>
-            <Button variant="outline" className="mt-4">Back to Step 1</Button>
+            <Button variant="outline" className="mt-4">Go to Requirements + Selection</Button>
           </Link>
         </div>
       ) : showWizard ? (
         <GuidedFlowWizard
           projectId={id}
+          onExit={() => router.push(`/projects/${id}`)}
           onComplete={() => {
             setShowWizard(false);
             void fetchProject();
@@ -177,10 +175,7 @@ export default function ServiceConfigurationPage({ params }: { params: Promise<{
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-3">
-        <Link href={`/projects/${id}`}>
-          <Button variant="outline">Back to Step 1</Button>
-        </Link>
+      <div className="flex items-center justify-end gap-3">
         <Button
           onClick={saveStep2CheckpointAndContinue}
           disabled={!hasSelections || showWizard || savingStep}

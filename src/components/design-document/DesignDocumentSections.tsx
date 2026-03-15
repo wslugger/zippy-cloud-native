@@ -54,6 +54,8 @@ interface AppendixEntry {
   catalogItemId: string;
   name: string;
   itemType: string;
+  description?: string | null;
+  features?: Array<{ label: string; status: string }>;
   constraints: string[];
   assumptions: string[];
 }
@@ -62,6 +64,14 @@ export interface DesignDocumentSectionsModel {
   sections: Array<PackageSection | ServiceSection>;
   appendix: AppendixEntry[];
 }
+
+const APPENDIX_GROUPS: Array<{ key: string; label: string; matches: (itemType: string) => boolean }> = [
+  { key: 'PACKAGE', label: 'Packages', matches: (itemType) => itemType === 'PACKAGE' },
+  { key: 'SERVICE', label: 'Services', matches: (itemType) => itemType === 'MANAGED_SERVICE' || itemType === 'CONNECTIVITY' },
+  { key: 'SERVICE_OPTION', label: 'Service Options', matches: (itemType) => itemType === 'SERVICE_OPTION' },
+  { key: 'DESIGN_OPTION', label: 'Design Options', matches: (itemType) => itemType === 'DESIGN_OPTION' },
+  { key: 'FEATURE', label: 'Features', matches: (itemType) => itemType === 'FEATURE' },
+];
 
 function getCategorizedFeatures(features: FeatureRow[]) {
   return {
@@ -72,6 +82,7 @@ function getCategorizedFeatures(features: FeatureRow[]) {
 }
 
 function ServiceBlock({ service, nested }: { service: ServiceSection; nested?: boolean }) {
+  const selectedServiceOptions = service.serviceOptions.filter((option) => option.selected);
   const categorizedFeatures = getCategorizedFeatures(service.features);
   const hasCategorizedFeatures =
     categorizedFeatures.required.length > 0 ||
@@ -93,17 +104,17 @@ function ServiceBlock({ service, nested }: { service: ServiceSection; nested?: b
 
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-1">Service Options</p>
-        {service.serviceOptions.length === 0 ? (
-          <p className="text-xs text-slate-500">No service options.</p>
+        {selectedServiceOptions.length === 0 ? (
+          <p className="text-xs text-slate-500">No selected service options.</p>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {service.serviceOptions.map((option) => (
-              <span
-                key={option.id}
-                className={`text-xs px-2 py-1 rounded border ${option.selected ? 'border-blue-300 bg-blue-50 text-blue-800' : 'border-slate-300 bg-white text-slate-600'}`}
-              >
-                {option.name} ({option.selected ? 'Selected' : 'Available'})
-              </span>
+          <div className="space-y-2">
+            {selectedServiceOptions.map((option) => (
+              <div key={option.id}>
+                <span className="text-xs px-2 py-1 rounded border border-blue-300 bg-blue-50 text-blue-800">
+                  {option.name} (Selected)
+                </span>
+                {option.description && <p className="text-[11px] text-slate-600 mt-1">{option.description}</p>}
+              </div>
             ))}
           </div>
         )}
@@ -203,33 +214,57 @@ export function DesignDocumentSections({ sections, appendix }: DesignDocumentSec
         {appendix.length === 0 ? (
           <p className="text-sm text-slate-500">No appendix entries available.</p>
         ) : (
-          <div className="space-y-3">
-            {appendix.map((entry) => (
-              <article key={entry.catalogItemId} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <p className="text-sm font-semibold text-slate-900">{entry.name}</p>
-                <p className="text-[11px] text-slate-500 mb-2">{entry.itemType}</p>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Constraints</p>
-                {entry.constraints.length === 0 ? (
-                  <p className="text-xs text-slate-500">None.</p>
-                ) : (
-                  <ul className="list-disc pl-4 text-xs text-slate-700 space-y-1">
-                    {entry.constraints.map((constraint, index) => (
-                      <li key={`${entry.catalogItemId}-constraint-${index}`}>{constraint}</li>
-                    ))}
-                  </ul>
-                )}
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 mt-2">Assumptions</p>
-                {entry.assumptions.length === 0 ? (
-                  <p className="text-xs text-slate-500">None.</p>
-                ) : (
-                  <ul className="list-disc pl-4 text-xs text-slate-700 space-y-1">
-                    {entry.assumptions.map((assumption, index) => (
-                      <li key={`${entry.catalogItemId}-assumption-${index}`}>{assumption}</li>
-                    ))}
-                  </ul>
-                )}
-              </article>
-            ))}
+          <div className="space-y-5">
+            {APPENDIX_GROUPS.map((group) => {
+              const entries = appendix
+                .filter((entry) => group.matches(entry.itemType))
+                .sort((a, b) => a.name.localeCompare(b.name));
+
+              if (entries.length === 0) return null;
+
+              return (
+                <div key={group.key} className="space-y-3">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-700">{group.label}</p>
+                  {entries.map((entry) => (
+                    <article key={entry.catalogItemId} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-sm font-semibold text-slate-900">{entry.name}</p>
+                      <p className="text-[11px] text-slate-500 mb-2">{entry.itemType}</p>
+                      {entry.description && <p className="text-xs text-slate-700 mb-2">{entry.description}</p>}
+                      {entry.features && entry.features.length > 0 && (
+                        <>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Features</p>
+                          <ul className="list-disc pl-4 text-xs text-slate-700 space-y-1">
+                            {entry.features.map((feature, index) => (
+                              <li key={`${entry.catalogItemId}-feature-${index}`}>{feature.status}: {feature.label}</li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Constraints</p>
+                      {entry.constraints.length === 0 ? (
+                        <p className="text-xs text-slate-500">None.</p>
+                      ) : (
+                        <ul className="list-disc pl-4 text-xs text-slate-700 space-y-1">
+                          {entry.constraints.map((constraint, index) => (
+                            <li key={`${entry.catalogItemId}-constraint-${index}`}>{constraint}</li>
+                          ))}
+                        </ul>
+                      )}
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 mt-2">Assumptions</p>
+                      {entry.assumptions.length === 0 ? (
+                        <p className="text-xs text-slate-500">None.</p>
+                      ) : (
+                        <ul className="list-disc pl-4 text-xs text-slate-700 space-y-1">
+                          {entry.assumptions.map((assumption, index) => (
+                            <li key={`${entry.catalogItemId}-assumption-${index}`}>{assumption}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

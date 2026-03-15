@@ -33,6 +33,8 @@ interface AppendixCatalogItem {
   id: string;
   name: string;
   type: ItemType;
+  shortDescription?: string | null;
+  detailedDescription?: string | null;
   constraints: Array<{ description: string }>;
   assumptions: Array<{ description: string }>;
 }
@@ -46,7 +48,7 @@ interface ServiceCatalogItem {
   detailedDescription: string | null;
   attributes: Array<{
     taxonomyTermId: string;
-    term: { category: string; label: string; value: string };
+    term: { category: string; label: string; value: string; description: string | null; constraints: string[]; assumptions: string[] };
   }>;
   childDependencies: Array<{
     type: string;
@@ -55,14 +57,42 @@ interface ServiceCatalogItem {
       type: ItemType;
       name: string;
       shortDescription: string | null;
+      detailedDescription: string | null;
+      constraints: Array<{ description: string }>;
+      assumptions: Array<{ description: string }>;
+      attributes: Array<{
+        taxonomyTermId: string;
+        term: { category: string; label: string; value: string; description: string | null; constraints: string[]; assumptions: string[] };
+      }>;
     };
   }>;
   designOptions: Array<{
     isRequired: boolean;
     allowMulti: boolean;
     defaultValue: { value: string } | null;
-    designOption: { key: string; label: string; values: Array<{ value: string; label: string }> };
-    allowedValues: Array<{ designOptionValue: { value: string; label: string } }>;
+    designOption: {
+      key: string;
+      label: string;
+      description: string | null;
+      constraints: string[];
+      assumptions: string[];
+      values: Array<{
+        value: string;
+        label: string;
+        description: string | null;
+        constraints: string[];
+        assumptions: string[];
+      }>;
+    };
+    allowedValues: Array<{
+      designOptionValue: {
+        value: string;
+        label: string;
+        description: string | null;
+        constraints: string[];
+        assumptions: string[];
+      };
+    }>;
   }>;
 }
 
@@ -119,7 +149,9 @@ export interface DesignDocumentPackageSection {
 export interface AppendixEntry {
   catalogItemId: string;
   name: string;
-  itemType: ItemType;
+  itemType: string;
+  description: string | null;
+  features: Array<{ label: string; status: FeatureStatus }>;
   constraints: string[];
   assumptions: string[];
 }
@@ -169,6 +201,8 @@ type ProjectDocumentContext = Prisma.ProjectGetPayload<{
                 childItem: {
                   include: {
                     attributes: { include: { term: true } };
+                    assumptions: true;
+                    constraints: true;
                   };
                 };
               };
@@ -200,6 +234,8 @@ type ProjectDocumentContext = Prisma.ProjectGetPayload<{
                         childItem: {
                           include: {
                             attributes: { include: { term: true } };
+                            assumptions: true;
+                            constraints: true;
                           };
                         };
                       };
@@ -275,6 +311,22 @@ function getFeatureTermsFromAttributes(attributes: Array<{ taxonomyTermId: strin
     .map((attribute) => ({
       termId: attribute.taxonomyTermId,
       label: attribute.term.label || attribute.term.value,
+    }))
+    .filter((entry) => entry.label.length > 0);
+}
+
+function getFeatureDetailsFromAttributes(attributes: Array<{
+  taxonomyTermId: string;
+  term: { category: string; label: string; value: string; description: string | null; constraints: string[]; assumptions: string[] };
+}>) {
+  return attributes
+    .filter((attribute) => attribute.term.category === "FEATURE")
+    .map((attribute) => ({
+      termId: attribute.taxonomyTermId,
+      label: attribute.term.label || attribute.term.value,
+      description: attribute.term.description,
+      constraints: normalizeTextArray(attribute.term.constraints),
+      assumptions: normalizeTextArray(attribute.term.assumptions),
     }))
     .filter((entry) => entry.label.length > 0);
 }
@@ -448,6 +500,8 @@ async function loadProjectDocumentContext(projectId: string, userId: string): Pr
                   childItem: {
                     include: {
                       attributes: { include: { term: true } },
+                      assumptions: true,
+                      constraints: true,
                     },
                   },
                 },
@@ -482,6 +536,8 @@ async function loadProjectDocumentContext(projectId: string, userId: string): Pr
                           childItem: {
                             include: {
                               attributes: { include: { term: true } },
+                              assumptions: true,
+                              constraints: true,
                             },
                           },
                         },
@@ -544,14 +600,91 @@ export async function buildDesignDocumentModel(params: {
   const sections: Array<DesignDocumentPackageSection | DesignDocumentServiceSection> = [];
   const appendixMap = new Map<string, AppendixEntry>();
 
-  const addAppendixEntry = (catalogItem: AppendixCatalogItem) => {
-    if (appendixMap.has(catalogItem.id)) return;
-    appendixMap.set(catalogItem.id, {
+  const addAppendixEntry = (
+    catalogItem: AppendixCatalogItem,
+    extra?: Partial<Pick<AppendixEntry, "description" | "features">>
+  ) => {
+    const nextEntry: AppendixEntry = {
       catalogItemId: catalogItem.id,
       name: catalogItem.name,
       itemType: catalogItem.type,
+      description: extra?.description ?? catalogItem.detailedDescription ?? catalogItem.shortDescription ?? null,
+      features: extra?.features ?? [],
       constraints: normalizeTextArray(catalogItem.constraints.map((row) => row.description)),
       assumptions: normalizeTextArray(catalogItem.assumptions.map((row) => row.description)),
+    };
+
+    const existing = appendixMap.get(catalogItem.id);
+    if (!existing) {
+      appendixMap.set(catalogItem.id, nextEntry);
+      return;
+    }
+
+    appendixMap.set(catalogItem.id, {
+      ...existing,
+      description: existing.description || nextEntry.description,
+      features: existing.features.length > 0 ? existing.features : nextEntry.features,
+      constraints: existing.constraints.length > 0 ? existing.constraints : nextEntry.constraints,
+      assumptions: existing.assumptions.length > 0 ? existing.assumptions : nextEntry.assumptions,
+    });
+  };
+
+  const addFeatureAppendixEntry = (feature: {
+    termId: string;
+    label: string;
+    status: FeatureStatus;
+    description: string | null;
+    constraints: string[];
+    assumptions: string[];
+  }) => {
+    const entryId = `feature:${feature.termId}`;
+    const existing = appendixMap.get(entryId);
+    const nextFeature = { label: feature.label, status: feature.status };
+
+    appendixMap.set(entryId, {
+      catalogItemId: entryId,
+      name: feature.label,
+      itemType: "FEATURE",
+      description: feature.description,
+      features: existing?.features?.length ? existing.features : [nextFeature],
+      constraints: existing?.constraints?.length ? existing.constraints : feature.constraints,
+      assumptions: existing?.assumptions?.length ? existing.assumptions : feature.assumptions,
+    });
+  };
+
+  const addDesignOptionAppendixEntry = (params: {
+    serviceCatalogItemId: string;
+    serviceName: string;
+    option: DesignDocumentDesignOption;
+    source: ServiceCatalogItem["designOptions"][number];
+  }) => {
+    const { serviceCatalogItemId, serviceName, option, source } = params;
+    const entryId = `design-option:${serviceCatalogItemId}:${option.key}`;
+
+    const selectedValueSet = new Set(option.selectedValues.map((value) => value.value));
+    const selectedValueDetails = source.designOption.values.filter((value) => selectedValueSet.has(value.value));
+
+    const descriptions = normalizeTextArray([
+      source.designOption.description,
+      ...selectedValueDetails.map((value) => value.description),
+    ]);
+    const constraints = normalizeTextArray([
+      ...source.designOption.constraints,
+      ...selectedValueDetails.flatMap((value) => value.constraints),
+    ]);
+    const assumptions = normalizeTextArray([
+      ...source.designOption.assumptions,
+      ...selectedValueDetails.flatMap((value) => value.assumptions),
+    ]);
+
+    appendixMap.set(entryId, {
+      catalogItemId: entryId,
+      name: `${option.label} (${serviceName})`,
+      itemType: "DESIGN_OPTION",
+      description: descriptions.length > 0 ? descriptions.join(" ") : null,
+      features: [],
+      constraints,
+      assumptions,
     });
   };
 
@@ -591,9 +724,47 @@ export async function buildDesignDocumentModel(params: {
 
     addAppendixEntry(packageItem.catalogItem);
     for (const service of services) {
-      const catalogItem = packageItem.catalogItem.packageCompositions.find((row) => row.catalogItemId === service.catalogItemId)?.catalogItem;
-      if (catalogItem) {
-        addAppendixEntry(catalogItem);
+      const serviceCatalogItem = packageItem.catalogItem.packageCompositions.find((row) => row.catalogItemId === service.catalogItemId)?.catalogItem;
+      if (serviceCatalogItem) {
+        addAppendixEntry(serviceCatalogItem, { features: service.features });
+
+        const selectedServiceOptionIds = new Set(
+          service.serviceOptions.filter((option) => option.selected).map((option) => option.id)
+        );
+        for (const dependency of serviceCatalogItem.childDependencies) {
+          if (dependency.childItem.type !== ItemType.SERVICE_OPTION) continue;
+          if (!selectedServiceOptionIds.has(dependency.childItem.id)) continue;
+          addAppendixEntry(dependency.childItem);
+        }
+
+        const designOptionSourceByKey = new Map(
+          serviceCatalogItem.designOptions.map((assignment) => [assignment.designOption.key, assignment])
+        );
+        for (const option of service.designOptions) {
+          const source = designOptionSourceByKey.get(option.key);
+          if (!source) continue;
+          addDesignOptionAppendixEntry({
+            serviceCatalogItemId: serviceCatalogItem.id,
+            serviceName: serviceCatalogItem.name,
+            option,
+            source,
+          });
+        }
+
+        const featureDetailsByTermId = new Map(
+          getFeatureDetailsFromAttributes(serviceCatalogItem.attributes).map((feature) => [feature.termId, feature])
+        );
+        for (const feature of service.features) {
+          const detail = featureDetailsByTermId.get(feature.termId);
+          addFeatureAppendixEntry({
+            termId: feature.termId,
+            label: feature.label,
+            status: feature.status,
+            description: detail?.description ?? null,
+            constraints: detail?.constraints ?? [],
+            assumptions: detail?.assumptions ?? [],
+          });
+        }
       }
     }
 
@@ -619,7 +790,44 @@ export async function buildDesignDocumentModel(params: {
         isExplicitlySelected: true,
       });
 
-      addAppendixEntry(item.catalogItem);
+      addAppendixEntry(item.catalogItem, { features: section.features });
+      const selectedServiceOptionIds = new Set(
+        section.serviceOptions.filter((option) => option.selected).map((option) => option.id)
+      );
+      for (const dependency of item.catalogItem.childDependencies) {
+        if (dependency.childItem.type !== ItemType.SERVICE_OPTION) continue;
+        if (!selectedServiceOptionIds.has(dependency.childItem.id)) continue;
+        addAppendixEntry(dependency.childItem);
+      }
+
+      const designOptionSourceByKey = new Map(
+        item.catalogItem.designOptions.map((assignment) => [assignment.designOption.key, assignment])
+      );
+      for (const option of section.designOptions) {
+        const source = designOptionSourceByKey.get(option.key);
+        if (!source) continue;
+        addDesignOptionAppendixEntry({
+          serviceCatalogItemId: item.catalogItem.id,
+          serviceName: item.catalogItem.name,
+          option,
+          source,
+        });
+      }
+
+      const featureDetailsByTermId = new Map(
+        getFeatureDetailsFromAttributes(item.catalogItem.attributes).map((feature) => [feature.termId, feature])
+      );
+      for (const feature of section.features) {
+        const detail = featureDetailsByTermId.get(feature.termId);
+        addFeatureAppendixEntry({
+          termId: feature.termId,
+          label: feature.label,
+          status: feature.status,
+          description: detail?.description ?? null,
+          constraints: detail?.constraints ?? [],
+          assumptions: detail?.assumptions ?? [],
+        });
+      }
       return section;
     });
 

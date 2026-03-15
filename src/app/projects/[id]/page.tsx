@@ -613,7 +613,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   }
 
   async function continueToStep2() {
-    if (!project || project.items.length === 0) return;
+    if (!project || selectedTopLevelProjectItems.length === 0) return;
 
     setSavingStep(true);
     try {
@@ -635,6 +635,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const topLevelItemById = useMemo(() => {
     return new Map(topLevelItems.map((item) => [item.id, item]));
   }, [topLevelItems]);
+
+  const selectedTopLevelProjectItems = useMemo(() => {
+    const items = project?.items ?? [];
+    return items.filter((item) => topLevelItemById.has(item.catalogItemId));
+  }, [project?.items, topLevelItemById]);
 
   const lifecycleSummaryByTopLevelId = useMemo(() => {
     const entries = topLevelItems.map((item) => [item.id, summarizeLifecycle(item)] as const);
@@ -898,14 +903,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           <h3 className="font-bold flex items-center gap-2 text-slate-900">
             <FolderKanban size={18} /> Selected Services / Packages
           </h3>
-          {project.items.length === 0 ? (
+          {selectedTopLevelProjectItems.length === 0 ? (
             <div className="text-center text-slate-600 py-10">
               <p>No services selected yet.</p>
               <p className="text-xs mt-1">Add at least one package/service to continue to Step 2.</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {project.items.map((item) => {
+              {selectedTopLevelProjectItems.map((item) => {
                 const lifecycleSummary = lifecycleSummaryByTopLevelId.get(item.catalogItemId);
                 const aggregate = lifecycleSummary?.aggregate ?? 'READY';
                 return (
@@ -948,7 +953,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             <span className="text-xs text-slate-500">Step 1 saves requirements + selected items.</span>
             <Button
               onClick={continueToStep2}
-              disabled={project.items.length === 0 || savingStep}
+              disabled={selectedTopLevelProjectItems.length === 0 || savingStep}
               className=""
             >
               {savingStep ? <Loader2 size={14} className="animate-spin" /> : null}
