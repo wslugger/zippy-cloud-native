@@ -63,11 +63,30 @@ export default function PromptsPage() {
     const fetchPrompts = useCallback(async () => {
         try {
             const res = await fetch('/api/admin/prompts');
-            const data = await res.json();
-            setPrompts(data);
-            setSelectedPrompt((prev) => prev ?? (data.length > 0 ? data[0] : null));
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                const errorMessage =
+                    data && typeof data === 'object' && 'error' in data && typeof data.error === 'string'
+                        ? data.error
+                        : 'Failed to load AI prompts.';
+                setPrompts([]);
+                setSelectedPrompt(null);
+                setMessage({ type: 'error', text: errorMessage });
+                return;
+            }
+            if (!Array.isArray(data)) {
+                setPrompts([]);
+                setSelectedPrompt(null);
+                setMessage({ type: 'error', text: 'Unexpected response from AI prompts API.' });
+                return;
+            }
+            setPrompts(data as PromptConfig[]);
+            setSelectedPrompt((prev) => prev ?? (data.length > 0 ? (data[0] as PromptConfig) : null));
         } catch (err) {
             console.error(err);
+            setPrompts([]);
+            setSelectedPrompt(null);
+            setMessage({ type: 'error', text: 'Failed to load AI prompts.' });
         } finally {
             setLoading(false);
         }

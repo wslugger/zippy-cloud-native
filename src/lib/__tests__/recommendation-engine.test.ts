@@ -18,10 +18,13 @@ import {
   selectTopRecommendations,
   toShortReason,
   buildPrompt,
+  getFirstSystemConfigValue,
+  DEFAULT_REQUIREMENTS_MATCH_RULES,
   type RecommendationCandidate,
   type GeminiMatchResult,
 } from "@/lib/recommendation-engine";
 import { ItemType } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 // ---------------------------------------------------------------------------
 // Test Helpers
@@ -478,5 +481,45 @@ describe("buildPrompt", () => {
     const prompt = buildPrompt("Test.", "reqs", "catalog");
     expect(prompt).toContain("score the package higher");
     expect(prompt).toContain("Only recommend standalone services when they are specifically requested");
+  });
+
+  it("uses custom rules text when provided", () => {
+    const prompt = buildPrompt("System.", "reqs", "catalog", "CUSTOM RULES HERE");
+    expect(prompt).toContain("CUSTOM RULES HERE");
+    expect(prompt).not.toContain("SCORING RULES:");
+  });
+
+  it("uses default rules text when custom rules are omitted", () => {
+    const prompt = buildPrompt("System.", "reqs", "catalog");
+    expect(prompt).toContain(DEFAULT_REQUIREMENTS_MATCH_RULES);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getFirstSystemConfigValue
+// ---------------------------------------------------------------------------
+
+describe("getFirstSystemConfigValue", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns the first non-empty config value", async () => {
+    vi.mocked(prisma.systemConfig.findUnique)
+      .mockResolvedValueOnce({ value: "" })
+      .mockResolvedValueOnce({ value: "   " })
+      .mockResolvedValueOnce({ value: "winner" });
+
+    const value = await getFirstSystemConfigValue(["A", "B", "C"]);
+    expect(value).toBe("winner");
+  });
+
+  it("returns null when all keys are empty or missing", async () => {
+    vi.mocked(prisma.systemConfig.findUnique)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ value: "" });
+
+    const value = await getFirstSystemConfigValue(["A", "B"]);
+    expect(value).toBeNull();
   });
 });

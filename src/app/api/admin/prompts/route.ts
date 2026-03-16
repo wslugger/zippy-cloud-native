@@ -1,37 +1,80 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import {
+    DEFAULT_REQUIREMENTS_MATCH_PROMPT,
+    DEFAULT_REQUIREMENTS_MATCH_RULES,
+    PROMPT_REQUIREMENTS_MATCH_KEY,
+    PROMPT_REQUIREMENTS_MATCH_RULES_KEY,
+} from "@/lib/recommendation-engine";
 
-const DEFAULT_PROMPTS: Array<{ key: string; value: string; description: string }> = [
+const ACTIVE_PROMPTS: Array<{ key: string; value: string; description: string }> = [
     {
-        key: "PROMPT_PACKAGE_MATCH",
-        value: "You are a solution architect assistant. Analyze package candidates across name, short description, detailed description, features, constraints, assumptions, and included components. Prefer packages when they provide broader, lower-risk requirement coverage than individual services.",
-        description: "Prompt for package matching endpoint.",
+        key: PROMPT_REQUIREMENTS_MATCH_KEY,
+        value: DEFAULT_REQUIREMENTS_MATCH_PROMPT,
+        description: "Canonical prompt for requirements analysis and service/package matching endpoints.",
     },
     {
-        key: "PROMPT_SA_SUGGEST",
-        value: "You are a solution architect assistant. Evaluate catalog candidates using detailed description, features, constraints, assumptions, and requirement fit. Prefer package recommendations over individual services when package coverage and risk are equal or better.",
-        description: "Prompt for service/package suggestion endpoint.",
+        key: PROMPT_REQUIREMENTS_MATCH_RULES_KEY,
+        value: DEFAULT_REQUIREMENTS_MATCH_RULES,
+        description: "Scoring and ranking rules appended to requirements matching prompts.",
     },
     {
         key: "GEMINI_MODEL",
         value: "gemini-3.1-flash-lite-preview",
-        description: "Primary Gemini model id for AI matching endpoints.",
+        description: "Primary Gemini model id for AI endpoints.",
     },
     {
-        key: "PROMPT_BOM_GEN",
-        value: "You are a Network Solution Architect. Based on the site requirements, select the most appropriate SKUs from the catalog.",
-        description: "Primary system prompt for BOM generation logic.",
+        key: "PROMPT_DESIGN_EXEC_SUMMARY",
+        value: "Write the executive summary for this telecom/network design document in paragraph form. Reference the project name and customer by name. Enumerate selected packages and their key service composition. Highlight significant design option selections and architecture intent in business terms. Tone: clear, concise, business-oriented, and implementation-aware. Length: 150-220 words. Do not invent facts that are not in context.",
+        description: "Prompt for design document executive summary generation.",
     },
     {
-        key: "PROMPT_TRIAGE",
-        value: "Analyze the user input and determine which technical stack is required (SD-WAN, LAN, or WLAN).",
-        description: "Prompt for initial project triage.",
+        key: "PROMPT_DESIGN_CONCLUSIONS",
+        value: "Write the conclusions section for this telecom/network design document in paragraph form. Assess design completeness based on feature coverage. Explicitly note any feature gaps where status is NOT_AVAILABLE. State readiness for BOM/commercial validation and recommend clear next steps. Tone: direct and actionable. Length: 100-160 words. Do not invent facts that are not in context.",
+        description: "Prompt for design document conclusions generation.",
     },
 ];
 
+const ACTIVE_PROMPT_KEYS = new Set(ACTIVE_PROMPTS.map((prompt) => prompt.key));
+const DEPRECATED_PROMPT_KEYS = new Set([
+    "PROMPT_PACKAGE_MATCH",
+    "PROMPT_SA_SUGGEST",
+    "PROMPT_BOM_GEN",
+    "PROMPT_TRIAGE",
+]);
+
 async function ensureDefaultPrompts() {
+    const [canonicalPrompt, legacyPackageMatch, legacySuggest] = await Promise.all([
+        prisma.systemConfig.findUnique({
+            where: { key: PROMPT_REQUIREMENTS_MATCH_KEY },
+            select: { value: true },
+        }),
+        prisma.systemConfig.findUnique({
+            where: { key: "PROMPT_PACKAGE_MATCH" },
+            select: { value: true },
+        }),
+        prisma.systemConfig.findUnique({
+            where: { key: "PROMPT_SA_SUGGEST" },
+            select: { value: true },
+        }),
+    ]);
+
+    if (!canonicalPrompt?.value) {
+        const bootstrapValue =
+            legacyPackageMatch?.value || legacySuggest?.value || DEFAULT_REQUIREMENTS_MATCH_PROMPT;
+        await prisma.systemConfig.upsert({
+            where: { key: PROMPT_REQUIREMENTS_MATCH_KEY },
+            update: {},
+            create: {
+                key: PROMPT_REQUIREMENTS_MATCH_KEY,
+                value: bootstrapValue,
+                description: "Canonical prompt for requirements analysis and service/package matching endpoints.",
+            },
+        });
+    }
+
     await Promise.all(
-        DEFAULT_PROMPTS.map((prompt) =>
+        ACTIVE_PROMPTS.filter((prompt) => prompt.key !== PROMPT_REQUIREMENTS_MATCH_KEY).map((prompt) =>
             prisma.systemConfig.upsert({
                 where: { key: prompt.key },
                 update: {},
@@ -57,10 +100,7 @@ export async function GET() {
         await ensureDefaultPrompts();
         const configs = await prisma.systemConfig.findMany({
             where: {
-                OR: [
-                    { key: { startsWith: 'PROMPT_' } },
-                    { key: 'GEMINI_MODEL' },
-                ],
+                key: { in: Array.from(ACTIVE_PROMPT_KEYS) },
             },
             orderBy: { updatedAt: 'desc' },
         });
@@ -78,6 +118,18 @@ export async function POST(request: Request) {
 
         if (!key || !value) {
             return NextResponse.json({ error: "'key' and 'value' are required" }, { status: 400 });
+        }
+        if (DEPRECATED_PROMPT_KEYS.has(key)) {
+            return NextResponse.json(
+                { error: `Prompt key '${key}' is deprecated and cannot be edited.` },
+                { status: 400 }
+            );
+        }
+        if (!ACTIVE_PROMPT_KEYS.has(key)) {
+            return NextResponse.json(
+                { error: `Prompt key '${key}' is not an active AI Prompt Logic key.` },
+                { status: 400 }
+            );
         }
 
         const config = await prisma.systemConfig.upsert({

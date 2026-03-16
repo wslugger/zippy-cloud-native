@@ -14,6 +14,11 @@ import {
   rankResults,
   selectTopRecommendations,
   getSystemConfigValue,
+  getFirstSystemConfigValue,
+  DEFAULT_REQUIREMENTS_MATCH_PROMPT,
+  DEFAULT_REQUIREMENTS_MATCH_RULES,
+  PROMPT_REQUIREMENTS_MATCH_KEY,
+  PROMPT_REQUIREMENTS_MATCH_RULES_KEY,
   toShortReason,
   type RankedRecommendation,
 } from "@/lib/recommendation-engine";
@@ -139,15 +144,20 @@ export async function POST(
 
     // --- Build prompt and invoke Gemini ---
     const promptTemplate =
-      (await getSystemConfigValue("PROMPT_PACKAGE_MATCH")) ??
-      "You are a solution architect assistant. Recommend the best matching catalog items based on customer requirements. Return JSON only.";
+      (await getFirstSystemConfigValue([
+        PROMPT_REQUIREMENTS_MATCH_KEY,
+        "PROMPT_PACKAGE_MATCH",
+        "PROMPT_SA_SUGGEST",
+      ])) ?? DEFAULT_REQUIREMENTS_MATCH_PROMPT;
+    const rulesTemplate =
+      (await getSystemConfigValue(PROMPT_REQUIREMENTS_MATCH_RULES_KEY)) ?? DEFAULT_REQUIREMENTS_MATCH_RULES;
     const primaryModel = (await getSystemConfigValue("GEMINI_MODEL")) ?? "gemini-3.1-flash-lite-preview";
     const fallbackModel = "gemini-2.5-flash";
     const modelCandidates = Array.from(new Set([primaryModel, fallbackModel]));
     let modelUsed = primaryModel;
 
     const candidateSummary = buildCandidateSummary(allCandidates);
-    const prompt = buildPrompt(promptTemplate, combinedRequirements, candidateSummary);
+    const prompt = buildPrompt(promptTemplate, combinedRequirements, candidateSummary, rulesTemplate);
 
     const apiKey = process.env.GEMINI_API_KEY;
     let ranked: RankedRecommendation[];

@@ -10,6 +10,11 @@ import {
   rankResults,
   selectTopRecommendations,
   getSystemConfigValue,
+  getFirstSystemConfigValue,
+  DEFAULT_REQUIREMENTS_MATCH_PROMPT,
+  DEFAULT_REQUIREMENTS_MATCH_RULES,
+  PROMPT_REQUIREMENTS_MATCH_KEY,
+  PROMPT_REQUIREMENTS_MATCH_RULES_KEY,
 } from "@/lib/recommendation-engine";
 
 // 10 requests per user per minute for the AI endpoint
@@ -50,8 +55,13 @@ export async function POST(request: NextRequest) {
     const fallbackModel = "gemini-2.5-flash";
     const modelCandidates = Array.from(new Set([primaryModel, fallbackModel]));
     const promptTemplate =
-      (await getSystemConfigValue("PROMPT_SA_SUGGEST")) ??
-      "You are a solution architect assistant. Match customer requirements to the best catalog offerings.";
+      (await getFirstSystemConfigValue([
+        PROMPT_REQUIREMENTS_MATCH_KEY,
+        "PROMPT_PACKAGE_MATCH",
+        "PROMPT_SA_SUGGEST",
+      ])) ?? DEFAULT_REQUIREMENTS_MATCH_PROMPT;
+    const rulesTemplate =
+      (await getSystemConfigValue(PROMPT_REQUIREMENTS_MATCH_RULES_KEY)) ?? DEFAULT_REQUIREMENTS_MATCH_RULES;
 
     if (!apiKey) {
       console.warn("GEMINI_API_KEY not set — falling back to token-match suggestions");
@@ -62,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     const candidateSummary = buildCandidateSummary(candidates);
-    const prompt = buildPrompt(promptTemplate, rawRequirements, candidateSummary);
+    const prompt = buildPrompt(promptTemplate, rawRequirements, candidateSummary, rulesTemplate);
     const geminiResult = await invokeGemini(prompt, modelCandidates, apiKey);
 
     if (!geminiResult) {

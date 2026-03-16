@@ -56,6 +56,24 @@ export interface RankedRecommendation extends RecommendationCandidate {
   riskFactors: string[];
 }
 
+export const PROMPT_REQUIREMENTS_MATCH_KEY = "PROMPT_REQUIREMENTS_MATCH";
+export const PROMPT_REQUIREMENTS_MATCH_RULES_KEY = "PROMPT_REQUIREMENTS_MATCH_RULES";
+
+export const DEFAULT_REQUIREMENTS_MATCH_PROMPT =
+  "You are a solution architect assistant. Analyze package and managed-service candidates across name, short description, detailed description, features, constraints, assumptions, and included components. Prefer packages when they provide broader, lower-risk requirement coverage than individual services.";
+
+export const DEFAULT_REQUIREMENTS_MATCH_RULES = [
+  "SCORING RULES:",
+  "1. Base your score (0-1) on how well the candidate's description, features, constraints, assumptions, and included components match the customer requirements.",
+  "2. PACKAGE PREFERENCE: When a design package and individual standalone services both cover the same requirements equally well, score the package higher. Only recommend standalone services when they are specifically requested in the requirements OR when no package adequately covers the requirements.",
+  "3. VENDOR PREFERENCE: If the customer states a vendor preference (e.g., \"prefer Meraki\", \"prefer Cisco Catalyst\"), boost candidates aligned with that vendor and reduce candidates for a competing vendor. If no preference is stated, treat vendors neutrally.",
+  "4. COVERAGE: For each candidate, identify which technology domains it covers (e.g., SD-WAN, LAN, WLAN, Security, UCaaS, Cloud). Candidates covering more of the customer's required domains should score higher.",
+  "5. RISK ASSESSMENT: If a candidate's constraints or assumptions conflict with the stated requirements, reduce the score and note the risk.",
+  "6. DESIGN OPTIONS: Analyze package design option rules (FORCE/FORBID/ALLOW_ONLY/REQUIRE_ONE_OF) for compatibility with requirements. If rules conflict with requirements, reduce the score.",
+  "",
+  "Evaluate EVERY candidate against these rules. Return up to 8 results sorted by score descending.",
+].join("\n");
+
 // ---------------------------------------------------------------------------
 // Candidate Loading
 // ---------------------------------------------------------------------------
@@ -178,19 +196,12 @@ export function buildCandidateSummary(candidates: RecommendationCandidate[]): st
 export function buildPrompt(
   promptTemplate: string,
   requirements: string,
-  candidateSummary: string
+  candidateSummary: string,
+  rulesText: string = DEFAULT_REQUIREMENTS_MATCH_RULES
 ): string {
   return `${promptTemplate}
 
-SCORING RULES:
-1. Base your score (0-1) on how well the candidate's description, features, constraints, assumptions, and included components match the customer requirements.
-2. PACKAGE PREFERENCE: When a design package and individual standalone services both cover the same requirements equally well, score the package higher. Only recommend standalone services when they are specifically requested in the requirements OR when no package adequately covers the requirements.
-3. VENDOR PREFERENCE: If the customer states a vendor preference (e.g., "prefer Meraki", "prefer Cisco Catalyst"), boost candidates aligned with that vendor and reduce candidates for a competing vendor. If no preference is stated, treat vendors neutrally.
-4. COVERAGE: For each candidate, identify which technology domains it covers (e.g., SD-WAN, LAN, WLAN, Security, UCaaS, Cloud). Candidates covering more of the customer's required domains should score higher.
-5. RISK ASSESSMENT: If a candidate's constraints or assumptions conflict with the stated requirements, reduce the score and note the risk.
-6. DESIGN OPTIONS: Analyze package design option rules (FORCE/FORBID/ALLOW_ONLY/REQUIRE_ONE_OF) for compatibility with requirements. If rules conflict with requirements, reduce the score.
-
-Evaluate EVERY candidate against these rules. Return up to 8 results sorted by score descending.
+${rulesText}
 
 CUSTOMER REQUIREMENTS:
 ${requirements}
@@ -479,4 +490,14 @@ export async function getSystemConfigValue(key: string): Promise<string | null> 
   } catch {
     return null;
   }
+}
+
+export async function getFirstSystemConfigValue(keys: string[]): Promise<string | null> {
+  for (const key of keys) {
+    const value = await getSystemConfigValue(key);
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return null;
 }
