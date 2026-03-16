@@ -14,6 +14,12 @@ function normalizeText(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
 
+function normalizePurpose(value: string | null | undefined): "WAN" | "LAN" | "WLAN" | null {
+  const normalized = (value ?? "").trim().toUpperCase();
+  if (normalized === "WAN" || normalized === "LAN" || normalized === "WLAN") return normalized;
+  return null;
+}
+
 function normalizeStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return Array.from(
@@ -40,8 +46,22 @@ export function isManagedTierOptionByIdentity(input: {
 export function classifyCoreServiceRoleByIdentity(input: {
   type?: string | null;
   name?: string | null;
+  primaryPurpose?: string | null;
+  secondaryPurposes?: string[] | null;
 }): CoreServiceRole {
   const normalizedType = (input.type ?? "").toUpperCase();
+  const primaryPurpose = normalizePurpose(input.primaryPurpose);
+  if (primaryPurpose === "WAN") return "SDWAN";
+  if (primaryPurpose === "LAN") return "LAN";
+  if (primaryPurpose === "WLAN") return "WLAN";
+
+  const secondaryPurposes = Array.isArray(input.secondaryPurposes)
+    ? input.secondaryPurposes.map((value) => normalizePurpose(value)).filter((value): value is "WAN" | "LAN" | "WLAN" => Boolean(value))
+    : [];
+  if (secondaryPurposes.includes("WAN")) return "SDWAN";
+  if (secondaryPurposes.includes("LAN")) return "LAN";
+  if (secondaryPurposes.includes("WLAN")) return "WLAN";
+
   if (normalizedType === "CONNECTIVITY") return "CONNECTIVITY";
   if (normalizedType !== "MANAGED_SERVICE") return "OTHER";
   const normalizedName = normalizeText(input.name);
@@ -66,4 +86,3 @@ export function parsePackageDependencyAllowlist(configSchema: unknown): PackageD
   }
   return output;
 }
-

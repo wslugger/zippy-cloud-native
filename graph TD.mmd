@@ -1,0 +1,10 @@
+graph TD
+    A[Inputs: Files + Notes] --> B[Combined Requirements Context]
+    B --> C[Heuristic Signal Extraction]
+    C --> D[Load Catalog: Packages + Services]
+    D --> E[Check Structural Feasibility]
+    B & D --> F[Invoke Gemini 3.1 Flash Lite]
+    F --> G[Apply Scoring: Vendor/Domain/Package Bias]
+    G --> H[Final Ranking + Signal Penalty]
+    H --> I[Store Top 5 Results]
+    I --> J[UI Update: Suggestions List]

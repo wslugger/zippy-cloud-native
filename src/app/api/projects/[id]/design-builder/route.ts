@@ -63,6 +63,11 @@ async function expandRequiredDependencies(initialSelections: SelectionInput[]): 
           type: {
             in: [DependencyType.INCLUDES, DependencyType.REQUIRES, DependencyType.MANDATORY_ATTACHMENT],
           },
+          OR: [
+            { childItem: { type: { not: ItemType.HARDWARE } } },
+            { childItem: { equipmentProfile: { is: null } } },
+            { childItem: { equipmentProfile: { is: { reviewStatus: "PUBLISHED" } } } },
+          ],
         },
         select: {
           parentId: true,
@@ -70,6 +75,8 @@ async function expandRequiredDependencies(initialSelections: SelectionInput[]): 
             select: {
               type: true,
               name: true,
+              primaryPurpose: true,
+              secondaryPurposes: true,
             },
           },
           childItem: {
@@ -180,6 +187,11 @@ async function validatePackageDependencyAllowlists(input: {
           DependencyType.INCLUDES,
         ],
       },
+      OR: [
+        { childItem: { type: { not: ItemType.HARDWARE } } },
+        { childItem: { equipmentProfile: { is: null } } },
+        { childItem: { equipmentProfile: { is: { reviewStatus: "PUBLISHED" } } } },
+      ],
     },
     include: {
       childItem: {
@@ -288,6 +300,11 @@ export async function GET(
                   DependencyType.OPTIONAL_ATTACHMENT,
                 ],
               },
+              OR: [
+                { childItem: { type: { not: ItemType.HARDWARE } } },
+                { childItem: { equipmentProfile: { is: null } } },
+                { childItem: { equipmentProfile: { is: { reviewStatus: "PUBLISHED" } } } },
+              ],
             },
             include: {
               childItem: {
@@ -303,6 +320,11 @@ export async function GET(
                           DependencyType.OPTIONAL_ATTACHMENT,
                         ],
                       },
+                      OR: [
+                        { childItem: { type: { not: ItemType.HARDWARE } } },
+                        { childItem: { equipmentProfile: { is: null } } },
+                        { childItem: { equipmentProfile: { is: { reviewStatus: "PUBLISHED" } } } },
+                      ],
                     },
                     include: {
                       childItem: {
@@ -352,14 +374,19 @@ export async function GET(
                   childDependencies: {
                     where: {
                       type: {
-                        in: [
-                          DependencyType.REQUIRES,
-                          DependencyType.INCLUDES,
-                          DependencyType.MANDATORY_ATTACHMENT,
-                          DependencyType.OPTIONAL_ATTACHMENT,
-                        ],
-                      },
+                      in: [
+                        DependencyType.REQUIRES,
+                        DependencyType.INCLUDES,
+                        DependencyType.MANDATORY_ATTACHMENT,
+                        DependencyType.OPTIONAL_ATTACHMENT,
+                      ],
                     },
+                    OR: [
+                      { childItem: { type: { not: ItemType.HARDWARE } } },
+                      { childItem: { equipmentProfile: { is: null } } },
+                      { childItem: { equipmentProfile: { is: { reviewStatus: "PUBLISHED" } } } },
+                    ],
+                  },
                     include: {
                       childItem: {
                         include: {

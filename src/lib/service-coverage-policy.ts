@@ -29,6 +29,8 @@ interface CoverageItem {
   name: string;
   sku: string;
   type: ItemType;
+  primaryPurpose: string | null;
+  secondaryPurposes: string[];
   childDependencies: CoverageDependency[];
 }
 
@@ -41,7 +43,7 @@ const STRUCTURAL_DEPENDENCY_TYPES = new Set<DependencyType>([
   DependencyType.INCLUDES,
 ]);
 
-function classifyRole(item: Pick<CoverageItem, "type" | "name" | "sku">): ServiceRole {
+function classifyRole(item: Pick<CoverageItem, "type" | "name" | "sku" | "primaryPurpose" | "secondaryPurposes">): ServiceRole {
   if (isManagedTierOptionByIdentity(item)) {
     return "MANAGED_TIER";
   }
@@ -162,6 +164,8 @@ export async function validateServiceCoverageForSelection(selectedItemIds: strin
       name: true,
       sku: true,
       type: true,
+      primaryPurpose: true,
+      secondaryPurposes: true,
       childDependencies: {
         where: {
           childId: { in: selectedItemIds },

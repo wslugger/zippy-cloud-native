@@ -29,6 +29,8 @@ describe("package-dependency-allowlist helpers", () => {
     expect(classifyCoreServiceRoleByIdentity({ type: "MANAGED_SERVICE", name: "Meraki LAN" })).toBe("LAN");
     expect(classifyCoreServiceRoleByIdentity({ type: "MANAGED_SERVICE", name: "Meraki WLAN" })).toBe("WLAN");
     expect(classifyCoreServiceRoleByIdentity({ type: "CONNECTIVITY", name: "DIA" })).toBe("CONNECTIVITY");
+    expect(classifyCoreServiceRoleByIdentity({ type: "MANAGED_SERVICE", name: "Unknown", primaryPurpose: "WAN" })).toBe("SDWAN");
+    expect(classifyCoreServiceRoleByIdentity({ type: "MANAGED_SERVICE", name: "Unknown", secondaryPurposes: ["LAN"] })).toBe("LAN");
   });
 
   it("parses package dependency allowlist from config schema", () => {
@@ -45,4 +47,3 @@ describe("package-dependency-allowlist helpers", () => {
     expect(parsed["svc-sdwan"]?.connectivityIds).toEqual(["conn-1"]);
   });
 });
-

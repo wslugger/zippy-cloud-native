@@ -136,6 +136,11 @@ export async function calculateBOM(
             where: { id },
             include: {
                 pricing: { include: { tiers: true } },
+                equipmentProfile: {
+                    select: {
+                        reviewStatus: true,
+                    },
+                },
                 childDependencies: {
                     where: {
                         // Only operational dependency types are auto-expanded into BOM rows.
@@ -150,6 +155,11 @@ export async function calculateBOM(
 
         if (!item) {
             warnings.push(`Item with ID ${id} not found in catalog.`);
+            continue;
+        }
+
+        if (item.type === ItemType.HARDWARE && item.equipmentProfile && item.equipmentProfile.reviewStatus !== "PUBLISHED") {
+            warnings.push(`Hardware item ${item.sku} is not published and was excluded from BOM output.`);
             continue;
         }
 

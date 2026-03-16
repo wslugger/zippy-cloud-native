@@ -16,6 +16,8 @@ function item(input: TestItemInput) {
     name: input.name,
     sku: input.sku,
     type: input.type,
+    primaryPurpose: null,
+    secondaryPurposes: [],
     childDependencies: (input.children ?? []).map((child) => ({
       childId: child.childId,
       type: child.type ?? DependencyType.OPTIONAL_ATTACHMENT,

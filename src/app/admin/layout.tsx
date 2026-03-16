@@ -8,7 +8,7 @@ const navItems = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/projects', label: 'Projects', icon: FolderKanban },
     { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
-    { href: '/admin/catalog', label: 'Catalog Items', icon: Settings },
+    { href: '/admin/catalog/hardware', label: 'Catalog Items', icon: Settings },
     { href: '/admin/rules', label: 'Calculator Rules', icon: Workflow },
     { href: '/admin/taxonomy', label: 'Taxonomy', icon: Database },
     { href: '/admin/prompts', label: 'AI Prompts', icon: MessageSquare },

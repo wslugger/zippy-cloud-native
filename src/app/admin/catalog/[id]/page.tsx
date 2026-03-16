@@ -37,7 +37,37 @@ interface CatalogItem {
     detailedDescription: string | null;
     configSchema?: Record<string, unknown> | null;
     type: string;
+    primaryPurpose: 'WAN' | 'LAN' | 'WLAN' | null;
+    secondaryPurposes: Array<'WAN' | 'LAN' | 'WLAN'>;
     lifecycleStatus: LifecycleStatus;
+    equipmentProfile: {
+        make: string;
+        model: string;
+        pricingSku: string | null;
+        family: string | null;
+        vendorDatasheetUrl: string | null;
+        reviewStatus: 'DRAFT' | 'PUBLISHED' | 'REJECTED';
+        wanSpec: {
+            throughputMbps: number | null;
+            vpnTunnels: number | null;
+            cellularSupport: boolean;
+            formFactor: string | null;
+            interfaces: unknown[];
+        } | null;
+        lanSpec: {
+            portCount: number | null;
+            portSpeed: string | null;
+            poeBudgetWatts: number | null;
+            stackable: boolean;
+            uplinkPorts: unknown[];
+        } | null;
+        wlanSpec: {
+            wifiStandard: string | null;
+            maxClients: number | null;
+            indoorOutdoor: string | null;
+            radios: unknown[];
+        } | null;
+    } | null;
     constraints: { id: string; description: string }[];
     assumptions: { id: string; description: string }[];
     collaterals: { id: string; title: string; documentUrl: string; type: string }[];
@@ -158,6 +188,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function unknownListToMultiline(value: unknown[] | null | undefined): string {
+    if (!Array.isArray(value) || value.length === 0) return '';
+    return value
+        .map((entry) => (typeof entry === 'string' ? entry : JSON.stringify(entry)))
+        .join('\n');
+}
+
+function multilineToStringList(value: string): string[] {
+    return value
+        .split('\n')
+        .map((row) => row.trim())
+        .filter(Boolean);
+}
+
 function createEmptyCatalogItem(): CatalogItem {
     return {
         id: '',
@@ -167,7 +211,10 @@ function createEmptyCatalogItem(): CatalogItem {
         detailedDescription: '',
         configSchema: null,
         type: 'MANAGED_SERVICE',
+        primaryPurpose: null,
+        secondaryPurposes: [],
         lifecycleStatus: 'SUPPORTED',
+        equipmentProfile: null,
         constraints: [],
         assumptions: [],
         collaterals: [],
@@ -262,6 +309,72 @@ function normalizeCatalogItem(raw: unknown): CatalogItem {
         }).filter((dep) => dep.childId)
         : [];
 
+    const primaryPurposeRaw = typeof input.primaryPurpose === 'string' ? input.primaryPurpose.toUpperCase() : null;
+    const primaryPurpose = (primaryPurposeRaw === 'WAN' || primaryPurposeRaw === 'LAN' || primaryPurposeRaw === 'WLAN')
+        ? primaryPurposeRaw
+        : null;
+
+    const secondaryPurposes = Array.isArray(input.secondaryPurposes)
+        ? input.secondaryPurposes
+            .filter((entry): entry is string => typeof entry === 'string')
+            .map((entry) => entry.toUpperCase())
+            .filter((entry): entry is 'WAN' | 'LAN' | 'WLAN' => entry === 'WAN' || entry === 'LAN' || entry === 'WLAN')
+        : [];
+
+    const equipmentProfileRaw = (input.equipmentProfile && typeof input.equipmentProfile === 'object')
+        ? (input.equipmentProfile as Record<string, unknown>)
+        : null;
+    const wanSpecRaw = equipmentProfileRaw && equipmentProfileRaw.wanSpec && typeof equipmentProfileRaw.wanSpec === 'object'
+        ? (equipmentProfileRaw.wanSpec as Record<string, unknown>)
+        : null;
+    const lanSpecRaw = equipmentProfileRaw && equipmentProfileRaw.lanSpec && typeof equipmentProfileRaw.lanSpec === 'object'
+        ? (equipmentProfileRaw.lanSpec as Record<string, unknown>)
+        : null;
+    const wlanSpecRaw = equipmentProfileRaw && equipmentProfileRaw.wlanSpec && typeof equipmentProfileRaw.wlanSpec === 'object'
+        ? (equipmentProfileRaw.wlanSpec as Record<string, unknown>)
+        : null;
+    const reviewStatus: 'DRAFT' | 'PUBLISHED' | 'REJECTED' = equipmentProfileRaw?.reviewStatus === 'REJECTED'
+        ? 'REJECTED'
+        : equipmentProfileRaw?.reviewStatus === 'DRAFT'
+            ? 'DRAFT'
+            : 'PUBLISHED';
+    const equipmentProfile = equipmentProfileRaw
+        ? {
+            make: typeof equipmentProfileRaw.make === 'string' ? equipmentProfileRaw.make : '',
+            model: typeof equipmentProfileRaw.model === 'string' ? equipmentProfileRaw.model : '',
+            pricingSku: typeof equipmentProfileRaw.pricingSku === 'string' ? equipmentProfileRaw.pricingSku : null,
+            family: typeof equipmentProfileRaw.family === 'string' ? equipmentProfileRaw.family : null,
+            vendorDatasheetUrl: typeof equipmentProfileRaw.vendorDatasheetUrl === 'string' ? equipmentProfileRaw.vendorDatasheetUrl : null,
+            reviewStatus,
+            wanSpec: wanSpecRaw
+                ? {
+                    throughputMbps: toNumber(wanSpecRaw.throughputMbps) || null,
+                    vpnTunnels: toNumber(wanSpecRaw.vpnTunnels) || null,
+                    cellularSupport: Boolean(wanSpecRaw.cellularSupport),
+                    formFactor: typeof wanSpecRaw.formFactor === 'string' ? wanSpecRaw.formFactor : null,
+                    interfaces: Array.isArray(wanSpecRaw.interfaces) ? wanSpecRaw.interfaces : [],
+                }
+                : null,
+            lanSpec: lanSpecRaw
+                ? {
+                    portCount: toNumber(lanSpecRaw.portCount) || null,
+                    portSpeed: typeof lanSpecRaw.portSpeed === 'string' ? lanSpecRaw.portSpeed : null,
+                    poeBudgetWatts: toNumber(lanSpecRaw.poeBudgetWatts) || null,
+                    stackable: Boolean(lanSpecRaw.stackable),
+                    uplinkPorts: Array.isArray(lanSpecRaw.uplinkPorts) ? lanSpecRaw.uplinkPorts : [],
+                }
+                : null,
+            wlanSpec: wlanSpecRaw
+                ? {
+                    wifiStandard: typeof wlanSpecRaw.wifiStandard === 'string' ? wlanSpecRaw.wifiStandard : null,
+                    maxClients: toNumber(wlanSpecRaw.maxClients) || null,
+                    indoorOutdoor: typeof wlanSpecRaw.indoorOutdoor === 'string' ? wlanSpecRaw.indoorOutdoor : null,
+                    radios: Array.isArray(wlanSpecRaw.radios) ? wlanSpecRaw.radios : [],
+                }
+                : null,
+        }
+        : null;
+
     return {
         id: typeof input.id === 'string' ? input.id : fallback.id,
         sku: typeof input.sku === 'string' ? input.sku : fallback.sku,
@@ -272,9 +385,12 @@ function normalizeCatalogItem(raw: unknown): CatalogItem {
             ? (input.configSchema as Record<string, unknown>)
             : null,
         type: normalizeCatalogItemType(typeof input.type === 'string' ? input.type : null) || fallback.type,
+        primaryPurpose,
+        secondaryPurposes,
         lifecycleStatus: typeof input.lifecycleStatus === 'string' && isHardwareLifecycleStatus(input.lifecycleStatus)
             ? input.lifecycleStatus
             : 'SUPPORTED',
+        equipmentProfile,
         constraints,
         assumptions,
         collaterals,
@@ -1223,12 +1339,112 @@ export default function CatalogItemDetail() {
 
     if (!item) return <div>Item not found</div>;
 
+    const catalogBackHrefByType: Record<string, string> = {
+        HARDWARE: '/admin/catalog/hardware',
+        MANAGED_SERVICE: '/admin/catalog/services',
+        SERVICE_OPTION: '/admin/catalog/service-options',
+        CONNECTIVITY: '/admin/catalog/connectivity',
+        PACKAGE: '/admin/catalog/packages',
+    };
+    const backHref = catalogBackHrefByType[item.type] ?? '/admin/catalog/hardware';
+
+    const updateEquipmentProfile = (
+        updater: (profile: NonNullable<CatalogItem['equipmentProfile']>) => NonNullable<CatalogItem['equipmentProfile']>
+    ) => {
+        setItem((prev) => {
+            if (!prev) return prev;
+            const baseProfile: NonNullable<CatalogItem['equipmentProfile']> = prev.equipmentProfile || {
+                make: '',
+                model: '',
+                pricingSku: null,
+                family: null,
+                vendorDatasheetUrl: null,
+                reviewStatus: 'PUBLISHED',
+                wanSpec: null,
+                lanSpec: null,
+                wlanSpec: null,
+            };
+            return {
+                ...prev,
+                equipmentProfile: updater(baseProfile),
+            };
+        });
+    };
+
+    const updateHardwareSpec = (updater: (spec: Record<string, unknown>) => Record<string, unknown>) => {
+        setItem((prev) => {
+            if (!prev) return prev;
+            const baseConfigSchema = isRecord(prev.configSchema) ? prev.configSchema : {};
+            const baseHardwareSpec = isRecord(baseConfigSchema.hardwareSpec) ? baseConfigSchema.hardwareSpec : {};
+            return {
+                ...prev,
+                configSchema: {
+                    ...baseConfigSchema,
+                    hardwareSpec: updater(baseHardwareSpec),
+                },
+            };
+        });
+    };
+
+    const updateHardwareSpecSection = (section: string, patch: Record<string, unknown>) => {
+        updateHardwareSpec((spec) => {
+            const currentSection = isRecord(spec[section]) ? spec[section] : {};
+            return {
+                ...spec,
+                [section]: {
+                    ...currentSection,
+                    ...patch,
+                },
+            };
+        });
+    };
+
+    const hardwareSpec = isRecord(item.configSchema) && isRecord(item.configSchema.hardwareSpec)
+        ? item.configSchema.hardwareSpec
+        : {};
+    const wanPerformance = isRecord(hardwareSpec.wanPerformance) ? hardwareSpec.wanPerformance : {};
+    const platformSpec = isRecord(hardwareSpec.platform) ? hardwareSpec.platform : {};
+    const portTypeSpec = isRecord(hardwareSpec.portTypes) ? hardwareSpec.portTypes : {};
+
+    const managementSizeValue = typeof platformSpec.managementSize === 'string' ? platformSpec.managementSize : '';
+    const mountingOptions = Array.isArray(platformSpec.mountingOptions)
+        ? platformSpec.mountingOptions.filter((entry): entry is string => typeof entry === 'string')
+        : [];
+    const rackUnitsValue = toNumber(platformSpec.rackUnits) || null;
+
+    const getTaxonomyOptionValues = (categories: string[], fallback: string[]): string[] => {
+        const categorySet = new Set(categories.map((entry) => entry.trim().toUpperCase()));
+        const taxonomyValues = taxonomyTerms
+            .filter((term) => categorySet.has((term.category || '').toUpperCase()))
+            .map((term) => (term.value || term.label || '').trim())
+            .filter(Boolean);
+        const merged = taxonomyValues.length > 0 ? taxonomyValues : fallback;
+        return Array.from(new Set(merged));
+    };
+
+    const managementSizeOptions = getTaxonomyOptionValues(
+        ['HARDWARE_MANAGEMENT_SIZE', 'MANAGEMENT_SIZE'],
+        ['X-Small', 'Small', 'Medium', 'Large', 'X-Large']
+    );
+    const mountingOptionValues = getTaxonomyOptionValues(
+        ['HARDWARE_MOUNTING_OPTION', 'MOUNTING_OPTION'],
+        ['Rack', 'Wall', 'Desktop', 'Ceiling']
+    );
+    const accessPortTypeOptions = getTaxonomyOptionValues(
+        ['HARDWARE_ACCESS_PORT_TYPE', 'ACCESS_PORT_TYPE'],
+        ['1G-RJ45', '2.5G-RJ45', '5G-RJ45', '10G-RJ45']
+    );
+    const uplinkPortTypeOptions = getTaxonomyOptionValues(
+        ['HARDWARE_UPLINK_PORT_TYPE', 'UPLINK_PORT_TYPE'],
+        ['1G-SFP', '10G-SFP+', '25G-SFP28', '40G-QSFP+']
+    );
+
     return (
         <div className="max-w-[1600px] space-y-8 pb-20">
             {/* Header */}
             <div className="flex items-center justify-between sticky top-0 bg-slate-50/80 backdrop-blur-md py-4 z-10 border-b border-slate-200 -mx-4 px-4">
                 <div className="flex items-center gap-4">
-                    <Link href="/admin/catalog">
+                    <Link href={backHref}>
                         <Button variant="ghost" size="icon" className="rounded-full">
                             <ChevronLeft size={20} />
                         </Button>
@@ -1308,6 +1524,384 @@ export default function CatalogItemDetail() {
                             />
                         </div>
                     </section>
+
+                    {item.type === 'HARDWARE' && (
+                        <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6 shadow-sm">
+                            <h2 className="font-bold text-slate-900">Hardware Specifications</h2>
+
+                            {(item.primaryPurpose === 'WAN' || item.secondaryPurposes.includes('WAN')) && (
+                                <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">WAN - Throughput & Interfaces</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Raw Firewall (Mbps)</label>
+                                            <Input
+                                                type="number"
+                                                value={item.equipmentProfile?.wanSpec?.throughputMbps ?? (toNumber(wanPerformance.rawFirewallMbps) || '')}
+                                                onChange={(e) => {
+                                                    const nextValue = Number.parseInt(e.target.value || '0', 10) || null;
+                                                    updateHardwareSpecSection('wanPerformance', { rawFirewallMbps: nextValue });
+                                                    updateEquipmentProfile((profile) => ({
+                                                        ...profile,
+                                                        wanSpec: {
+                                                            throughputMbps: nextValue,
+                                                            vpnTunnels: profile.wanSpec?.vpnTunnels ?? null,
+                                                            cellularSupport: profile.wanSpec?.cellularSupport ?? false,
+                                                            formFactor: profile.wanSpec?.formFactor ?? null,
+                                                            interfaces: profile.wanSpec?.interfaces ?? [],
+                                                        },
+                                                    }));
+                                                }}
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">SD-WAN Crypto (Mbps)</label>
+                                            <Input
+                                                type="number"
+                                                value={toNumber(wanPerformance.sdWanCryptoMbps) || ''}
+                                                onChange={(e) => updateHardwareSpecSection('wanPerformance', {
+                                                    sdWanCryptoMbps: Number.parseInt(e.target.value || '0', 10) || null,
+                                                })}
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Advanced Security (Mbps)</label>
+                                            <Input
+                                                type="number"
+                                                value={toNumber(wanPerformance.advancedSecurityMbps) || ''}
+                                                onChange={(e) => updateHardwareSpecSection('wanPerformance', {
+                                                    advancedSecurityMbps: Number.parseInt(e.target.value || '0', 10) || null,
+                                                })}
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">VPN Tunnels</label>
+                                            <Input
+                                                type="number"
+                                                value={item.equipmentProfile?.wanSpec?.vpnTunnels ?? ''}
+                                                onChange={(e) => updateEquipmentProfile((profile) => ({
+                                                    ...profile,
+                                                    wanSpec: {
+                                                        throughputMbps: profile.wanSpec?.throughputMbps ?? null,
+                                                        vpnTunnels: Number.parseInt(e.target.value || '0', 10) || null,
+                                                        cellularSupport: profile.wanSpec?.cellularSupport ?? false,
+                                                        formFactor: profile.wanSpec?.formFactor ?? null,
+                                                        interfaces: profile.wanSpec?.interfaces ?? [],
+                                                    },
+                                                }))}
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Form Factor</label>
+                                            <Input
+                                                value={item.equipmentProfile?.wanSpec?.formFactor ?? ''}
+                                                onChange={(e) => updateEquipmentProfile((profile) => ({
+                                                    ...profile,
+                                                    wanSpec: {
+                                                        throughputMbps: profile.wanSpec?.throughputMbps ?? null,
+                                                        vpnTunnels: profile.wanSpec?.vpnTunnels ?? null,
+                                                        cellularSupport: profile.wanSpec?.cellularSupport ?? false,
+                                                        formFactor: e.target.value || null,
+                                                        interfaces: profile.wanSpec?.interfaces ?? [],
+                                                    },
+                                                }))}
+                                                placeholder="Rackmount / Desktop / Virtual"
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                    </div>
+                                    <label className="flex items-center gap-2 text-xs text-slate-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={Boolean(item.equipmentProfile?.wanSpec?.cellularSupport)}
+                                            onChange={(e) => updateEquipmentProfile((profile) => ({
+                                                ...profile,
+                                                wanSpec: {
+                                                    throughputMbps: profile.wanSpec?.throughputMbps ?? null,
+                                                    vpnTunnels: profile.wanSpec?.vpnTunnels ?? null,
+                                                    cellularSupport: e.target.checked,
+                                                    formFactor: profile.wanSpec?.formFactor ?? null,
+                                                    interfaces: profile.wanSpec?.interfaces ?? [],
+                                                },
+                                            }))}
+                                        />
+                                        Cellular support
+                                    </label>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">WAN Interfaces (one per line)</label>
+                                        <Textarea
+                                            value={unknownListToMultiline(item.equipmentProfile?.wanSpec?.interfaces)}
+                                            onChange={(e) => updateEquipmentProfile((profile) => ({
+                                                ...profile,
+                                                wanSpec: {
+                                                    throughputMbps: profile.wanSpec?.throughputMbps ?? null,
+                                                    vpnTunnels: profile.wanSpec?.vpnTunnels ?? null,
+                                                    cellularSupport: profile.wanSpec?.cellularSupport ?? false,
+                                                    formFactor: profile.wanSpec?.formFactor ?? null,
+                                                    interfaces: multilineToStringList(e.target.value),
+                                                },
+                                            }))}
+                                            className="min-h-[88px] bg-white"
+                                            placeholder="2 x 1GbE WAN&#10;1 x SFP WAN"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">Platform - Management & Mounting</h3>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Management Size</label>
+                                    <select
+                                        value={managementSizeValue}
+                                        onChange={(e) => updateHardwareSpecSection('platform', { managementSize: e.target.value || null })}
+                                        className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 font-medium text-slate-900"
+                                    >
+                                        <option value="">Select size</option>
+                                        {managementSizeOptions.map((value) => (
+                                            <option key={value} value={value}>{value}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Mounting Options</label>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                        {mountingOptionValues.map((option) => (
+                                            <label key={option} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={mountingOptions.includes(option)}
+                                                    onChange={(e) => {
+                                                        const next = e.target.checked
+                                                            ? Array.from(new Set([...mountingOptions, option]))
+                                                            : mountingOptions.filter((entry) => entry !== option);
+                                                        updateHardwareSpecSection('platform', { mountingOptions: next });
+                                                    }}
+                                                />
+                                                {option}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="space-y-2 max-w-sm">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Rack Units</label>
+                                    <Input
+                                        type="number"
+                                        value={rackUnitsValue ?? ''}
+                                        onChange={(e) => updateHardwareSpecSection('platform', {
+                                            rackUnits: Number.parseInt(e.target.value || '0', 10) || null,
+                                        })}
+                                        className="bg-white"
+                                    />
+                                </div>
+                            </div>
+
+                            {(item.primaryPurpose === 'LAN' || item.secondaryPurposes.includes('LAN')) && (
+                                <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">LAN - Switching</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Port Count</label>
+                                            <Input
+                                                type="number"
+                                                value={item.equipmentProfile?.lanSpec?.portCount ?? ''}
+                                                onChange={(e) => updateEquipmentProfile((profile) => ({
+                                                    ...profile,
+                                                    lanSpec: {
+                                                        portCount: Number.parseInt(e.target.value || '0', 10) || null,
+                                                        portSpeed: profile.lanSpec?.portSpeed ?? null,
+                                                        poeBudgetWatts: profile.lanSpec?.poeBudgetWatts ?? null,
+                                                        stackable: profile.lanSpec?.stackable ?? false,
+                                                        uplinkPorts: profile.lanSpec?.uplinkPorts ?? [],
+                                                    },
+                                                }))}
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Access Port Type</label>
+                                            <select
+                                                value={typeof portTypeSpec.accessPortType === 'string' ? portTypeSpec.accessPortType : (item.equipmentProfile?.lanSpec?.portSpeed ?? '')}
+                                                onChange={(e) => {
+                                                    updateHardwareSpecSection('portTypes', { accessPortType: e.target.value || null });
+                                                    updateEquipmentProfile((profile) => ({
+                                                        ...profile,
+                                                        lanSpec: {
+                                                            portCount: profile.lanSpec?.portCount ?? null,
+                                                            portSpeed: e.target.value || null,
+                                                            poeBudgetWatts: profile.lanSpec?.poeBudgetWatts ?? null,
+                                                            stackable: profile.lanSpec?.stackable ?? false,
+                                                            uplinkPorts: profile.lanSpec?.uplinkPorts ?? [],
+                                                        },
+                                                    }));
+                                                }}
+                                                className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 font-medium text-slate-900"
+                                            >
+                                                <option value="">Select Access Port Type...</option>
+                                                {accessPortTypeOptions.map((value) => (
+                                                    <option key={value} value={value}>{value}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">PoE Budget (W)</label>
+                                            <Input
+                                                type="number"
+                                                value={item.equipmentProfile?.lanSpec?.poeBudgetWatts ?? ''}
+                                                onChange={(e) => updateEquipmentProfile((profile) => ({
+                                                    ...profile,
+                                                    lanSpec: {
+                                                        portCount: profile.lanSpec?.portCount ?? null,
+                                                        portSpeed: profile.lanSpec?.portSpeed ?? null,
+                                                        poeBudgetWatts: Number.parseInt(e.target.value || '0', 10) || null,
+                                                        stackable: profile.lanSpec?.stackable ?? false,
+                                                        uplinkPorts: profile.lanSpec?.uplinkPorts ?? [],
+                                                    },
+                                                }))}
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                        <label className="flex items-center gap-2 text-xs text-slate-700 mt-7">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(item.equipmentProfile?.lanSpec?.stackable)}
+                                                onChange={(e) => updateEquipmentProfile((profile) => ({
+                                                    ...profile,
+                                                    lanSpec: {
+                                                        portCount: profile.lanSpec?.portCount ?? null,
+                                                        portSpeed: profile.lanSpec?.portSpeed ?? null,
+                                                        poeBudgetWatts: profile.lanSpec?.poeBudgetWatts ?? null,
+                                                        stackable: e.target.checked,
+                                                        uplinkPorts: profile.lanSpec?.uplinkPorts ?? [],
+                                                    },
+                                                }))}
+                                            />
+                                            Stackable
+                                        </label>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Uplink Port Count</label>
+                                            <Input
+                                                type="number"
+                                                value={toNumber(portTypeSpec.uplinkPortCount) || ''}
+                                                onChange={(e) => updateHardwareSpecSection('portTypes', {
+                                                    uplinkPortCount: Number.parseInt(e.target.value || '0', 10) || null,
+                                                })}
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Uplink Port Type</label>
+                                            <select
+                                                value={typeof portTypeSpec.uplinkPortType === 'string' ? portTypeSpec.uplinkPortType : ''}
+                                                onChange={(e) => {
+                                                    const nextValue = e.target.value || null;
+                                                    updateHardwareSpecSection('portTypes', { uplinkPortType: nextValue });
+                                                    updateEquipmentProfile((profile) => ({
+                                                        ...profile,
+                                                        lanSpec: {
+                                                            portCount: profile.lanSpec?.portCount ?? null,
+                                                            portSpeed: profile.lanSpec?.portSpeed ?? null,
+                                                            poeBudgetWatts: profile.lanSpec?.poeBudgetWatts ?? null,
+                                                            stackable: profile.lanSpec?.stackable ?? false,
+                                                            uplinkPorts: nextValue ? [nextValue] : [],
+                                                        },
+                                                    }));
+                                                }}
+                                                className="w-full h-10 rounded-xl border border-slate-200 bg-white px-3 font-medium text-slate-900"
+                                            >
+                                                <option value="">Select Uplink Port Type...</option>
+                                                {uplinkPortTypeOptions.map((value) => (
+                                                    <option key={value} value={value}>{value}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {(item.primaryPurpose === 'WLAN' || item.secondaryPurposes.includes('WLAN')) && (
+                                <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">WLAN - Wireless</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Wi-Fi Standard</label>
+                                            <Input
+                                                value={item.equipmentProfile?.wlanSpec?.wifiStandard ?? ''}
+                                                onChange={(e) => updateEquipmentProfile((profile) => ({
+                                                    ...profile,
+                                                    wlanSpec: {
+                                                        wifiStandard: e.target.value || null,
+                                                        maxClients: profile.wlanSpec?.maxClients ?? null,
+                                                        indoorOutdoor: profile.wlanSpec?.indoorOutdoor ?? null,
+                                                        radios: profile.wlanSpec?.radios ?? [],
+                                                    },
+                                                }))}
+                                                placeholder="Wi-Fi 6 / Wi-Fi 6E / Wi-Fi 7"
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Max Clients</label>
+                                            <Input
+                                                type="number"
+                                                value={item.equipmentProfile?.wlanSpec?.maxClients ?? ''}
+                                                onChange={(e) => updateEquipmentProfile((profile) => ({
+                                                    ...profile,
+                                                    wlanSpec: {
+                                                        wifiStandard: profile.wlanSpec?.wifiStandard ?? null,
+                                                        maxClients: Number.parseInt(e.target.value || '0', 10) || null,
+                                                        indoorOutdoor: profile.wlanSpec?.indoorOutdoor ?? null,
+                                                        radios: profile.wlanSpec?.radios ?? [],
+                                                    },
+                                                }))}
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Indoor / Outdoor</label>
+                                            <Input
+                                                value={item.equipmentProfile?.wlanSpec?.indoorOutdoor ?? ''}
+                                                onChange={(e) => updateEquipmentProfile((profile) => ({
+                                                    ...profile,
+                                                    wlanSpec: {
+                                                        wifiStandard: profile.wlanSpec?.wifiStandard ?? null,
+                                                        maxClients: profile.wlanSpec?.maxClients ?? null,
+                                                        indoorOutdoor: e.target.value || null,
+                                                        radios: profile.wlanSpec?.radios ?? [],
+                                                    },
+                                                }))}
+                                                placeholder="Indoor / Outdoor / Both"
+                                                className="bg-white"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Radios (one per line)</label>
+                                        <Textarea
+                                            value={unknownListToMultiline(item.equipmentProfile?.wlanSpec?.radios)}
+                                            onChange={(e) => updateEquipmentProfile((profile) => ({
+                                                ...profile,
+                                                wlanSpec: {
+                                                    wifiStandard: profile.wlanSpec?.wifiStandard ?? null,
+                                                    maxClients: profile.wlanSpec?.maxClients ?? null,
+                                                    indoorOutdoor: profile.wlanSpec?.indoorOutdoor ?? null,
+                                                    radios: multilineToStringList(e.target.value),
+                                                },
+                                            }))}
+                                            className="min-h-[88px] bg-white"
+                                            placeholder="2.4 GHz 2x2&#10;5 GHz 4x4&#10;6 GHz 4x4"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </section>
+                    )}
 
                     {/* Constraints & Assumptions */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1894,19 +2488,151 @@ export default function CatalogItemDetail() {
                             </select>
                         </div>
                         {item.type === 'HARDWARE' && (
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Hardware Lifecycle</label>
-                                <select
-                                    value={item.lifecycleStatus}
-                                    onChange={(e) => setItem({ ...item, lifecycleStatus: e.target.value as LifecycleStatus })}
-                                    className="w-full h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 font-medium text-slate-900"
-                                >
-                                    {HARDWARE_LIFECYCLE_STATUSES.map((status) => (
-                                        <option key={status} value={status}>
-                                            {lifecycleStatusLabel(status)}
-                                        </option>
-                                    ))}
-                                </select>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Hardware Lifecycle</label>
+                                    <select
+                                        value={item.lifecycleStatus}
+                                        onChange={(e) => setItem({ ...item, lifecycleStatus: e.target.value as LifecycleStatus })}
+                                        className="w-full h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 font-medium text-slate-900"
+                                    >
+                                        {HARDWARE_LIFECYCLE_STATUSES.map((status) => (
+                                            <option key={status} value={status}>
+                                                {lifecycleStatusLabel(status)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Primary Purpose</label>
+                                    <select
+                                        value={item.primaryPurpose || ''}
+                                        onChange={(e) => setItem({ ...item, primaryPurpose: (e.target.value || null) as 'WAN' | 'LAN' | 'WLAN' | null })}
+                                        className="w-full h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 font-medium text-slate-900"
+                                    >
+                                        <option value="">Select</option>
+                                        <option value="WAN">WAN</option>
+                                        <option value="LAN">LAN</option>
+                                        <option value="WLAN">WLAN</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Secondary Purposes</label>
+                                    <div className="grid grid-cols-3 gap-2 text-xs">
+                                        {(['WAN', 'LAN', 'WLAN'] as const).map((purpose) => (
+                                            <label key={purpose} className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={item.secondaryPurposes.includes(purpose)}
+                                                    onChange={(e) => {
+                                                        const next = e.target.checked
+                                                            ? Array.from(new Set([...item.secondaryPurposes, purpose]))
+                                                            : item.secondaryPurposes.filter((entry) => entry !== purpose);
+                                                        setItem({ ...item, secondaryPurposes: next.filter((entry) => entry !== item.primaryPurpose) });
+                                                    }}
+                                                />
+                                                {purpose}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Input
+                                        value={item.equipmentProfile?.make || ''}
+                                        onChange={(e) => setItem({
+                                            ...item,
+                                            equipmentProfile: {
+                                                make: e.target.value,
+                                                model: item.equipmentProfile?.model || '',
+                                                pricingSku: item.equipmentProfile?.pricingSku || null,
+                                                family: item.equipmentProfile?.family || null,
+                                                vendorDatasheetUrl: item.equipmentProfile?.vendorDatasheetUrl || null,
+                                                reviewStatus: item.equipmentProfile?.reviewStatus || 'PUBLISHED',
+                                                wanSpec: item.equipmentProfile?.wanSpec || null,
+                                                lanSpec: item.equipmentProfile?.lanSpec || null,
+                                                wlanSpec: item.equipmentProfile?.wlanSpec || null,
+                                            },
+                                        })}
+                                        placeholder="Make"
+                                        className="h-8 bg-slate-50"
+                                    />
+                                    <Input
+                                        value={item.equipmentProfile?.model || ''}
+                                        onChange={(e) => setItem({
+                                            ...item,
+                                            equipmentProfile: {
+                                                make: item.equipmentProfile?.make || '',
+                                                model: e.target.value,
+                                                pricingSku: item.equipmentProfile?.pricingSku || null,
+                                                family: item.equipmentProfile?.family || null,
+                                                vendorDatasheetUrl: item.equipmentProfile?.vendorDatasheetUrl || null,
+                                                reviewStatus: item.equipmentProfile?.reviewStatus || 'PUBLISHED',
+                                                wanSpec: item.equipmentProfile?.wanSpec || null,
+                                                lanSpec: item.equipmentProfile?.lanSpec || null,
+                                                wlanSpec: item.equipmentProfile?.wlanSpec || null,
+                                            },
+                                        })}
+                                        placeholder="Model"
+                                        className="h-8 bg-slate-50"
+                                    />
+                                    <Input
+                                        value={item.equipmentProfile?.pricingSku || ''}
+                                        onChange={(e) => setItem({
+                                            ...item,
+                                            equipmentProfile: {
+                                                make: item.equipmentProfile?.make || '',
+                                                model: item.equipmentProfile?.model || '',
+                                                pricingSku: e.target.value || null,
+                                                family: item.equipmentProfile?.family || null,
+                                                vendorDatasheetUrl: item.equipmentProfile?.vendorDatasheetUrl || null,
+                                                reviewStatus: item.equipmentProfile?.reviewStatus || 'PUBLISHED',
+                                                wanSpec: item.equipmentProfile?.wanSpec || null,
+                                                lanSpec: item.equipmentProfile?.lanSpec || null,
+                                                wlanSpec: item.equipmentProfile?.wlanSpec || null,
+                                            },
+                                        })}
+                                        placeholder="Pricing SKU"
+                                        className="h-8 bg-slate-50"
+                                    />
+                                    <Input
+                                        value={item.equipmentProfile?.family || ''}
+                                        onChange={(e) => setItem({
+                                            ...item,
+                                            equipmentProfile: {
+                                                make: item.equipmentProfile?.make || '',
+                                                model: item.equipmentProfile?.model || '',
+                                                pricingSku: item.equipmentProfile?.pricingSku || null,
+                                                family: e.target.value || null,
+                                                vendorDatasheetUrl: item.equipmentProfile?.vendorDatasheetUrl || null,
+                                                reviewStatus: item.equipmentProfile?.reviewStatus || 'PUBLISHED',
+                                                wanSpec: item.equipmentProfile?.wanSpec || null,
+                                                lanSpec: item.equipmentProfile?.lanSpec || null,
+                                                wlanSpec: item.equipmentProfile?.wlanSpec || null,
+                                            },
+                                        })}
+                                        placeholder="Family"
+                                        className="h-8 bg-slate-50"
+                                    />
+                                </div>
+                                <Input
+                                    value={item.equipmentProfile?.vendorDatasheetUrl || ''}
+                                    onChange={(e) => setItem({
+                                        ...item,
+                                        equipmentProfile: {
+                                            make: item.equipmentProfile?.make || '',
+                                            model: item.equipmentProfile?.model || '',
+                                            pricingSku: item.equipmentProfile?.pricingSku || null,
+                                            family: item.equipmentProfile?.family || null,
+                                            vendorDatasheetUrl: e.target.value || null,
+                                            reviewStatus: item.equipmentProfile?.reviewStatus || 'PUBLISHED',
+                                            wanSpec: item.equipmentProfile?.wanSpec || null,
+                                            lanSpec: item.equipmentProfile?.lanSpec || null,
+                                            wlanSpec: item.equipmentProfile?.wlanSpec || null,
+                                        },
+                                    })}
+                                    placeholder="Vendor datasheet URL"
+                                    className="h-8 bg-slate-50"
+                                />
                             </div>
                         )}
                     </section>

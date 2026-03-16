@@ -23,34 +23,41 @@ model TaxonomyTerm {
 }
 
 model CatalogItem {
-  id                  String                      @id @default(uuid())
-  sku                 String                      @unique
-  name                String
-  type                ItemType
-  lifecycleStatus     LifecycleStatus             @default(SUPPORTED)
-  createdAt           DateTime                    @default(now())
-  updatedAt           DateTime                    @updatedAt
-  configSchema        Json?
-  detailedDescription String?
-  shortDescription    String?
-  assumptions         ItemAssumption[]
-  attributes          ItemAttribute[]
-  collaterals         ItemCollateral[]
-  constraints         ItemConstraint[]
-  parentDependencies  ItemDependency[]            @relation("ChildItem")
-  childDependencies   ItemDependency[]            @relation("ParentItem")
-  pricing             Pricing[]
-  projectItems        ProjectItem[]
-  siteSelections      SiteSelection[]
-  primarySites        SolutionSite[]              @relation("PrimarySiteService")
-  designOptions       CatalogItemDesignOption[]
-  packageCompositions PackageCompositionItem[]    @relation("PackageCompositionPackage")
-  packageMembers      PackageCompositionItem[]    @relation("PackageCompositionMember")
-  packagePolicies     PackageDesignOptionPolicy[] @relation("PackagePolicyPackage")
-  policyTargets       PackageDesignOptionPolicy[] @relation("PackagePolicyTarget")
-  recommendations     ProjectRecommendation[]
+  id                     String                         @id @default(uuid())
+  sku                    String                         @unique
+  name                   String
+  type                   ItemType
+  primaryPurpose         EquipmentPurpose?
+  secondaryPurposes      EquipmentPurpose[]             @default([])
+  lifecycleStatus        LifecycleStatus                @default(SUPPORTED)
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  configSchema           Json?
+  detailedDescription    String?
+  shortDescription       String?
+  assumptions            ItemAssumption[]
+  attributes             ItemAttribute[]
+  collaterals            ItemCollateral[]
+  constraints            ItemConstraint[]
+  parentDependencies     ItemDependency[]               @relation("ChildItem")
+  childDependencies      ItemDependency[]               @relation("ParentItem")
+  pricing                Pricing[]
+  projectItems           ProjectItem[]
+  siteSelections         SiteSelection[]
+  primarySites           SolutionSite[]                 @relation("PrimarySiteService")
+  designOptions          CatalogItemDesignOption[]
+  packageCompositions    PackageCompositionItem[]       @relation("PackageCompositionPackage")
+  packageMembers         PackageCompositionItem[]       @relation("PackageCompositionMember")
+  packagePolicies        PackageDesignOptionPolicy[]    @relation("PackagePolicyPackage")
+  policyTargets          PackageDesignOptionPolicy[]    @relation("PackagePolicyTarget")
+  recommendations        ProjectRecommendation[]
   recommendationRunItems ProjectRecommendationRunItem[]
-  projectEvents      ProjectEvent[]
+  projectEvents          ProjectEvent[]
+  equipmentProfile       EquipmentProfile?
+  ingestionSources       EquipmentIngestionSource[]
+
+  @@index([primaryPurpose])
+  @@index([secondaryPurposes], type: Gin)
 }
 
 model ItemConstraint {
@@ -96,6 +103,96 @@ model ItemAttribute {
   term           TaxonomyTerm @relation(fields: [taxonomyTermId], references: [id], onDelete: Cascade)
 
   @@unique([itemId, taxonomyTermId])
+}
+
+model EquipmentProfile {
+  catalogItemId       String                @id
+  make                String
+  model               String
+  pricingSku          String?
+  family              String?
+  vendorDatasheetUrl  String?
+  normalizedMakeModel String                @unique
+  reviewStatus        EquipmentReviewStatus @default(PUBLISHED)
+  lastExtractedAt     DateTime?
+  lastExtractedModel  String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  catalogItem         CatalogItem           @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+  wanSpec             EquipmentWanSpec?
+  lanSpec             EquipmentLanSpec?
+  wlanSpec            EquipmentWlanSpec?
+
+  @@index([make, model])
+  @@index([reviewStatus, updatedAt])
+}
+
+model EquipmentWanSpec {
+  catalogItemId    String           @id
+  throughputMbps   Int?
+  vpnTunnels       Int?
+  cellularSupport  Boolean          @default(false)
+  formFactor       String?
+  interfaces       Json             @default("[]")
+  equipmentProfile EquipmentProfile @relation(fields: [catalogItemId], references: [catalogItemId], onDelete: Cascade)
+}
+
+model EquipmentLanSpec {
+  catalogItemId    String           @id
+  portCount        Int?
+  portSpeed        String?
+  poeBudgetWatts   Int?
+  stackable        Boolean          @default(false)
+  uplinkPorts      Json             @default("[]")
+  equipmentProfile EquipmentProfile @relation(fields: [catalogItemId], references: [catalogItemId], onDelete: Cascade)
+}
+
+model EquipmentWlanSpec {
+  catalogItemId    String           @id
+  wifiStandard     String?
+  maxClients       Int?
+  indoorOutdoor    String?
+  radios           Json             @default("[]")
+  equipmentProfile EquipmentProfile @relation(fields: [catalogItemId], references: [catalogItemId], onDelete: Cascade)
+}
+
+model EquipmentIngestionJob {
+  id           String                      @id @default(uuid())
+  status       EquipmentIngestionJobStatus @default(PENDING)
+  submittedBy  String?
+  errorSummary String?
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @updatedAt
+  startedAt    DateTime?
+  completedAt  DateTime?
+  sources      EquipmentIngestionSource[]
+
+  @@index([status, createdAt])
+}
+
+model EquipmentIngestionSource {
+  id                String                         @id @default(uuid())
+  jobId             String
+  catalogItemId     String?
+  url               String
+  normalizedUrl     String
+  status            EquipmentIngestionSourceStatus @default(PENDING)
+  attempts          Int                            @default(0)
+  httpStatus        Int?
+  contentType       String?
+  contentLength     Int?
+  extractedText     String?
+  extractionPayload Json?
+  errorMessage      String?
+  createdAt         DateTime                       @default(now())
+  updatedAt         DateTime                       @updatedAt
+  processedAt       DateTime?
+  job               EquipmentIngestionJob          @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  catalogItem       CatalogItem?                   @relation(fields: [catalogItemId], references: [id], onDelete: SetNull)
+
+  @@unique([jobId, normalizedUrl])
+  @@index([status, createdAt])
+  @@index([catalogItemId])
 }
 
 model ItemDependency {
@@ -148,39 +245,39 @@ model PricingTier {
 }
 
 model Project {
-  id              String                       @id @default(uuid())
-  name            String
-  customerName    String?
-  status          ProjectStatus                @default(DRAFT)
-  workflowStage   ProjectWorkflowStage         @default(PROJECT_CREATED)
-  termMonths      Int                          @default(1)
-  createdAt       DateTime                     @default(now())
-  updatedAt       DateTime                     @updatedAt
-  userId          String?
-  rawRequirements String?
-  manualNotes     String?
-  user            User?                        @relation(fields: [userId], references: [id])
-  items           ProjectItem[]
-  sites           SolutionSite[]
-  requirementDocs ProjectRequirementDocument[]
-  recommendations ProjectRecommendation[]
+  id                 String                       @id @default(uuid())
+  name               String
+  customerName       String?
+  status             ProjectStatus                @default(DRAFT)
+  workflowStage      ProjectWorkflowStage         @default(PROJECT_CREATED)
+  termMonths         Int                          @default(1)
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
+  userId             String?
+  rawRequirements    String?
+  manualNotes        String?
+  user               User?                        @relation(fields: [userId], references: [id])
+  items              ProjectItem[]
+  sites              SolutionSite[]
+  requirementDocs    ProjectRequirementDocument[]
+  recommendations    ProjectRecommendation[]
   recommendationRuns ProjectRecommendationRun[]
-  events          ProjectEvent[]
-  designDocuments ProjectDesignDocument[]
+  events             ProjectEvent[]
+  designDocuments    ProjectDesignDocument[]
 }
 
 model ProjectItem {
-  id            String                    @id @default(uuid())
-  projectId     String
-  catalogItemId String
-  quantity      Int                       @default(1)
-  createdAt     DateTime                  @default(now())
-  updatedAt     DateTime                  @updatedAt
-  configValues  Json?
+  id                 String                    @id @default(uuid())
+  projectId          String
+  catalogItemId      String
+  quantity           Int                       @default(1)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  configValues       Json?
   designOptionValues Json?
-  catalogItem   CatalogItem               @relation(fields: [catalogItemId], references: [id])
-  project       Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  designOptions ProjectItemDesignOption[]
+  catalogItem        CatalogItem               @relation(fields: [catalogItemId], references: [id])
+  project            Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  designOptions      ProjectItemDesignOption[]
 
   @@unique([projectId, catalogItemId])
 }
@@ -210,16 +307,16 @@ model SolutionSite {
 }
 
 model SiteSelection {
-  id            String       @id @default(uuid())
-  siteId        String
-  catalogItemId String
-  quantity      Int          @default(1)
-  configValues  Json?
+  id                 String       @id @default(uuid())
+  siteId             String
+  catalogItemId      String
+  quantity           Int          @default(1)
+  configValues       Json?
   designOptionValues Json?
-  role          String?
-  createdAt     DateTime     @default(now())
-  catalogItem   CatalogItem  @relation(fields: [catalogItemId], references: [id])
-  site          SolutionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  role               String?
+  createdAt          DateTime     @default(now())
+  catalogItem        CatalogItem  @relation(fields: [catalogItemId], references: [id])
+  site               SolutionSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, catalogItemId])
 }
@@ -243,15 +340,15 @@ model ProjectDesignDocument {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  name      String?
-  role      Role      @default(SA)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  projects  Project[]
+  id                 String                     @id @default(uuid())
+  email              String                     @unique
+  name               String?
+  role               Role                       @default(SA)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  projects           Project[]
   recommendationRuns ProjectRecommendationRun[]
-  projectEvents ProjectEvent[]
+  projectEvents      ProjectEvent[]
 }
 
 model SystemConfig {
@@ -266,20 +363,20 @@ model SystemConfig {
 }
 
 model DesignOptionDefinition {
-  id          String                      @id @default(uuid())
-  key         String                      @unique
-  label       String
-  lifecycleStatus LifecycleStatus         @default(SUPPORTED)
-  description String?
-  constraints String[]                    @default([])
-  assumptions String[]                    @default([])
-  valueType   DesignOptionValueType
-  isActive    Boolean                     @default(true)
-  createdAt   DateTime                    @default(now())
-  updatedAt   DateTime                    @updatedAt
-  values      DesignOptionValue[]
-  itemOptions CatalogItemDesignOption[]
-  policies    PackageDesignOptionPolicy[]
+  id              String                      @id @default(uuid())
+  key             String                      @unique
+  label           String
+  lifecycleStatus LifecycleStatus             @default(SUPPORTED)
+  description     String?
+  constraints     String[]                    @default([])
+  assumptions     String[]                    @default([])
+  valueType       DesignOptionValueType
+  isActive        Boolean                     @default(true)
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+  values          DesignOptionValue[]
+  itemOptions     CatalogItemDesignOption[]
+  policies        PackageDesignOptionPolicy[]
 }
 
 model DesignOptionValue {
@@ -420,14 +517,14 @@ model ProjectRecommendation {
 }
 
 model ProjectRecommendationRun {
-  id                  String                       @id @default(uuid())
+  id                  String                         @id @default(uuid())
   projectId           String
   userId              String?
   sourceModel         String
-  recommendationCount Int                          @default(0)
-  createdAt           DateTime                     @default(now())
-  project             Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user                User?                        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  recommendationCount Int                            @default(0)
+  createdAt           DateTime                       @default(now())
+  project             Project                        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user                User?                          @relation(fields: [userId], references: [id], onDelete: SetNull)
   items               ProjectRecommendationRunItem[]
 
   @@index([projectId, createdAt])
@@ -435,40 +532,40 @@ model ProjectRecommendationRun {
 }
 
 model ProjectRecommendationRunItem {
-  id                  String                   @id @default(uuid())
-  runId               String
-  catalogItemId       String
-  rank                Int
-  score               Decimal                  @default(0) @db.Decimal(6, 3)
-  certaintyPercent    Int                      @default(0)
-  reason              String
-  shortReason         String?
-  requiredIncluded    String[]
-  optionalRecommended String[]
+  id                     String                   @id @default(uuid())
+  runId                  String
+  catalogItemId          String
+  rank                   Int
+  score                  Decimal                  @default(0) @db.Decimal(6, 3)
+  certaintyPercent       Int                      @default(0)
+  reason                 String
+  shortReason            String?
+  requiredIncluded       String[]
+  optionalRecommended    String[]
   matchedCharacteristics String[]
-  coverageAreas       String[]
-  riskFactors         String[]
-  createdAt           DateTime                 @default(now())
-  run                 ProjectRecommendationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  catalogItem         CatalogItem              @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+  coverageAreas          String[]
+  riskFactors            String[]
+  createdAt              DateTime                 @default(now())
+  run                    ProjectRecommendationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  catalogItem            CatalogItem              @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
 
   @@index([runId, rank])
   @@index([catalogItemId, createdAt])
 }
 
 model ProjectEvent {
-  id           String              @id @default(uuid())
-  projectId    String
-  userId       String?
-  eventType    ProjectEventType
+  id            String                @id @default(uuid())
+  projectId     String
+  userId        String?
+  eventType     ProjectEventType
   workflowStage ProjectWorkflowStage?
   catalogItemId String?
-  collateralId String?
-  metadata     Json?
-  createdAt    DateTime            @default(now())
-  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user         User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
-  catalogItem  CatalogItem?        @relation(fields: [catalogItemId], references: [id], onDelete: SetNull)
+  collateralId  String?
+  metadata      Json?
+  createdAt     DateTime              @default(now())
+  project       Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user          User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  catalogItem   CatalogItem?          @relation(fields: [catalogItemId], references: [id], onDelete: SetNull)
 
   @@index([projectId, createdAt])
   @@index([eventType, createdAt])
@@ -582,4 +679,32 @@ enum ProjectEventType {
 enum DesignDocumentStatus {
   DRAFT
   PUBLISHED
+}
+
+enum EquipmentPurpose {
+  WAN
+  LAN
+  WLAN
+}
+
+enum EquipmentReviewStatus {
+  DRAFT
+  PUBLISHED
+  REJECTED
+}
+
+enum EquipmentIngestionJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+}
+
+enum EquipmentIngestionSourceStatus {
+  PENDING
+  PROCESSING
+  UPSERTED
+  SKIPPED
+  FAILED
 }
